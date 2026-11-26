@@ -1,0 +1,36 @@
+name: Verify canyon restaurant
+on:
+  push:
+    branches: [verify/canyon-godot-46]
+permissions:
+  contents: read
+jobs:
+  restaurant:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Load Godot 4.6.3
+        run: |
+          curl -fsSL --retry 2 https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/engine
+          ln -s /tmp/engine/Godot_v4.6.3-stable_linux.x86_64 /tmp/godot
+          mkdir -p .local
+          /tmp/godot --headless --editor --import --path . > .local/import.log 2>&1
+          cat .local/import.log
+          ! grep -E 'SCRIPT ERROR:|Parse Error:' .local/import.log
+      - name: Service rules and invariants
+        run: |
+          set -o pipefail
+          /tmp/godot --headless --script res://tests/canyon_service_test.gd | tee .local/canyon.log
+          /tmp/godot --headless --script res://tests/test_suite.gd | tee .local/rules.log
+      - name: Inspect title and restaurant at desktop size
+        run: |
+          xvfb-run -a /tmp/godot --rendering-method gl_compatibility --audio-driver Dummy --script res://tests/presentation_test.gd -- --ui-test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: canyon-verification
+          path: .local/
+          include-hidden-files: true
+          retention-days: 3
