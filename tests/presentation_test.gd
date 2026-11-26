@@ -27,11 +27,33 @@ func modal(scene, kind: String) -> void:
 	check(scene.modal_kind == kind and frame.panel.size.y > 80 and Rect2(Vector2.ZERO, root.size).encloses(frame.panel.get_global_rect()), "弹窗可见且完整 " + kind)
 	check(frame.scroll.get_h_scroll_bar().max_value <= frame.scroll.size.x + 1, "无横向裁切 " + kind)
 
+func canyon_preview() -> void:
+	Store.write_checkpoint(Sim.new().export_state(), Store.default_path("street_corner", true))
+	var title = load("res://scenes/title.tscn").instantiate()
+	root.add_child(title)
+	await RenderingServer.frame_post_draw
+	await shot("canyon-title")
+	title.start_button.pressed.emit()
+	var game = title.game
+	game.guide.skip()
+	game.set_process(false)
+	game._open_day()
+	game.sim.paused = false
+	for i in range(240): game.sim.step()
+	game._update_hud()
+	game.ui.rush.pressed.emit()
+	game.world._process(0.0)
+	check(game.ui.skills.visible and game.ui.rush.disabled and game.world.current_sprite.visible, "技能按钮触发水流并进入冷却")
+	await shot("canyon-service")
+	title.queue_free()
+	await process_frame
+
 func run() -> void:
 	if "--ui-test" not in OS.get_cmdline_user_args():
 		push_error("Pass --ui-test to use isolated test saves.")
 		quit(1)
 		return
+	await canyon_preview()
 	var invalid = load("res://scenes/main.tscn").instantiate()
 	invalid.chapter_id = "missing_chapter_test"
 	root.add_child(invalid)
@@ -167,6 +189,8 @@ func run() -> void:
 	world._process(0)
 	await shot("night-interior")
 
+	# Exercise the first patience penalty even when a third pot finishes early.
+	scene.sim.chapter.common_guest_template.food_penalty_cycle_seconds = 5.0
 	scene._open_day()
 	scene.sim.paused = false
 	scene.status_timer = 0
@@ -235,6 +259,7 @@ func run() -> void:
 	check(world.chatter.sequence <= 15, "普通速度完整营业日的发言次数受限")
 	var control = Sim.new()
 	control.new_run(123456)
+	control.chapter.common_guest_template.food_penalty_cycle_seconds = 5.0
 	control.start_day()
 	while control.phase == "DAY": control.step()
 	check(control.last_report == scene.sim.last_report and control.gold == scene.sim.gold, "气泡抽选不影响同种子经营结果")

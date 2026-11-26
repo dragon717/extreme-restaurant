@@ -2,7 +2,7 @@
 
 ## 原版服务链
 
-在 Fork 基线 cc4e4ef 上，用 gdtoolkit 的 GDScript 语法解析了 scripts 下 35 份脚本、615 个函数。调用边来自语法树，订单所有权和时序根据函数内的条件与赋值核对。安装 gdtoolkit 后，可用 `python3 tools/gameplay_ast.py` 在当前版本重跑。
+在 Fork 基线 cc4e4ef 上，用 gdtoolkit 的 GDScript 语法解析了 scripts 下 35 份脚本、617 个函数声明（同文件的不同内部类分别计数）。调用边来自语法树，订单所有权和时序根据函数内的条件与赋值核对。安装 gdtoolkit 后，可用 `python3 tools/gameplay_ast.py` 在当前版本重跑。
 
 | 玩家观察到的现象 | 源码入口与规则 | 可观测指标 |
 | --- | --- | --- |
@@ -31,5 +31,8 @@
 - [希维尔 R 图标](https://github.com/TheePepS/League_Of_Legends_Assets/blob/master/Champions_Spells_Assets/Sivir_On_The_Hunt.png)
 - [布兰德被动图标](https://github.com/TheePepS/League_Of_Legends_Assets/blob/master/Champions_Spells_Assets/Brand_Blaze.png)
 - [GitHub 英雄头像目录](https://github.com/TheePepS/League_Of_Legends_Assets/tree/master/Champions_assets)
+- [CommunityDragon 的 scuttle.png 图标索引](https://raw.communitydragon.org/16.11/plugins/rcp-fe-lol-champ-select/global/default/images/subteams/)
+- [GitHub 上按英雄整理的语音与音效](https://github.com/VaultSoft/sound-vault)
+- [GitHub 音乐播放列表，含 Awaken、RISE、Phoenix 和 Legends Never Die](https://github.com/Dev-Pedrosv/lol-media-player/tree/master/src/assets/audio/mp3)。这些是检索到的原曲，项目目前未收录背景音乐。
 - [CommunityDragon 的客户端资源路径说明](https://github.com/CommunityDragon/Docs/blob/master/assets.md)
 - [Riot 对游戏使用素材的规则，第 3 条](https://www.riotgames.com/en/legal)
