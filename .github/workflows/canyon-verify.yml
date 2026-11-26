@@ -26,7 +26,19 @@ jobs:
           /tmp/godot --headless --script res://tests/test_suite.gd | tee .local/rules.log
       - name: Inspect title and restaurant at desktop size
         run: |
+          if [ -z "$(fc-list :lang=zh)" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk; fi
           xvfb-run -a /tmp/godot --rendering-method gl_compatibility --audio-driver Dummy --script res://tests/presentation_test.gd -- --ui-test
+      - name: Review painted interface
+        if: always()
+        run: |
+          for state in title service; do
+            for png in .local/*canyon-${state}.png; do
+              if test -f "$png"; then
+                convert "$png" -resize 900x -quality 72 "/tmp/$state.jpg"
+                base64 -w 1600 "/tmp/$state.jpg" | sed "s/^/CAPTURE_$state /"
+              fi
+            done
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
