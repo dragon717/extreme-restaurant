@@ -25,24 +25,32 @@ static func font() -> Font:
 	cached_font = system
 	return cached_font
 
-static func box(color: Color = PANEL, border: Color = Color("3d5240"), radius: int = 10, margin: int = 14) -> StyleBoxFlat:
-	var style = StyleBoxFlat.new()
-	style.bg_color = color
-	style.border_color = border
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(radius)
-	style.content_margin_left = margin
-	style.content_margin_right = margin
-	style.content_margin_top = margin
-	style.content_margin_bottom = margin
-	return style
+const PANEL_ART = preload("res://assets/canyon/panel.webp")
+const BUTTON_ART = preload("res://assets/canyon/button.webp")
+const PAPER_ART = preload("res://assets/canyon/paper.webp")
 
-static func surface(accent: Color, margin := 14) -> StyleBoxFlat:
-	var skin = box(PANEL, Color("547071"), 12, margin)
-	skin.border_color = accent.darkened(0.36)
-	skin.shadow_color = Color("152535", 0.34)
-	skin.shadow_size = 7
-	skin.shadow_offset = Vector2(0, 4)
+static func box(color: Color = PANEL, border: Color = GOLD, radius: int = 10, margin: int = 14) -> StyleBoxTexture:
+	var skin := StyleBoxTexture.new()
+	skin.texture = PAPER_ART
+	skin.modulate_color = color
+	var edge := clampi(radius, 1, 10)
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		skin.set_texture_margin(side, edge)
+		skin.set_content_margin(side, margin)
+	if color.a == 0:
+		skin.draw_center = false
+		skin.modulate_color = border
+	return skin
+
+static func surface(accent: Color, margin := 14) -> StyleBoxTexture:
+	var skin := box(Color.WHITE, accent, 9, margin)
+	skin.texture = PANEL_ART
+	skin.modulate_color = Color.WHITE.lerp(accent, 0.12)
+	return skin
+
+static func button_skin(tint: Color) -> StyleBoxTexture:
+	var skin := box(tint, GOLD, 7, 10)
+	skin.texture = BUTTON_ART
 	return skin
 
 static func theme() -> Theme:
@@ -53,10 +61,10 @@ static func theme() -> Theme:
 	t.set_color("font_color", "Button", INK)
 	t.set_color("font_hover_color", "Button", INK)
 	t.set_color("font_disabled_color", "Button", Color("a5b6b3"))
-	t.set_stylebox("normal", "Button", box(PANEL_LIGHT, Color("537071"), 7, 10))
-	t.set_stylebox("hover", "Button", box(Color("3e6060"), GREEN, 7, 10))
-	t.set_stylebox("pressed", "Button", box(Color("466b68"), GOLD, 7, 10))
-	t.set_stylebox("disabled", "Button", box(Color("2c4144"), Color("455b5d"), 7, 10))
+	t.set_stylebox("normal", "Button", button_skin(Color("b8cccb")))
+	t.set_stylebox("hover", "Button", button_skin(Color.WHITE))
+	t.set_stylebox("pressed", "Button", button_skin(Color("94aaa0")))
+	t.set_stylebox("disabled", "Button", button_skin(Color("859093")))
 	t.set_stylebox("focus", "Button", box(Color(0,0,0,0), GOLD, 7, 2))
 	t.set_stylebox("panel", "PanelContainer", box(PANEL, Color("526b68")))
 	t.set_stylebox("panel", "TooltipPanel", surface(GOLD, 10))

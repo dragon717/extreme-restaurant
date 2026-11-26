@@ -252,6 +252,14 @@ func _build_interface() -> void:
 	overlay.add_child(ui.open)
 	_rect(ui.open, -104, -67, 104, -19, .5, 1)
 	ui.open.pressed.connect(_open_day)
+	ui.skills = preload("res://scenes/service_skills.tscn").instantiate()
+	overlay.add_child(ui.skills)
+	_rect(ui.skills, -158, -67, 158, -19, .5, 1)
+	ui.rush = ui.skills.get_node("Rush")
+	ui.rush.pressed.connect(func():
+		if guide.blocks_clock or not modal_kind.is_empty(): return
+		if sim.call_current(): _update_hud()
+	)
 	ui.menu = _icon_button("recipe", "菜谱")
 	overlay.add_child(ui.menu)
 	_rect(ui.menu, -65, -67, -18, -19, 1, 1)
@@ -431,6 +439,11 @@ func _update_hud() -> void:
 		opening_issue = "" if errors.is_empty() else str(errors[0])
 		opening_check_revision = sim.revision
 	ui.open.disabled = sim.phase != "NIGHT" or not opening_issue.is_empty()
+	ui.skills.visible = sim.phase == "DAY"
+	if ui.skills.visible:
+		var remaining := maxi(0, sim.current_ready - sim.tick)
+		ui.rush.disabled = remaining > 0 or sim.paused or guide.blocks_clock or not modal_kind.is_empty()
+		ui.rush.text = "河道急送" if remaining == 0 else "急送 · %d秒" % ceili(remaining * sim.tick_ms / 1000.0)
 	ui.history.disabled = sim.reports.is_empty()
 	ui.history.tooltip_text = "历史日报" if not ui.history.disabled else "完成首日营业后可查看历史日报"
 	if sim.phase == "NIGHT":
@@ -505,8 +518,7 @@ func _build_special_notice(overlay: Control) -> void:
 	notice.name = "SpecialGuestNotice"
 	notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var skin = Style.surface(Color("e2a78e"), 10)
-	skin.bg_color = Color("3b363b")
-	skin.border_color = Color("a77b67")
+	skin.modulate_color = Color("e6cabf")
 	notice.add_theme_stylebox_override("panel", skin)
 	overlay.add_child(notice)
 	_rect(notice, -326, 75, -17, 139, 1, 0)

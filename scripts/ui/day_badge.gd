@@ -35,42 +35,17 @@ func set_weather(has_rain: bool, has_thunder: bool) -> void:
 	storm = has_thunder
 	queue_redraw()
 
-func _draw_weather(icon: Vector2) -> void:
-	var cloud = Color("bcd5d5").lerp(Color("cad6ec"), .78 if storm else .0)
-	draw_circle(icon + Vector2(-4, -2), 3.1, cloud, true, -1, true)
-	draw_circle(icon + Vector2(0, -4), 4.1, cloud, true, -1, true)
-	draw_circle(icon + Vector2(4.5, -1.8), 3.05, cloud, true, -1, true)
-	draw_rect(Rect2(icon + Vector2(-4.8, -2), Vector2(10.2, 3.15)), cloud)
-	for x in [-5, 0, 5]:
-		if storm and x == 0: continue
-		var at = icon + Vector2(x, 3)
-		draw_line(at, at + Vector2(-1.6, 2.6), Color("93c5d8"), 1.3, true)
-	if storm:
-		draw_colored_polygon(PackedVector2Array([icon + Vector2(1, 1), icon + Vector2(-2, 5), icon + Vector2(.3, 5), icon + Vector2(-.4, 8), icon + Vector2(3, 4), icon + Vector2(.8, 4)]), Style.GOLD)
+const Icon = preload("res://scripts/ui/ui_icon.gd")
+const PLATE = preload("res://assets/canyon/panel.webp")
 
 func _draw() -> void:
 	if font == null: return
-	var center = Vector2(size.x * .5, size.y * .5)
-	var sky = Color("34464a").lerp(Color("396853"), daylight)
-	draw_circle(center, 28, Color("12231e"))
-	draw_circle(center, 25, sky)
-	draw_arc(center, 26.5, -PI / 2, -PI / 2 + TAU * clampf(progress, 0, 1), 36, Style.GREEN.lerp(Style.GOLD, daylight), 2)
-	var icon = center + Vector2(0, -11)
+	var center := size * 0.5
+	draw_texture_rect(PLATE, Rect2(center - Vector2(28,28), Vector2(56,56)), false)
+	var icon_bounds := Rect2(center - Vector2(12,23), Vector2(24,24))
 	if rainy:
-		_draw_weather(icon)
-	if not rainy and daylight < 1.0:
-		var moon = PackedVector2Array([Vector2(-.4,-6.7), Vector2(-4.4,-4.8), Vector2(-6.4,-1.3),
-			Vector2(-5.7,2.9), Vector2(-2.9,5.7), Vector2(1.2,6.4), Vector2(4.8,4.5), Vector2(5.8,1.9),
-			Vector2(2.6,2.6), Vector2(-.2,1.2), Vector2(-1.6,-1.5), Vector2(-1.3,-4.0)])
-		for i in range(moon.size()): moon[i] += icon + Vector2(-8 * daylight, 0)
-		draw_colored_polygon(moon, Color(Style.GOLD, 1.0 - daylight))
-	if not rainy and daylight > 0.0:
-		var sun = icon + Vector2(8 * (1.0 - daylight), 0)
-		var rays = Color(Style.GOLD, daylight)
-		draw_circle(sun, 5, rays)
-		for i in range(8):
-			var direction = Vector2.RIGHT.rotated(float(i) * TAU / 8.0)
-			draw_line(sun + direction * 7, sun + direction * 9, rays, 1.4, true)
-	var text = str(day)
-	var width = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
-	draw_string(font, center + Vector2(-width * .5, 15), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Style.INK)
+		draw_texture_rect_region(Icon.SHEET, icon_bounds, Icon.region("rain"), Color("ddd6ff") if storm else Color.WHITE)
+	else:
+		draw_texture_rect_region(Icon.SHEET, icon_bounds, Icon.region("moon"), Color(Color.WHITE, 1.0 - daylight))
+		draw_texture_rect_region(Icon.SHEET, icon_bounds, Icon.region("sun"), Color(Color.WHITE, daylight))
+	draw_string(font, center + Vector2(-25,18), str(day), HORIZONTAL_ALIGNMENT_CENTER, 50, 18, Style.INK)

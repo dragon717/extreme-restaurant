@@ -23,15 +23,12 @@ func build(kind: String, caption: String, width: float, dismiss: Callable) -> vo
 	var accent = Style.RED if kind in ["restart", "restore_error", "config_error"] else (Style.GREEN if kind in ["cashier", "plot_unlock"] else Style.GOLD)
 	add_child(panel)
 	var skin = Style.surface(accent, 3)
-	skin.shadow_size = 14
 	panel.add_theme_stylebox_override("panel", skin)
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 0)
 	panel.add_child(stack)
 	stack.add_child(header)
 	var band = Style.box(Color("f1dfbf"), Color("ebc893"), 9, 12)
-	band.corner_radius_bottom_left = 2
-	band.corner_radius_bottom_right = 2
 	header.add_theme_stylebox_override("panel", band)
 	var bar := HBoxContainer.new()
 	header.add_child(bar)

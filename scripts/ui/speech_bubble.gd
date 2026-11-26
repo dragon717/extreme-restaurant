@@ -58,11 +58,8 @@ func set_remark(speaker: String, message: String, accent: Color) -> void:
 	var skin = Style.box(Color("fff4df"), accent.darkened(.25), 5, 5)
 	skin.content_margin_top = 2
 	skin.content_margin_bottom = 2
-	skin.shadow_color = Color("293039", .20)
-	skin.shadow_size = 2
-	skin.shadow_offset = Vector2(0, 1)
 	add_theme_stylebox_override("panel", skin)
-	tail.color = skin.bg_color
+	tail.color = Color("fff4df")
 	var measured = Style.font().get_string_size(message, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	var line = Style.text(message, 12, LETTERS, measured + 12 > 108)
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

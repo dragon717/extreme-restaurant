@@ -51,6 +51,17 @@ var paused = false
 var day_ticks = 2400
 var midnight_ticks = 3000
 var tick_ms = 50
+var current_until := 0
+var current_ready := 0
+var current_cell := Vector2.ZERO
+
+func call_current() -> bool:
+	if phase != "DAY" or paused or tick < current_ready: return false
+	current_cell = Grid.vec(Grid.find(layout, "pass").pos)
+	current_until = tick + Rules.ticks(8.0, tick_ms)
+	current_ready = tick + Rules.ticks(28.0, tick_ms)
+	return true
+
 var modifiers: Dictionary = {}
 var qualities: Dictionary = {}
 var arrival_plan: Array = []
@@ -805,6 +816,8 @@ func start_day() -> Dictionary:
 	if not errors.is_empty():
 		return {"ok": false, "error": "\n".join(errors)}
 	phase = "DAY"
+	current_until = 0
+	current_ready = 0
 	paused = false
 	tick = 0
 	customers = {}
@@ -1406,6 +1419,10 @@ func _advance_staff(s: Dictionary) -> void:
 		if s.role == "waiter":
 			var local_speed = float(local_effects.waiter_cells.get(Vector2i(s.pos.round()), 0.0))
 			speed = float(chapter.movement.waiter_speed) * (1.0 + modifiers.speed + local_speed)
+			if tick < current_until and Vector2(s.pos).distance_squared_to(current_cell) <= 4.0:
+				s.haste_until = tick + Rules.ticks(3.0, tick_ms)
+			if tick < int(s.get("haste_until", 0)):
+				speed *= 1.5
 		if _move(s, speed):
 			_arrive_task(s)
 	else:
@@ -1422,6 +1439,9 @@ func _arrive_task(s: Dictionary) -> void:
 		var seconds = float(chapter.movement.interaction_seconds)
 		if t.kind == "COOK":
 			seconds = float(recipes[t.recipe].cook_seconds) / (1.0 + modifiers.cook + fixture_bonus(str(t.stove_id), "stove_speed"))
+			t.flare = int(s.get("finished_pots", 0)) % 3 == 2
+			if t.flare: seconds *= 0.5
+		t.started_tick = tick
 		t.done_tick = tick + Rules.ticks(seconds, tick_ms)
 		return
 	if t.kind == "COLLECT":
@@ -1513,6 +1533,7 @@ func _complete_action(s: Dictionary) -> void:
 		orders[int(t.order_id)].submitted_tick = tick
 		s.carry_order = 0
 	elif t.kind == "COOK":
+		s.finished_pots = int(s.get("finished_pots", 0)) + 1
 		var batch = int(recipes[t.recipe].batch_yield)
 		var produced = []
 		var quality = _decorated_quality(float(qualities[t.recipe]), fixture_bonus(str(t.stove_id), "stove_quality"))

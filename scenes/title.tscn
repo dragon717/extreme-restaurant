@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/title.gd" id="1_title"]
+
+[ext_resource type="Texture2D" path="res://assets/canyon/tavern.webp" id="2_cover"]
 
 [node name="RestaurantTitle" type="Control"]
 layout_mode = 3
@@ -10,3 +12,61 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_title")
+
+[node name="Menu" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Cover" type="TextureRect" parent="Menu"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture_filter = 2
+texture = ExtResource("2_cover")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Left" type="CenterContainer" parent="Menu"]
+anchor_bottom = 1.0
+offset_left = 56.0
+offset_right = 500.0
+mouse_filter = 2
+
+[node name="Stack" type="VBoxContainer" parent="Menu/Left"]
+custom_minimum_size = Vector2(420, 0)
+theme_override_constants/separation = 14
+
+[node name="Location" type="Label" parent="Menu/Left/Stack"]
+text = "河港夜市"
+theme_override_colors/font_color = Color(0.95, 0.73, 0.43, 1)
+theme_override_font_sizes/font_size = 21
+
+[node name="Title" type="Label" parent="Menu/Left/Stack"]
+text = "峡谷餐厅"
+theme_override_colors/font_color = Color(1, 0.94, 0.81, 1)
+theme_override_colors/font_shadow_color = Color(0.04, 0.10, 0.13, 1)
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 73
+
+[node name="Chapters" type="VBoxContainer" parent="Menu/Left/Stack"]
+theme_override_constants/separation = 8
+
+[node name="Caption" type="Label" parent="Menu/Left/Stack/Chapters"]
+text = "选择章节"
+theme_override_colors/font_color = Color(0.95, 0.73, 0.43, 1)
+
+[node name="Start" type="Button" parent="Menu/Left/Stack"]
+text = "开始经营"
+custom_minimum_size = Vector2(0, 52)
+theme_override_font_sizes/font_size = 20
+mouse_default_cursor_shape = 2
+
+[node name="Quit" type="Button" parent="Menu/Left/Stack"]
+text = "退出游戏"
+custom_minimum_size = Vector2(106, 36)
+size_flags_horizontal = 0
+mouse_default_cursor_shape = 2
+
+[node name="Soundtrack" type="AudioStreamPlayer" parent="."]
+volume_db = -15.0
+autoplay = true

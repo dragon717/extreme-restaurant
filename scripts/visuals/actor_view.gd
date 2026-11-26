@@ -17,6 +17,8 @@ var patience_ratio = -1.0:
 		queue_redraw()
 var rare_name = ""
 var label_font: Font
+var art_scale := 1.0
+var faces_left := false
 var sprite_base_scale = 1.55
 var sprite_base_offset = Vector2(0, -6)
 var display_zoom = 1.0
@@ -43,12 +45,12 @@ func _init() -> void:
 	_apply_sprite_geometry()
 
 func _apply_sprite_geometry() -> void:
-	sprite.scale = Vector2.ONE * sprite_base_scale * display_zoom
+	sprite.scale = Vector2.ONE * sprite_base_scale * art_scale * display_zoom
 	sprite.position = sprite_base_offset * display_zoom
 
 func place_in_world(cell: Vector2, point: Vector2, magnification: float) -> void:
 	if world_cell.is_finite() and absf(cell.x - world_cell.x) > .01:
-		sprite.flip_h = cell.x < world_cell.x
+		sprite.flip_h = (cell.x < world_cell.x) != faces_left
 	world_cell = cell
 	position = point
 	z_index = int(point.y)
@@ -69,6 +71,9 @@ func set_visual(kind: String) -> void:
 		manifest = data if data is Dictionary else {}
 	var entry = manifest.get(kind, "") if manifest is Dictionary else ""
 	var custom = str(entry.get("frames", "")) if entry is Dictionary else str(entry)
+	art_scale = float(entry.get("art_scale", 1.0)) if entry is Dictionary else 1.0
+	faces_left = bool(entry.get("faces_left", false)) if entry is Dictionary else false
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if art_scale != 1.0 else CanvasItem.TEXTURE_FILTER_NEAREST
 	animation_map = entry.get("animation_map", {}).duplicate() if entry is Dictionary else {}
 	sprite_base_scale = float(entry.get("scale", 1.55)) if entry is Dictionary else 1.55
 	var offset = entry.get("offset", [0, -6]) if entry is Dictionary else [0, -6]
@@ -101,6 +106,23 @@ func present(action: String, state_label: String = "", amount: float = -1.0, car
 			animation = names[0]
 		if sprite.animation != animation or not sprite.is_playing(): sprite.play(animation)
 	queue_redraw()
+
+var flare_sprite: Sprite2D
+const FLAME = preload("res://assets/canyon/flame.webp")
+
+func show_flare(active: bool, tick: int, tick_ms: int) -> void:
+	if active and flare_sprite == null:
+		flare_sprite = Sprite2D.new()
+		flare_sprite.texture = FLAME
+		flare_sprite.hframes = 4
+		flare_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		add_child(flare_sprite)
+	if flare_sprite != null:
+		flare_sprite.visible = active
+		if active:
+			flare_sprite.position = Vector2(12, -8) * display_zoom
+			flare_sprite.scale = Vector2.ONE * display_zoom * 0.35
+			flare_sprite.frame = floori(tick * tick_ms / 140.0) % 4
 
 func set_sunlight(minutes: float) -> void:
 	var band = floori(minutes / 3.0)

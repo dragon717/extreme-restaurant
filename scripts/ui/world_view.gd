@@ -905,11 +905,29 @@ func _sync_approaching_street(live: Dictionary, origin: Vector2, unit: float, vi
 		live[key] = true
 		_set_street_actor(key, visit.type, cell, origin, unit)
 
+var current_sprite: Sprite2D
+const CURRENT_TEXTURE = preload("res://assets/canyon/current.webp")
+
+func _sync_current(unit: float) -> void:
+	if current_sprite == null:
+		current_sprite = Sprite2D.new()
+		current_sprite.texture = CURRENT_TEXTURE
+		current_sprite.hframes = 4
+		current_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		current_sprite.z_index = 1
+		add_child(current_sprite)
+	current_sprite.visible = sim.phase == "DAY" and sim.tick < sim.current_until
+	if current_sprite.visible:
+		current_sprite.position = screen_point(sim.current_cell)
+		current_sprite.scale = Vector2.ONE * unit * 1.7 / 128.0
+		current_sprite.frame = floori(sim.tick * sim.tick_ms / 135.0) % 4
+
 func _sync_actors() -> void:
 	var live = {}
 	actor_cells.clear()
 	var unit = _unit()
 	var origin = _origin()
+	_sync_current(unit)
 	var fraction = _render_fraction()
 	var visual_tick = maxf(0.0, sim.tick - 1.0 + fraction)
 	if sim.phase == "NIGHT":
@@ -940,7 +958,8 @@ func _sync_actors() -> void:
 				else:
 					action = "cook" if s.task.kind == "COOK" else "order"
 					label = "做" if s.task.kind == "COOK" else "单"
-					progress = 1.0 - float(int(s.task.done_tick) - sim.tick) / maxf(1, (float(sim.recipes[s.task.recipe].cook_seconds) / (1.0 + sim.modifiers.cook) * 1000.0 / sim.tick_ms) if s.task.kind == "COOK" else float(sim.chapter.movement.interaction_seconds) * 1000.0 / sim.tick_ms)
+					progress = float(sim.tick - int(s.task.started_tick)) / maxi(1, int(s.task.done_tick) - int(s.task.started_tick))
+			actor.show_flare(s.task.get("flare", false), sim.tick, sim.tick_ms)
 			actor.present(action, label, progress, not s.carry_food.is_empty())
 		_sync_approaching_street(live, origin, unit, visual_tick)
 		var queue_index = 0

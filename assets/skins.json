@@ -2,22 +2,36 @@
   "description": "为角色种类设置 SpriteFrames .tres 路径；空字符串使用程序生成像素占位。动画状态由 ActorView 映射，不驱动游戏计时。",
   "font": "",
   "chef": {
-    "frames": "",
+    "frames": "res://assets/canyon/chef.tres",
     "scale": 1.55,
     "offset": [
       0,
       -6
     ],
-    "animation_map": {}
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    },
+    "art_scale": 0.27,
+    "faces_left": true
   },
   "waiter": {
-    "frames": "",
+    "frames": "res://assets/canyon/courier.tres",
     "scale": 1.55,
     "offset": [
       0,
       -6
     ],
-    "animation_map": {}
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    },
+    "art_scale": 0.27,
+    "faces_left": true
   },
   "normal": {
     "frames": "",

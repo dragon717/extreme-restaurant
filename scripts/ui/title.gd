@@ -5,7 +5,6 @@ const Store = preload("res://scripts/core/save_store.gd")
 const Progress = preload("res://scripts/core/chapter_progress.gd")
 const Style = preload("res://scripts/ui/style.gd")
 const Icon = preload("res://scripts/ui/ui_icon.gd")
-const Street = preload("res://scripts/visuals/title_street.gd")
 const GAME = preload("res://scenes/main.tscn")
 
 var menu: Control
@@ -28,54 +27,8 @@ func _ready() -> void:
 	_select_chapter(selected_chapter)
 
 func _build_menu() -> void:
-	menu = Control.new()
-	add_child(menu)
-	menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var background = ColorRect.new()
-	background.color = Color("152822")
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu.add_child(background)
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var street = Street.new()
-	street.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu.add_child(street)
-	street.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var gradient = Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.27, 0.48, 0.69, 1.0])
-	gradient.colors = PackedColorArray([Color("192c34", 0.98), Color("192c34", 0.91), Color("192c34", 0.58), Color("192c34", 0.08), Color("192c34", 0.03)])
-	var shade_texture = GradientTexture2D.new()
-	shade_texture.gradient = gradient
-	shade_texture.width = 512
-	shade_texture.height = 4
-	shade_texture.fill_to = Vector2.RIGHT
-	var shade = TextureRect.new()
-	shade.texture = shade_texture
-	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu.add_child(shade)
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-	var left = CenterContainer.new()
-	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu.add_child(left)
-	left.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
-	left.offset_left = 56
-	left.offset_right = 500
-	var stack = VBoxContainer.new()
-	stack.custom_minimum_size.x = 420
-	stack.add_theme_constant_override("separation", 14)
-	left.add_child(stack)
-	stack.add_child(Style.text("极限餐厅", 21, Color("e9ac5d")))
-	var title = Style.text("街角食堂", 73, Color("fff0ce"))
-	title.add_theme_color_override("font_shadow_color", Color("101b17"))
-	title.add_theme_constant_override("shadow_offset_x", 3)
-	title.add_theme_constant_override("shadow_offset_y", 4)
-	stack.add_child(title)
-
-	var chapters = VBoxContainer.new()
-	chapters.add_theme_constant_override("separation", 8)
-	stack.add_child(chapters)
-	chapters.add_child(Style.text("选择章节", 15, Color("e9ac5d")))
+	menu = $Menu
+	var chapters := $Menu/Left/Stack/Chapters
 	var previous = ""
 	for option in options:
 		_add_chapter(chapters, option, previous)
@@ -83,16 +36,9 @@ func _build_menu() -> void:
 	if chapter_buttons.is_empty():
 		chapters.add_child(Style.text("无法加载章节列表。", 17, Style.RED))
 
-	start_button = Style.button("开始经营", true)
-	start_button.custom_minimum_size.y = 52
-	start_button.add_theme_font_size_override("font_size", 20)
+	start_button = $Menu/Left/Stack/Start
 	start_button.pressed.connect(_start_chapter)
-	stack.add_child(start_button)
-	var quit_button = Style.button("退出游戏")
-	quit_button.custom_minimum_size = Vector2(106, 36)
-	quit_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	quit_button.pressed.connect(func(): get_tree().quit())
-	stack.add_child(quit_button)
+	$Menu/Left/Stack/Quit.pressed.connect(func(): get_tree().quit())
 
 func _add_chapter(list: VBoxContainer, option: Dictionary, previous: String) -> void:
 	var id = str(option.id)
