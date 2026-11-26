@@ -31,10 +31,11 @@ jobs:
       - name: Review painted interface
         if: always()
         run: |
+          python -m pip install -q Pillow
           for state in title service; do
             for png in .local/*canyon-${state}.png; do
               if test -f "$png"; then
-                convert "$png" -resize 900x -quality 72 "/tmp/$state.jpg"
+                python -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]).convert("RGB"); im.thumbnail((900,900)); im.save(sys.argv[2],quality=72)' "$png" "/tmp/$state.jpg"
                 base64 -w 1600 "/tmp/$state.jpg" | sed "s/^/CAPTURE_$state /"
               fi
             done
