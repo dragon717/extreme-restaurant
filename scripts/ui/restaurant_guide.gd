@@ -101,7 +101,7 @@ func _fixture(id: String) -> Vector2:
 func _line(key: String, message: String, seconds := -1.0) -> void:
 	if is_instance_valid(bubble): bubble.dismiss()
 	stage = key
-	bubble = app.world.say(_speaker(), NAME, message, seconds, true)
+	bubble = app.world.say(_speaker(), tr(NAME), message, seconds, true)
 
 func clear_line() -> void:
 	if is_instance_valid(bubble): bubble.dismiss()
@@ -129,9 +129,9 @@ func _intro(from_beginning := false) -> void:
 	app.world.guide_shot(_speaker_cell(), 1.55)
 	blocks_clock = true
 	if mode == "ask" or from_beginning:
-		_line("welcome", "老板，我是跑堂的阿禾。开店后，厨师和服务员会自己接单上菜。我先带你认两个柜台，再看看怎么合桌。")
-		bubble.add_choice("跟你看看", _accept, true)
-		bubble.add_choice("我自己逛", skip)
+		_line("welcome", tr("老板，我是跑堂的阿禾。开店后，厨师和服务员会自己接单上菜。我先带你认两个柜台，再看看怎么合桌。"))
+		bubble.add_choice(tr("跟你看看"), _accept, true)
+		bubble.add_choice(tr("我自己逛"), skip)
 	else:
 		_counter(seen.has("order_counter"))
 
@@ -147,12 +147,12 @@ func _counter(at_pass: bool) -> void:
 	var target = counter if at_pass else order
 	app.world.guide_shot((order + counter) * 0.5, 1.4, [target])
 	if at_pass:
-		_line("pass_counter", "这是出餐口。厨师把做好的菜放在这里，服务员再取餐送到客桌。")
-		bubble.add_choice("记住了", _finish_tour, true)
+		_line("pass_counter", tr("这是出餐口。厨师把做好的菜放在这里，服务员再取餐送到客桌。"))
+		bubble.add_choice(tr("记住了"), _finish_tour, true)
 	else:
-		_line("order_counter", "这是订单口。服务员给客人点单后，会把订单送到这里，厨师从这里接单。")
-		bubble.add_choice("再看出餐口", _next_counter, true)
-	bubble.add_choice("跳过引导", skip)
+		_line("order_counter", tr("这是订单口。服务员给客人点单后，会把订单送到这里，厨师从这里接单。"))
+		bubble.add_choice(tr("再看出餐口"), _next_counter, true)
+	bubble.add_choice(tr("跳过引导"), skip)
 
 func _next_counter() -> void:
 	_mark("order_counter")
@@ -169,7 +169,7 @@ func _finish_tour() -> void:
 
 func _show_open_prompt() -> void:
 	var dish = app.sim.recipes[app.sim.menu[0]]
-	_line("open", "今天的菜单上有%s，一锅出%d份。准备好了就点下方「开店」，我会带你看第一桌怎么点餐。" % [dish.name, dish.batch_yield], 12)
+	_line("open", tr("今天的菜单上有%s，一锅出%d份。准备好了就点下方「开店」，我会带你看第一桌怎么点餐。") % [tr(str(dish.name)), dish.batch_yield], 12)
 	_highlight(app.ui.open)
 
 func _practice_pair() -> Array:
@@ -192,24 +192,24 @@ func teach_tables(before_open := false) -> void:
 	opens_after_tables = before_open
 	var pair = _practice_pair()
 	if pair.is_empty():
-		_line("tables", MERGE + "\n合成需要留出桌面和走道。")
+		_line("tables", tr(MERGE) + tr("\n合成需要留出桌面和走道。"))
 	else:
 		var start = Grid.vec(pair[0].pos)
 		var target = Grid.vec(pair[1].pos)
 		app.world.guide_shot((start + target) * .5, 1.18, [start, target])
 		var delta = start - target
-		var side = "右边" if delta.x > 0 else "左边"
-		if absf(delta.y) > absf(delta.x): side = "下方" if delta.y > 0 else "上方"
-		_line("tables", "同一组客人只坐人数相同的桌。用左键按住%s高亮的%s，等它抬起后拖到另一张高亮桌上，再松手。" % [side, Grid.table_label(Grid.table_size(pair[0]))])
-	bubble.add_choice("稍后再试", _finish_tables)
+		var side = tr("右边") if delta.x > 0 else tr("左边")
+		if absf(delta.y) > absf(delta.x): side = tr("下方") if delta.y > 0 else tr("上方")
+		_line("tables", tr("同一组客人只坐人数相同的桌。用左键按住%s高亮的%s，等它抬起后拖到另一张高亮桌上，再松手。") % [side, tr(Grid.table_label(Grid.table_size(pair[0])))])
+	bubble.add_choice(tr("稍后再试"), _finish_tables)
 
 func table_merged(seats: int) -> void:
 	if stage != "tables": return
 	_mark("tables")
 	app.world.end_guide_shot()
-	var next = "两张双人桌还能合成 2×2 的四人桌。" if seats == 2 else "四人桌只接待四人组，记得保留单人桌和双人桌。"
-	_line("tables_done", "合成成功。%s\n%s。选中多人桌后可用右下角的拆分图标或按 %s。" % [next, _group_dates(), app.keys.text("split")])
-	bubble.add_choice("继续", _finish_tables, true)
+	var next = tr("两张双人桌还能合成 2×2 的四人桌。") if seats == 2 else tr("四人桌只接待四人组，记得保留单人桌和双人桌。")
+	_line("tables_done", tr("合成成功。%s\n%s。选中多人桌后可用右下角的拆分图标或按 %s。") % [next, _group_dates(), app.keys.text("split")])
+	bubble.add_choice(tr("继续"), _finish_tables, true)
 
 func _finish_tables() -> void:
 	var before_open = opens_after_tables
@@ -233,10 +233,10 @@ func after_step() -> void:
 			if guest.state in ["READY", "TAKING"]:
 				guest_id = guest.id
 				app.world.guide_shot(guest.pos, 1.38, [_fixture(guest.seat)])
-				_line("guest", "高亮这桌已经选好菜，正等服务员过去点单。点「查看客人」能看他选了什么，我先把营业计时停住。")
+				_line("guest", tr("高亮这桌已经选好菜，正等服务员过去点单。点「查看客人」能看他选了什么，我先把营业计时停住。"))
 				blocks_clock = true
-				bubble.add_choice("查看客人", _inspect_guest, true)
-				bubble.add_choice("继续营业", finish_guest)
+				bubble.add_choice(tr("查看客人"), _inspect_guest, true)
+				bubble.add_choice(tr("继续营业"), finish_guest)
 				return
 	elif not seen.has("delivery"):
 		if order_id == 0:
@@ -245,7 +245,7 @@ func after_step() -> void:
 					order_id = order.id
 					var worker = sim.staff[int(order.delivery_owner) - 1]
 					app.world.guide_shot(worker.pos, 1.36, [_fixture(order.seat)])
-					_line("delivery", "看正在端盘的服务员。他刚从出餐口取到菜，接下来会送到点这道菜的客桌。")
+					_line("delivery", tr("看正在端盘的服务员。他刚从出餐口取到菜，接下来会送到点这道菜的客桌。"))
 					break
 		else:
 			var order = sim.orders[order_id]
@@ -261,13 +261,13 @@ func after_step() -> void:
 		clear_line()
 		_mark("delivery")
 		_mark("payment")
-		_line("payment", "第一笔饭钱到账了。顶栏的「今日营收」记录今天赚了多少，金币是现在能花的余额。想暂停观察，可以按 %s。" % app.keys.text("pause"), 10)
+		_line("payment", tr("第一笔饭钱到账了。顶栏的「今日营收」记录今天赚了多少，金币是现在能花的余额。想暂停观察，可以按 %s。") % app.keys.text("pause"), 10)
 		_highlight(app.ui.income_label)
 
 func _inspect_guest() -> void:
 	app._inspect("customer", str(guest_id))
-	_line("guest", "右侧信息框显示客人的状态和菜名。等餐时，这里还会显示剩余耐心。看完再继续营业。")
-	bubble.add_choice("继续营业", finish_guest, true)
+	_line("guest", tr("右侧信息框显示客人的状态和菜名。等餐时，这里还会显示剩余耐心。看完再继续营业。"))
+	bubble.add_choice(tr("继续营业"), finish_guest, true)
 
 func finish_guest() -> void:
 	if stage == "guest":
@@ -286,13 +286,13 @@ func night() -> void:
 	var plot = sim.next_land_plot()
 	if not seen.has("rent") and int(rent.get("day", -1)) == sim.day:
 		_mark("rent")
-		_line("rent", "顶栏左边是下次房租。今天营业结束会扣 %d 金币，采购前记得留足。" % int(rent.amount), 9)
+		_line("rent", tr("顶栏左边是下次房租。今天营业结束会扣 %d 金币，采购前记得留足。") % int(rent.amount), 9)
 		_highlight(app.ui.rent_card)
 	elif not seen.has("major_event") and not app.major_notice.is_empty():
-		_line("major_event", "右上角红色的「重大事件」亮了。开店前点开「%s」，看看哪几天生效、客流怎么变。有奖励时，记得点公告底部领取。" % str(app.major_notice.name))
+		_line("major_event", tr("右上角红色的「重大事件」亮了。开店前点开「%s」，看看哪几天生效、客流怎么变。有奖励时，记得点公告底部领取。") % tr(str(app.major_notice.name)))
 		_highlight(app.ui.major_event)
-		bubble.add_choice("查看公告", app._show_major_event, true)
-		bubble.add_choice("稍后查看", clear_line)
+		bubble.add_choice(tr("查看公告"), app._show_major_event, true)
+		bubble.add_choice(tr("稍后查看"), clear_line)
 	elif not seen.has("tables"):
 		teach_tables()
 	elif sim.decoration_shop_unlocked() and not seen.has("decor_shop"):
@@ -309,14 +309,14 @@ func night() -> void:
 		_line("kitchen", _plot_text(plot), 10)
 	elif sim.day == 1 and sim.chapter.id == "market_lane" and not seen.has("market_lane"):
 		_mark("market_lane")
-		_line("market_lane", "这回咱们赶集。拼盘小食一锅四份，桌子翻得也快。开门时一起看看第一波客人。", 8)
+		_line("market_lane", tr("这回咱们赶集。拼盘小食一锅四份，桌子翻得也快。开门时一起看看第一波客人。"), 8)
 	elif not seen.has("reputation"):
 		for key in sim.chapter.upgrade_rules:
 			if sim.upgrade_status(key).ok:
 				_mark("reputation")
 				var cell = _fixture("cashier")
 				app.world.guide_shot(cell, 1.25, [cell])
-				_line("reputation", "点收银台，再选「招聘与改造」。桌位和员工都要花声望与金币。招聘与改造页会列出两种价格和下次房租，手头的钱也得留一份给房东。", 9)
+				_line("reputation", tr("点收银台，再选「招聘与改造」。桌位和员工都要花声望与金币。招聘与改造页会列出两种价格和下次房租，手头的钱也得留一份给房东。"), 9)
 				break
 
 func _plot_text(plot: Dictionary) -> String:
@@ -324,14 +324,14 @@ func _plot_text(plot: Dictionary) -> String:
 	var missing = price - int(app.sim.stars)
 	var message: String
 	match str(plot.id):
-		"purchase_annex": message = "花 %d 颗闪星打开采购小厅。采购处每晚到货菜谱和增益。" % price
-		"decor_studio": message = "花 %d 颗闪星开放装饰商店。装饰放下后，会为范围内的餐桌、员工或灶台提供效果。" % price
-		"kitchen_extension": message = "花 %d 颗闪星扩开厨房，就多一口灶，也多一位厨师。" % price
-		"trophy_gallery": message = "花 %d 颗闪星可开放奖杯展廊和旁边的奖杯商店，还会送一座铜摆钟。" % price
-		"east_dining": message = "东边一开就多四张桌，花 %d 颗闪星。门口没坐上的客人，这回有地方请了。" % price
-		"south_dining": message = "南边还能添三张桌，花 %d 颗闪星。这回你来掌眼，端到最远那桌得走多远？" % price
-		_: message = "%s需要 %d 颗闪星。" % [plot.name, price]
-	if missing > 0: message += " 还差 %d 颗，攒够了再来。" % missing
+		"purchase_annex": message = tr("花 %d 颗闪星打开采购小厅。采购处每晚到货菜谱和增益。") % price
+		"decor_studio": message = tr("花 %d 颗闪星开放装饰商店。装饰放下后，会为范围内的餐桌、员工或灶台提供效果。") % price
+		"kitchen_extension": message = tr("花 %d 颗闪星扩开厨房，就多一口灶，也多一位厨师。") % price
+		"trophy_gallery": message = tr("花 %d 颗闪星可开放奖杯展廊和旁边的奖杯商店，还会送一座铜摆钟。") % price
+		"east_dining": message = tr("东边一开就多四张桌，花 %d 颗闪星。门口没坐上的客人，这回有地方请了。") % price
+		"south_dining": message = tr("南边还能添三张桌，花 %d 颗闪星。这回你来掌眼，端到最远那桌得走多远？") % price
+		_: message = tr("%s需要 %d 颗闪星。") % [tr(str(plot.name)), price]
+	if missing > 0: message += tr(" 还差 %d 颗，攒够了再来。") % missing
 	return message
 
 func plot_note(parent: Control, selected: String) -> void:
@@ -346,9 +346,9 @@ func show_gallery() -> void:
 	app.world.guide_camera_manual = false
 	var shop = Vector2(app.sim.trophy_shop_cell())
 	app.world.guide_shot(shop, 1.25, [shop])
-	_line("gallery_gift", "奖杯商店开门了，就在展廊里。用闪星买奖杯，点右下角的背包图标取出。放到展廊里亮起的格子后，奖杯就会生效。")
-	bubble.add_choice("查看奖杯商店", app._show_trophy_shop, true)
-	bubble.add_choice("稍后再看", clear_line)
+	_line("gallery_gift", tr("奖杯商店开门了，就在展廊里。用闪星买奖杯，点右下角的背包图标取出。放到展廊里亮起的格子后，奖杯就会生效。"))
+	bubble.add_choice(tr("查看奖杯商店"), app._show_trophy_shop, true)
+	bubble.add_choice(tr("稍后再看"), clear_line)
 
 func trophy_shop_opened() -> void:
 	if stage == "gallery_gift": clear_line()
@@ -360,13 +360,13 @@ func show_new_shop(id: String) -> void:
 	clear_line()
 	var cell = _fixture(id)
 	app.world.guide_shot(cell, 1.25, [cell])
-	var message = "采购小厅开门了。今晚可以用金币买新菜谱和营业增益。" if id == "slot" else "装饰商店开门了。买到的装饰在建造背包里，摆放时会亮出效果范围。"
+	var message = tr("采购小厅开门了。今晚可以用金币买新菜谱和营业增益。") if id == "slot" else tr("装饰商店开门了。买到的装饰在建造背包里，摆放时会亮出效果范围。")
 	_line(flag, message)
 	if id == "slot":
-		bubble.add_choice("查看采购处", func(): app._show_purchase_page(), true)
+		bubble.add_choice(tr("查看采购处"), func(): app._show_purchase_page(), true)
 	else:
-		bubble.add_choice("查看装饰商店", app._show_decoration_shop, true)
-	bubble.add_choice("稍后再看", clear_line)
+		bubble.add_choice(tr("查看装饰商店"), app._show_decoration_shop, true)
+	bubble.add_choice(tr("稍后再看"), clear_line)
 
 func shop_opened(id: String) -> void:
 	var flag = "shop_slot" if id == "slot" else "decor_shop"
@@ -377,14 +377,14 @@ func purchase() -> void:
 	if mode != "on" or blocks_clock or app.sim.phase != "NIGHT" or seen.has("purchase"): return
 	clear_line()
 	_mark("purchase")
-	_line("purchase", "点右侧「进入采购」。买到的菜谱会永久进收藏，增益只在标明的营业日内生效。", 10)
+	_line("purchase", tr("点右侧「进入采购」。买到的菜谱会永久进收藏，增益只在标明的营业日内生效。"), 10)
 	_highlight(app.ui.enter_shop)
 
 func placement() -> void:
 	if mode != "on" or seen.has("placement"): return
 	_mark("placement")
 	clear_line()
-	_line("placement", "点击餐厅里的空格放置新设施，给座位和柜台留出通路。暂时不用的设施，可以在右下角「建造」背包里找回。", 8)
+	_line("placement", tr("点击餐厅里的空格放置新设施，给座位和柜台留出通路。暂时不用的设施，可以在右下角「建造」背包里找回。"), 8)
 
 func event_opened() -> void:
 	if stage == "major_event": clear_line()
@@ -394,24 +394,24 @@ func build_opened() -> void:
 	if mode != "on" or seen.has("build_catalog"): return
 	_mark("build_catalog")
 	if stage.is_empty():
-		_line("build", "在下方选物件，再到地图上放置。选中场景里的设施时，可以用右下角的图标移动、旋转或收起。", 9)
+		_line("build", tr("在下方选物件，再到地图上放置。选中场景里的设施时，可以用右下角的图标移动、旋转或收起。"), 9)
 
 func _build_text() -> String:
-	return "夜晚点右下角的锤子，或按 %s 打开底部建造目录。按类别找物件，选中后点地图放置。隔墙可以拖成一排。按 Esc 取消当前操作，再按 Esc 关闭目录。" % app.keys.text("build")
+	return tr("夜晚点右下角的锤子，或按 %s 打开底部建造目录。按类别找物件，选中后点地图放置。隔墙可以拖成一排。按 Esc 取消当前操作，再按 Esc 关闭目录。") % app.keys.text("build")
 
 func _group_dates() -> String:
 	var dates: Array[String] = []
 	for group in app.sim.chapter.guest_groups:
-		dates.append("%d 人组从第 %d 天来店" % [int(group.size), int(group.from_day)])
+		dates.append(tr("%d 人组从第 %d 天来店") % [int(group.size), int(group.from_day)])
 	return "，".join(dates)
 
 func populate_handbook(parent: VBoxContainer) -> void:
 	var sections = [
-		["合桌与客人组", MERGE + "\n" + _group_dates() + "。客人组只坐人数相同的桌，店里没有对应的桌就会离开。\n选中多人桌后，点右下角的拆分图标或按 %s，可以逐级拆回。" % app.keys.text("split")],
-		["重大事件", EVENT_ENTRY],
-		["奖杯商店", "解锁右上角的奖杯展廊后，点外墙上的奖杯商店。用闪星购买，摆进展廊后生效。"],
-		["建造和布置", _build_text() + "\n选中设施后，右下角会显示可用工具。把鼠标停在图标上可查看名称。也可以按 %s 旋转。" % app.keys.text("rotate")],
-		["营业与复盘", "服务员点单后送到订单口，厨师做好后放到出餐口，服务员再取餐上桌。\n" + HOURS + "\n日报的「在餐厅定位」会标出瓶颈。缺匹配餐桌时，先按客组人数调整桌型。"],
+		[tr("合桌与客人组"), tr(MERGE) + "\n" + _group_dates() + tr("。客人组只坐人数相同的桌，店里没有对应的桌就会离开。\n选中多人桌后，点右下角的拆分图标或按 %s，可以逐级拆回。") % app.keys.text("split")],
+		[tr("重大事件"), tr(EVENT_ENTRY)],
+		[tr("奖杯商店"), tr("解锁右上角的奖杯展廊后，点外墙上的奖杯商店。用闪星购买，摆进展廊后生效。")],
+		[tr("建造和布置"), _build_text() + tr("\n选中设施后，右下角会显示可用工具。把鼠标停在图标上可查看名称。也可以按 %s 旋转。") % app.keys.text("rotate")],
+		[tr("营业与复盘"), tr("服务员点单后送到订单口，厨师做好后放到出餐口，服务员再取餐上桌。\n") + tr(HOURS) + tr("\n日报的「在餐厅定位」会标出瓶颈。缺匹配餐桌时，先按客组人数调整桌型。")],
 	]
 	for section in sections:
 		var heading = Style.text(section[0], 18, Style.GOLD)
@@ -433,12 +433,12 @@ func report_text(report: Dictionary, forecast: String) -> String:
 		report_lines.clear()
 	var focus = str(report.diagnosis.focus)
 	if not seen.has("report") or (not focus.is_empty() and not seen.has("report_focus")):
-		report_lines.append(REPORT_LINES.get(focus, REPORT_LINES[""]))
+		report_lines.append(tr(REPORT_LINES.get(focus, REPORT_LINES[""])))
 		if not focus.is_empty(): _mark("report_focus")
 	if not seen.has("report"):
-		report_lines.append("零拒客、等餐无扣分也无超时、午夜前完餐人数比例达标。三个目标各值一颗闪星。")
+		report_lines.append(tr("零拒客、等餐无扣分也无超时、午夜前完餐人数比例达标。三个目标各值一颗闪星。"))
 		_mark("report")
 	if not forecast.is_empty() and not seen.has("rush"):
-		report_lines.append("看「明日预告」里的客流高峰，确认哪段时间会集中来客。开店前，左上角也会显示时段。")
+		report_lines.append(tr("看「明日预告」里的客流高峰，确认哪段时间会集中来客。开店前，左上角也会显示时段。"))
 		_mark("rush")
 	return "\n".join(report_lines)

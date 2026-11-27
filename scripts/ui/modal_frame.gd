@@ -5,74 +5,60 @@ const Icon = preload("res://scripts/ui/ui_icon.gd")
 const SECTIONS = {
 	"cashier_front": "coins", "cashier": "reputation", "trophy_shop": "trophy",
 	"trophy_bag": "trophy", "decor_shop": "star_outline", "purchase": "coins", "buy": "recipe", "menu": "recipe",
-	"collection": "recipe", "settings": "settings", "key_settings": "keys", "handbook": "recipe", "report": "income", "report_history": "history",
+	"collection": "recipe", "settings": "settings", "crew_setup": "chef", "key_settings": "keys", "handbook": "recipe", "report": "income", "report_history": "history",
 	"plot_unlock": "expand", "major_event": "alert", "restart": "door", "restore_error": "lock", "config_error": "alert",
 }
 
-var panel := PanelContainer.new()
-var scroll := ScrollContainer.new()
-var body := VBoxContainer.new()
-var header := PanelContainer.new()
-var feedback := Label.new()
+@onready var panel: PanelContainer = %Plate
+@onready var scroll: ScrollContainer = %Scroll
+@onready var body: VBoxContainer = %Body
+@onready var header: MarginContainer = %Header
+@onready var feedback: Label = %Feedback
 var preferred_width: float
 var motion: Tween
 var closing := false
+var show_art_motion := false
 
 func build(kind: String, caption: String, width: float, dismiss: Callable) -> void:
+	theme = Style.list_theme()
 	preferred_width = width
-	var accent = Style.RED if kind in ["restart", "restore_error", "config_error"] else (Style.GREEN if kind in ["cashier", "plot_unlock"] else Style.GOLD)
-	add_child(panel)
-	var skin = Style.surface(accent, 3)
-	panel.add_theme_stylebox_override("panel", skin)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 0)
-	panel.add_child(stack)
-	stack.add_child(header)
-	var band = Style.box(Color("f1dfbf"), Color("ebc893"), 9, 12)
-	header.add_theme_stylebox_override("panel", band)
-	var bar := HBoxContainer.new()
-	header.add_child(bar)
-	var seal := PanelContainer.new()
-	seal.add_theme_stylebox_override("panel", Style.box(Style.PANEL, accent.darkened(0.32), 8, 6))
-	bar.add_child(seal)
-	seal.add_child(Icon.make(SECTIONS.get(kind, "recipe"), accent, 22))
-	var heading = Style.text(caption, 23, Color("263d40"))
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.add_child(heading)
-	if kind not in ["report", "restore_error", "config_error"]:
-		var close = Style.button("")
-		close.tooltip_text = "关闭 [Esc]"
-		close.custom_minimum_size = Vector2(36, 36)
-		Icon.center_in(close, "close", Style.INK, 16)
-		close.pressed.connect(dismiss)
-		bar.add_child(close)
-	stack.add_child(scroll)
-	scroll.follow_focus = true
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var inset := MarginContainer.new()
-	for edge in ["left", "right", "top", "bottom"]:
-		inset.add_theme_constant_override("margin_" + edge, 18 if edge in ["left", "right"] else 14)
-	inset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(inset)
-	body.add_theme_constant_override("separation", 10)
-	inset.add_child(body)
-	feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	show_art_motion = kind in ["report", "major_event"]
+	var accent := Style.GOLD
+	if kind in ["restart", "restore_error", "config_error"]: accent = Style.RED
+	elif kind in ["cashier", "plot_unlock"]: accent = Style.GREEN
+	panel.add_theme_stylebox_override("panel", Style.art_plate())
+	%GoldThread.texture = Style.GOLD_THREAD
+	%GoldThread.modulate.a = .64
+	%Seal.add_child(Icon.make(SECTIONS.get(kind, "recipe"), accent, 26))
+	%Heading.text = caption
+	%Heading.add_theme_font_size_override("font_size", 31 if kind in ["settings", "report", "major_event"] else 25)
+	if TranslationServer.get_locale().begins_with("en"):
+		%Heading.add_theme_font_override("font", Style.DISPLAY_FONT)
+	%Close.visible = kind not in ["report", "restore_error", "config_error"]
+	Icon.center_in(%Close, "close", Style.INK, 16)
+	%Close.pressed.connect(dismiss)
 	feedback.add_theme_color_override("font_color", Style.RED)
-	stack.add_child(feedback)
-	feedback.hide()
-	inset.minimum_size_changed.connect(_fit)
+	%Inset.minimum_size_changed.connect(_fit)
 	resized.connect(_fit)
 	_fit()
 	_focus_first.call_deferred()
 
 func animate_in(backdrop: ColorRect, backdrop_opacity: float) -> void:
-	position.y = 14.0
+	position.y = 23.0
 	modulate.a = .12
 	backdrop.modulate.a = backdrop_opacity
 	motion = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	motion.tween_property(self, "position:y", 0.0, .24)
+	var settle := .38 if show_art_motion else .25
+	motion.tween_property(self, "position:y", 0.0, settle).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	motion.tween_property(self, "modulate:a", 1.0, .20)
 	motion.tween_property(backdrop, "modulate:a", 1.0, .22)
+	if show_art_motion: _reveal_art.call_deferred()
+
+func _reveal_art() -> void:
+	if closing or DisplayServer.get_name() == "headless": return
+	var burst := Style.REVEAL.instantiate() as Node2D
+	%Seal.add_child(burst)
+	burst.position = Vector2(16, 22)
 
 func animate_out(backdrop: ColorRect, finished: Callable) -> void:
 	if motion != null and motion.is_valid(): motion.kill()
@@ -98,7 +84,7 @@ func show_error(message: String) -> void:
 	_fit()
 
 func _focus_first() -> void:
-	if not is_inside_tree() or closing: return
+	if not is_visible_in_tree() or closing: return
 	var focused = get_viewport().gui_get_focus_owner()
 	if focused != null and is_ancestor_of(focused): return
 	for button in find_children("*", "Button", true, false):

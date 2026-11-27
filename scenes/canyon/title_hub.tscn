@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="PackedScene" path="res://scenes/canyon/signs.tscn" id="signs"]
+[ext_resource type="Script" path="res://scripts/ui/title_hub.gd" id="script"]
+
+[node name="CanyonHub" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+script = ExtResource("script")
+
+[node name="Places" parent="." instance=ExtResource("signs")]
+anchor_right = 1.0
+anchor_bottom = 1.0

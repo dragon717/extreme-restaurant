@@ -30,19 +30,19 @@ func _ready() -> void:
 	var header := HBoxContainer.new()
 	stack.add_child(header)
 	header.add_child(Icon.make("build", Style.GOLD, 22))
-	header.add_child(Style.text("建造", 21, Style.GOLD))
+	header.add_child(Style.text(tr("建造"), 21, Style.GOLD))
 	instruction = Style.text("", 14, Style.MUTED)
 	instruction.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	instruction.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(instruction)
-	search.placeholder_text = "搜索物件"
+	search.placeholder_text = tr("搜索物件")
 	search.clear_button_enabled = true
 	search.custom_minimum_size.x = 168
 	search.text_changed.connect(func(_query): _populate())
 	header.add_child(search)
 	var close = Style.button("")
-	close.tooltip_text = "关闭建造 [Esc]"
-	close.accessibility_name = "关闭建造"
+	close.tooltip_text = tr("关闭建造 [Esc]")
+	close.accessibility_name = tr("关闭建造")
 	close.custom_minimum_size.x = 38
 	Icon.center_in(close, "close", Style.INK, 17)
 	close.pressed.connect(closed.emit)
@@ -79,7 +79,7 @@ func _ready() -> void:
 		category_buttons[key] = button
 	var tray := PanelContainer.new()
 	tray.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tray.add_theme_stylebox_override("panel", Style.box(Color("182c32"), Color("4c6666"), 8, 7))
+	tray.add_theme_stylebox_override("panel", Style.inset(7,6))
 	content.add_child(tray)
 	tray.add_child(scroll)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -129,28 +129,30 @@ func _populate() -> void:
 	var inventory = sim.stored_facilities(active_category if active_category != "all" else "")
 	for item in inventory:
 		if not CATEGORIES.has(item.type) or item.type == "wall": continue
-		if not query.is_empty() and not str(item.name).to_lower().contains(query): continue
-		var detail = "%d 座" % Grid.table_size(item) if item.type == "table" else ""
-		var card = _tile(item.id, item.name, item.type, detail, Grid.table_size(item), item.get("relic_id", ""))
+		var caption := Style.facility_name(str(item.name))
+		if not query.is_empty() and not caption.to_lower().contains(query) and not str(item.name).to_lower().contains(query): continue
+		var detail = tr("%d 座") % Grid.table_size(item) if item.type == "table" else ""
+		var card = _tile(item.id, caption, item.type, detail, Grid.table_size(item), item.get("relic_id", ""))
 		if item.type == "decoration":
 			var thumb = card.get_child(0).get_child(0)
 			thumb.decoration = sim.decoration_defs[item.decoration_id]
-			card.tooltip_text = item.name + " · " + preload("res://scripts/core/decoration_effects.gd").description(thumb.decoration)
+			card.tooltip_text = caption + " · " + preload("res://scripts/core/decoration_effects.gd").description(thumb.decoration)
 		if item.type == "trophy" and Grid.facilities(sim.layout, "trophy").size() >= int(sim.attributes.relic_slots):
 			card.disabled = true
-			card.tooltip_text = "展示位已满，先收起一件奖杯"
-	if active_category in ["all", "wall"] and (query.is_empty() or "木纹隔墙".contains(query)):
-		_tile("@wall", "木纹隔墙", "wall", "免费", 1)
+			card.tooltip_text = tr("展示位已满，先收起一件奖杯")
+	if active_category in ["all", "wall"] and (query.is_empty() or tr("木纹隔墙").to_lower().contains(query)):
+		_tile("@wall", tr("木纹隔墙"), "wall", tr("免费"), 1)
 	empty.visible = tiles.is_empty()
-	empty.text = "没有找到物件" if not query.is_empty() else "背包里还没有此类物件。选中场景里的设施，可用右下角的收起工具。"
+	empty.text = tr("没有找到物件") if not query.is_empty() else tr("背包里还没有此类物件。选中场景里的设施，可用右下角的收起工具。")
 	_sync_selected()
 
 func _tile(id: String, caption: String, kind: String, detail: String, seats: int, relic_id := "") -> Button:
 	var btn = Style.button("")
+	Style.quiet_button(btn)
 	btn.toggle_mode = true
 	btn.name = "BuildWall" if id == "@wall" else "Build_" + id
 	btn.accessibility_name = caption
-	btn.tooltip_text = caption + " · 选中后在场景放置"
+	btn.tooltip_text = caption + tr(" · 选中后在场景放置")
 	btn.custom_minimum_size = Vector2(120, 116)
 	items.add_child(btn)
 	tiles[id] = btn
@@ -199,7 +201,6 @@ class Thumbnail extends Control:
 		art.paint(self, Rect2(size * .5 - Vector2(25, 24), Vector2(50, 46)), decoration)
 
 	func _draw() -> void:
-		draw_style_box(Style.box(Color("2b4649"), Color("3e5958"), 6, 0), Rect2(Vector2.ZERO, size))
 		if kind == "decoration" and not decoration.is_empty():
 			_draw_decoration()
 			return

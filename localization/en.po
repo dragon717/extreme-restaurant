@@ -1,0 +1,3316 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Canyon Tavern\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "营业已暂停"
+msgstr "Service paused"
+
+msgid "灯灵回游"
+msgstr "Lantern Spirit Run"
+
+msgid "雷雨退去，灯灵沿河渠洄游。外乡客顺着桥头的灯火来访，摆好餐桌，准备接待看灯的人。"
+msgstr "When the storms pass, lantern spirits return along the canal. Travelers follow the lights at the bridge. Set out tables for the crowd."
+
+msgid "键盘：Shift＋方向键移动地图指针，Enter 点按或长按，Tab 返回界面。"
+msgstr "Keyboard: Shift + arrows move the map cursor. Press or hold Enter to interact. Tab returns to UI navigation."
+
+msgid "无法加载章节列表。"
+msgstr "No chapters could be loaded."
+
+msgid "峡谷餐厅"
+msgstr "Canyon Tavern"
+
+msgid "简体中文"
+msgstr "Simplified Chinese"
+
+msgid "切换游戏语言"
+msgstr "Change game language"
+
+msgid "方向键选项 · Enter 确认"
+msgstr "Arrow keys to select · Enter to confirm"
+
+msgid "方向键选项 · %s 确认"
+msgstr "D-pad to select · %s to confirm"
+
+msgid "点按选择"
+msgstr "Tap to select"
+
+msgid "通关「%s」解锁"
+msgstr "Complete %s to unlock"
+
+msgid "尚未解锁"
+msgstr "Locked"
+
+msgid "开始经营"
+msgstr "Start serving"
+
+msgid "查看结算 · 第 %d 天"
+msgstr "View results · Day %d"
+
+msgid "继续经营 · 第 %d 天"
+msgstr "Continue · Day %d"
+
+msgid "河港夜市"
+msgstr "Riverside Night Market"
+
+msgid "选择章节"
+msgstr "Select a chapter"
+
+msgid "退出游戏"
+msgstr "Quit game"
+
+msgid "出餐口周围 2 格产生水流 8 秒。经过的信使移速提高 50%，离开后持续 3 秒。冷却 28 秒。"
+msgstr "A current surrounds the pass within 2 tiles for 8 seconds. Couriers move 50% faster in it and for 3 seconds after leaving. Cooldown: 28 seconds."
+
+msgid "河道急送"
+msgstr "River Rush"
+
+msgid "被动 · 每位厨师每做完两锅，下一锅烹饪用时减半。"
+msgstr "Passive · Every third batch takes half as long to cook, per cook."
+
+msgid "三锅旺火"
+msgstr "Third-Pot Fire"
+
+msgid "无法载入章节"
+msgstr "Could not load chapter"
+
+msgid "返回章节"
+msgstr "Back to chapters"
+
+msgid "无法恢复旧检查点"
+msgstr "Could not restore checkpoint"
+
+msgid "\n旧存档不会自动迁移或覆盖。"
+msgstr "\nThe old save will not be migrated or overwritten automatically."
+
+msgid "建立新局（旧档留作备份）"
+msgstr "Start fresh and keep a backup"
+
+msgid "暂不更改，返回主界面"
+msgstr "Return to title"
+
+msgid "下次房租"
+msgstr "Next rent payment"
+
+msgid "离下次缴租的天数"
+msgstr "Days until rent is due"
+
+msgid "客流高峰"
+msgstr "Rush hour"
+
+msgid "今日收入"
+msgstr "Today's revenue"
+
+msgid "持有金币"
+msgstr "Gold on hand"
+
+msgid "声望"
+msgstr "Reputation"
+
+msgid "闪星 · 购买地块扩建和奖杯"
+msgstr "Stars · Buy expansions and trophies"
+
+msgid "设置"
+msgstr "Settings"
+
+msgid "历史日报"
+msgstr "Past reports"
+
+msgid "街区全景 · F 返回餐厅"
+msgstr "District overview · F to return to the tavern"
+
+msgid "开店"
+msgstr "Open tavern"
+
+msgid "菜谱"
+msgstr "Menu"
+
+msgid "建造"
+msgstr "Build"
+
+msgid "奖杯背包"
+msgstr "Trophy bag"
+
+msgid "镜头跟随"
+msgstr "Follow with camera"
+
+msgid "关闭"
+msgstr "Close"
+
+msgid "移动"
+msgstr "Move"
+
+msgid "旋转"
+msgstr "Rotate"
+
+msgid "拆分餐桌"
+msgstr "Split table"
+
+msgid "收起"
+msgstr "Store"
+
+msgid "取消布置 [Esc]"
+msgstr "Cancel placement [Esc]"
+
+msgid "采购处"
+msgstr "Supply stall"
+
+msgid "每晚到货一道菜谱、两项增益。选中商品即可查看价格和效果。"
+msgstr "One recipe and two boosts arrive each night. Select an item to see its price and effect."
+
+msgid "进入采购"
+msgstr "Browse supplies"
+
+msgid "仅在夜晚采购；白天请观察经营。"
+msgstr "Shop at night. Watch service during the day."
+
+msgid "今晚商品已准备好，价格在采购页查看。"
+msgstr "Tonight's supplies are ready. Open the stall for prices."
+
+msgid "急送 · %d秒"
+msgstr "Rush · %ds"
+
+msgid "完成首日营业后可查看历史日报"
+msgstr "Past reports unlock after your first day."
+
+msgid "开店 [%s]"
+msgstr "Open tavern [%s]"
+
+msgid "第 %d 天起可能到店 %d 人组，需要%s"
+msgstr "From Day %d, parties of %d may arrive. Set out %s."
+
+msgid "已付清"
+msgstr "Paid in full"
+
+msgid "%d天"
+msgstr "%dd"
+
+msgid "房租 · 第 %d 天缴 %d 金币"
+msgstr "Rent · Day %d · %d gold"
+
+msgid "本章房租已全部缴清"
+msgstr "All rent for this chapter is paid."
+
+msgid "午夜解散队伍，已入座客人继续用餐"
+msgstr "The queue leaves at midnight. Seated guests finish their meals."
+
+msgid "09:00–21:00 接客，00:00 解散队伍"
+msgstr "Guests arrive 09:00–21:00. The queue leaves at midnight."
+
+msgid "当前8倍速 · 点击恢复正常"
+msgstr "8× speed · Click for normal speed"
+
+msgid "当前正常速度 · 点击快进"
+msgstr "Normal speed · Click to fast-forward"
+
+msgid "继续营业"
+msgstr "Resume service"
+
+msgid "暂停观察"
+msgstr "Pause service"
+
+msgid "菜谱 [%s]"
+msgstr "Menu [%s]"
+
+msgid "建造 [%s]"
+msgstr "Build [%s]"
+
+msgid "奖杯背包 [%s]"
+msgstr "Trophy bag [%s]"
+
+msgid "顺时针旋转 [%s]"
+msgstr "Rotate clockwise [%s]"
+
+msgid "拆分餐桌 [%s]"
+msgstr "Split table [%s]"
+
+msgid "收起 [%s]"
+msgstr "Store [%s]"
+
+msgid "21:00 停止新客到店 · 00:00 解散排队 · 等店内客人离开后结算"
+msgstr "Last arrivals at 21:00 · Queue leaves at midnight · Report after the last guest leaves"
+
+msgid "夜晚规划"
+msgstr "Night planning"
+
+msgid "营业接客中"
+msgstr "Serving guests"
+
+msgid "开店前需要处理："
+msgstr "Resolve before opening:"
+
+msgid "特别来客"
+msgstr "Special guests"
+
+msgid "%s 到店"
+msgstr "%s has arrived"
+
+msgid "%d 位%s同行到店"
+msgstr "%d %s arrived together"
+
+msgid "已更新"
+msgstr "Updated"
+
+msgid "操作失败"
+msgstr "Action failed"
+
+msgid "已开店"
+msgstr "Tavern open"
+
+msgid "窗口失去焦点，营业已暂停。"
+msgstr "Service paused because the window lost focus."
+
+msgid "跟随中 · 点击场景或按键退出"
+msgstr "Following · Click the scene or press a key to stop"
+
+msgid "厨师"
+msgstr "Cook"
+
+msgid "服务员"
+msgstr "Server"
+
+msgid "%s %d · 预备中"
+msgstr "%s %d · Getting ready"
+
+msgid "已雇佣 %d 位 · 可拖动调整开店站位"
+msgstr "%d employed · Drag to adjust starting positions"
+
+msgid "%s · %d 座"
+msgstr "%s · %d seats"
+
+msgid "\n长按拖到同规格餐桌可合成%s。"
+msgstr "\nHold and drag onto a matching table to make %s."
+
+msgid "\n为 %d 人组整桌留座。"
+msgstr "\nReserved for a party of %d."
+
+msgid "厨师在此烹饪，做好后会把菜搬到出餐口。"
+msgstr "Cooks prepare meals here and take them to the pass."
+
+msgid "服务员交单，厨师接单。四面可操作。"
+msgstr "Servers drop off orders and cooks collect them here. Accessible from all four sides."
+
+msgid "厨师放餐，服务员取餐。四面可操作。"
+msgstr "Cooks drop off meals and servers collect them here. Accessible from all four sides."
+
+msgid "隔开走道与用餐区域。可移动或收起。"
+msgstr "Separates the aisle from the dining area. It can be moved or stored."
+
+msgid "\n当前覆盖 %d 处"
+msgstr "\nCurrently affects %d"
+
+msgid "\n点击移动工具可预览范围。"
+msgstr "\nUse Move to preview the range."
+
+msgid "\n常驻效果仅在展示区放下后生效。\n已展示 %d / %d"
+msgstr "\nPermanent effects apply while displayed.\nOn display: %d / %d"
+
+msgid "给客人点单"
+msgstr "Taking orders"
+
+msgid "送订单到厨房"
+msgstr "Delivering an order to the kitchen"
+
+msgid "正在烹饪"
+msgstr "Cooking"
+
+msgid "领取灶台食物"
+msgstr "Collecting food from the stove"
+
+msgid "搬运到出餐口"
+msgstr "Carrying food to the pass"
+
+msgid "取餐"
+msgstr "Picking up food"
+
+msgid "给客人上菜"
+msgstr "Serving guests"
+
+msgid "返还食物"
+msgstr "Returning food"
+
+msgid "当前：%s\n手持食物：%d 份"
+msgstr "Now: %s\nCarrying %d servings"
+
+msgid "正在工作"
+msgstr "Working"
+
+msgid "会一直等到上菜 · 每轮扣 %d 声望"
+msgstr "Waits until served · Costs %d reputation per round"
+
+msgid "用餐时间为平时的 %d 倍 · 会评价餐品品质"
+msgstr "Eats %d times as long · Rates meal quality"
+
+msgid "\n增益 (%s%d%%)：%s · %s"
+msgstr "\nBoost (%s%d%%): %s · %s"
+
+msgid "\n常驻 (%s%d%%)：%s · %s"
+msgstr "\nPermanent (%s%d%%): %s · %s"
+
+msgid "结账金币为0"
+msgstr "Pays no gold"
+
+msgid "金币倍率 ×%.1f"
+msgstr "Payment ×%.1f"
+
+msgid "选菜时间 ×%.1f"
+msgstr "Decision time ×%.1f"
+
+msgid "用餐时间 ×%.1f"
+msgstr "Meal time ×%.1f"
+
+msgid "等餐扣分周期 ×%.1f"
+msgstr "Waiting penalty interval ×%.1f"
+
+msgid "等餐耐心无限"
+msgstr "Unlimited patience"
+
+msgid "等餐耐心 ×%.1f"
+msgstr "Patience ×%.1f"
+
+msgid "基础声望 %d"
+msgstr "Base reputation %d"
+
+msgid " · %s 旋转"
+msgstr " · %s to rotate"
+
+msgid "点击空格放置"
+msgstr "Select an empty tile to place"
+
+msgid " · Esc 取消"
+msgstr " · Esc to cancel"
+
+msgid "员工开店站位已调整。"
+msgstr "Starting position updated."
+
+msgid "已合成%s。"
+msgstr "Combined into %s."
+
+msgid "设施位置已调整。"
+msgstr "Facility moved."
+
+msgid "墙体方向已调整 · 松开左键铺设"
+msgstr "Wall direction changed · Release to place"
+
+msgid "装饰朝向已调整"
+msgstr "Decoration rotated"
+
+msgid "设施朝向已调整。"
+msgstr "Facility rotated."
+
+msgid "已拆为两张%s。"
+msgstr "Split into two %s."
+
+msgid "隔墙已收起。"
+msgstr "Partition stored."
+
+msgid "设施已收起，可从建造目录重新放置。"
+msgstr "Stored. Place it again from the build menu."
+
+msgid "在展廊内亮起的格子放置 "
+msgstr "Place on a lit tile in the gallery: "
+
+msgid "放置 %s · 点击空格%s"
+msgstr "Place %s · Select an empty tile%s"
+
+msgid "按住左键拖铺 · %s 转向 · Esc 退出"
+msgstr "Hold and drag a row · %s to turn · Esc to exit"
+
+msgid "已铺设 %d 格隔墙 · Esc 退出"
+msgstr "Placed %d partition tiles · Esc to exit"
+
+msgid "第 %d 天开放"
+msgstr "Opens on Day %d"
+
+msgid "开放日"
+msgstr "Opening day"
+
+msgid "费用 %d 闪星 · 持有 %d"
+msgstr "Cost: %d stars · You have %d"
+
+msgid "赠送厨师"
+msgstr "Bonus cook"
+
+msgid "赠送奖杯"
+msgstr "Bonus trophy"
+
+msgid "解锁商店"
+msgstr "Unlocks shop"
+
+msgid "赠送灶台"
+msgstr "Bonus stove"
+
+msgid "赠送餐桌"
+msgstr "Bonus tables"
+
+msgid "确认解锁"
+msgstr "Confirm unlock"
+
+msgid "！重大事件\n"
+msgstr "! Major event\n"
+
+msgid "查看公告与生效规则"
+msgstr "View the announcement and rules"
+
+msgid "已查看重大事件"
+msgstr "Announcement read"
+
+msgid "收到 "
+msgstr "Received "
+
+msgid "地块已解锁"
+msgstr "Expansion unlocked"
+
+msgid "收银台"
+msgstr "Cash register"
+
+msgid "升级同时花费声望与金币。"
+msgstr "Upgrades cost both reputation and gold."
+
+msgid "招聘与改造"
+msgstr "Hiring & upgrades"
+
+msgid "已完成。"
+msgstr "Done."
+
+msgid "新餐桌已摆好。"
+msgstr "The new table is in place."
+
+msgid "没有合适空位，新餐桌已放入建造背包。"
+msgstr "No suitable space. The new table is in your build inventory."
+
+msgid "当前余额距房租还差 %d$"
+msgstr "%d$ short of rent"
+
+msgid "当前余额可覆盖房租"
+msgstr "You can afford the rent"
+
+msgid "第 %d 天房租 %d$ · %s"
+msgstr "Day %d rent: %d$ · %s"
+
+msgid "可用声望 %d  ·  金币 %d$  ·  本晚已花 %d$"
+msgstr "Reputation %d · Gold %d$ · Spent tonight %d$"
+
+msgid "厨师与灶台"
+msgstr "Cooks & stoves"
+
+msgid "桌位"
+msgstr "Tables"
+
+msgid "菜单上架槽"
+msgstr "Menu slots"
+
+msgid "排队容量"
+msgstr "Queue capacity"
+
+msgid "奖杯展示位"
+msgstr "Trophy stands"
+
+msgid "+%d  ·  %d 声望 + %d$"
+msgstr "+%d · %d reputation + %d$"
+
+msgid "已满"
+msgstr "Maxed out"
+
+msgid "立即招聘"
+msgstr "Hire now"
+
+msgid "立即改造"
+msgstr "Upgrade now"
+
+msgid "%s · 第 %d 天解锁"
+msgstr "%s · Unlocks Day %d"
+
+msgid "待放置设施"
+msgstr "Unplaced facilities"
+
+msgid "放置 "
+msgstr "Place "
+
+msgid "选一件物件，再到地图上放置"
+msgstr "Select an item, then place it on the map"
+
+msgid "按住左键拖铺隔墙"
+msgstr "Hold and drag to lay a partition"
+
+msgid "点击空格放置 "
+msgstr "Select an empty tile to place "
+
+msgid "解锁奖杯展廊后，奖杯商店才会开门。"
+msgstr "Unlock the trophy gallery to open the trophy shop."
+
+msgid "奖杯商店 · 永久遗物"
+msgstr "Trophy shop · Permanent relics"
+
+msgid "★ %d 闪星  ·  每晚自动换货  ·  同款奖杯只可拥有一件"
+msgstr "★ %d stars · Restocked nightly · One of each trophy"
+
+msgid "已售罄"
+msgstr "Sold out"
+
+msgid "已购买"
+msgstr "Purchased"
+
+msgid "已购入"
+msgstr "Bought"
+
+msgid "还差 %d 闪星"
+msgstr "%d more stars needed"
+
+msgid "购买奖杯"
+msgstr "Buy trophy"
+
+msgid "换一批奖杯 · 1 闪星"
+msgstr "Refresh trophies · 1 star"
+
+msgid "暂无其他奖杯可换"
+msgstr "No other trophies available"
+
+msgid "需要 1 闪星"
+msgstr "Requires 1 star"
+
+msgid "换一批奖杯"
+msgstr "Refresh trophies"
+
+msgid "奖杯背包（%d 件 / 展示 %d）"
+msgstr "Trophy bag (%d owned / %d displayed)"
+
+msgid "奖杯已加入背包；放在展示区才会生效。"
+msgstr "Trophy added. Its effect starts when you put it on display."
+
+msgid "奖杯列表已刷新。"
+msgstr "Trophies refreshed."
+
+msgid "解锁奖杯展廊后开放奖杯背包。"
+msgstr "Unlock the gallery to open your trophy bag."
+
+msgid "已展示 %d / %d 件 · 只能放在展廊的展示区"
+msgstr "Displaying %d / %d · Place trophies in the gallery"
+
+msgid "尚未拥有奖杯。解锁奖杯展廊后，可在旁边的奖杯商店购买。"
+msgstr "You have no trophies. Unlock the gallery to buy some at the trophy shop."
+
+msgid "移动奖杯"
+msgstr "Move trophy"
+
+msgid "摆放奖杯"
+msgstr "Place trophy"
+
+msgid "夜晚可布置"
+msgstr "Place at night"
+
+msgid "展示位已满，请先收起一件"
+msgstr "Display full. Store a trophy first."
+
+msgid "收起奖杯"
+msgstr "Store trophy"
+
+msgid "奖杯已收起，常驻效果停止生效。"
+msgstr "Trophy stored. Its effect is inactive."
+
+msgid "装饰商店"
+msgstr "Decor shop"
+
+msgid "同类效果覆盖时取最高值"
+msgstr "Only the strongest effect of each type applies"
+
+msgid "%d×%d 格"
+msgstr "%d×%d tiles"
+
+msgid "打开建造背包"
+msgstr "Open build inventory"
+
+msgid "装饰已放入建造背包。"
+msgstr "Decoration added to build inventory."
+
+msgid "解锁采购小厅后可采购"
+msgstr "Unlock the supply hall to shop."
+
+msgid "采购处 · 今晚商品"
+msgstr "Supply stall · Tonight's stock"
+
+msgid "可用 %d$"
+msgstr "%d$ available"
+
+msgid "可用于采购的金币"
+msgstr "Gold available for supplies"
+
+msgid "每日收摊后换货"
+msgstr "Restocked after closing"
+
+msgid "本店厨师"
+msgstr "Tavern cook"
+
+msgid "今天的菜要热乎乎地出锅。"
+msgstr "Let's serve everything piping hot today."
+
+msgid "看看晚上的新货吧！"
+msgstr "Come see what arrived tonight!"
+
+msgid "多留点金币交房租哦。"
+msgstr "Keep a little gold aside for rent."
+
+msgid "好菜也要有人及时送到桌上。"
+msgstr "A good meal still needs a quick trip to the table."
+
+msgid "本章菜谱已收集完"
+msgstr "All recipes collected"
+
+msgid "暂无可购买增益"
+msgstr "No boosts available"
+
+msgid "菜谱 · "
+msgstr "Recipe · "
+
+msgid "基础价值 %d$   ·   当前品质 %d%%   ·   普通客估价 %d$\n制作 %.1f 秒/锅   ·   每锅 %d 份"
+msgstr "Base %d$ · Quality %d%% · Typical price %d$\n%.1fs per batch · %d servings"
+
+msgid "生效 %d 个营业日   ·   购买后 %d / %d 层   ·   累计剩余 %d 天"
+msgstr "Active for %d service days · %d / %d stacks after purchase · %d days remaining"
+
+msgid "已买入"
+msgstr "Bought"
+
+msgid "购买  %d$"
+msgstr "Buy for %d$"
+
+msgid "本晚已购买"
+msgstr "Already purchased tonight"
+
+msgid "还差 %d 金币"
+msgstr "%d gold short"
+
+msgid "购买并确认"
+msgstr "Confirm purchase"
+
+msgid "管理已拥有菜谱"
+msgstr "Manage recipes"
+
+msgid "增益已购买，下一场营业生效。"
+msgstr "Boost purchased. It starts next service."
+
+msgid "确认解锁 · "
+msgstr "Unlock · "
+
+msgid "%d 金币  ·  %d 基础价值  ·  %.0f 秒/锅  ·  每锅%d份\n旧菜会留在收藏，取消不会扣款。"
+msgstr "%d gold · Base value %d · %.0fs per batch · %d servings\nSwapped dishes stay in your collection. Canceling costs nothing."
+
+msgid "菜单已满。选一道在售菜替换，旧菜谱会留在收藏，之后可从「菜谱」换回。"
+msgstr "The menu is full. Pick a dish to swap out. It stays in your collection and can be restored from Menu."
+
+msgid "菜单已满，选一道替换："
+msgstr "Menu full. Swap out a dish:"
+
+msgid "替换 "
+msgstr "Replace "
+
+msgid "确认购买并上架"
+msgstr "Buy and add to menu"
+
+msgid "返回采购页"
+msgstr "Back to supplies"
+
+msgid "新菜已上架，旧菜仍可在菜单中换回。"
+msgstr "New dish added. You can swap the previous dish back in."
+
+msgid "当前菜单"
+msgstr "Current menu"
+
+msgid "已上架 %d / %d 道菜。点击槽位换菜，新菜谱可在采购处购买。"
+msgstr "%d / %d dishes listed. Select a slot to swap dishes or visit the supply stall for recipes."
+
+msgid "空槽"
+msgstr "Empty"
+
+msgid "%d  ·  %s    →  选择"
+msgstr "%d · %s → Select"
+
+msgid "下架"
+msgstr "Remove from menu"
+
+msgid "菜单槽 %d · 选择菜谱"
+msgstr "Menu slot %d · Pick a recipe"
+
+msgid "更换已解锁菜谱免费。菜单多样性会影响客人的随机选菜。"
+msgstr "Swapping unlocked recipes is free. A varied menu affects what guests order."
+
+msgid "%s\n%d 基础金币 · %.0f 秒 / 锅 · %d 份"
+msgstr "%s\n%d base gold · %.0fs per batch · %d servings"
+
+msgid "已上架"
+msgstr "On the menu"
+
+msgid "换入"
+msgstr "Swap in"
+
+msgid "返回菜单"
+msgstr "Back to menu"
+
+msgid "菜单已更新。"
+msgstr "Menu updated."
+
+msgid "这道菜已下架，仍在收藏中。"
+msgstr "Dish removed from the menu. It remains in your collection."
+
+msgid "%s  ·  第 %d 天"
+msgstr "%s · Day %d"
+
+msgid "本章进度仅在夜晚与结算点存档"
+msgstr "Progress saves at night and after service."
+
+msgid "暂停营业"
+msgstr "Pause service"
+
+msgid "复位视野 [%s]"
+msgstr "Reset camera [%s]"
+
+msgid "按键设置"
+msgstr "Controls"
+
+msgid "玩法指南"
+msgstr "How to play"
+
+msgid "再听阿禾讲一遍"
+msgstr "Replay He’s tutorial"
+
+msgid "关闭阿禾引导"
+msgstr "Turn off He’s guidance"
+
+msgid "重新开始本章"
+msgstr "Restart chapter"
+
+msgid "返回主界面"
+msgstr "Back to title"
+
+msgid "返回餐厅"
+msgstr "Back to tavern"
+
+msgid "阿禾的玩法指南"
+msgstr "He’s guide"
+
+msgid "练习合桌"
+msgstr "Practice combining tables"
+
+msgid "查看重大事件"
+msgstr "View major event"
+
+msgid "返回设置"
+msgstr "Back to settings"
+
+msgid "点按右侧键位，再按一个键。Esc 取消改键。"
+msgstr "Select a binding, then press a key. Esc cancels."
+
+msgid "手柄：方向键切换焦点，A／✕ 确认，B／○ 返回。左摇杆移镜头，右摇杆移指针，肩键缩放。"
+msgstr "Controller: D-pad to focus, A / ✕ to confirm, B / ○ to go back. Left stick pans, right stick moves the cursor, bumpers zoom."
+
+msgid "触屏：点按选择，长按拖动设施。拖动空地平移，双指移动或捏合可平移、缩放。"
+msgstr "Touch: Tap to select. Hold to drag facilities. Drag the ground to pan, or use two fingers to pan and zoom."
+
+msgid "营业与布置"
+msgstr "Service & placement"
+
+msgid "打开页面"
+msgstr "Open a page"
+
+msgid "恢复默认"
+msgstr "Restore defaults"
+
+msgid "请按键"
+msgstr "Press a key"
+
+msgid "%s\n%s 集中约 %d%%"
+msgstr "%s\n%s · About %d%% of arrivals"
+
+msgid "返回日报"
+msgstr "Back to report"
+
+msgid "营业复盘"
+msgstr "Service report"
+
+msgid "章节胜利"
+msgstr "Chapter won"
+
+msgid "房租不足"
+msgstr "Could not pay rent"
+
+msgid "第 %d 天 · %s"
+msgstr "Day %d · %s"
+
+msgid "夜晚准备"
+msgstr "Night planning"
+
+msgid "重新开始本章？"
+msgstr "Restart this chapter?"
+
+msgid "会替换当前检查点。旧版本档案在首次覆盖前会留作备份。"
+msgstr "This replaces the current checkpoint. The previous save is backed up before the first overwrite."
+
+msgid "可选：输入整数种子复现同一局"
+msgstr "Optional: enter an integer seed to replay the same run"
+
+msgid "确认重新开局"
+msgstr "Confirm restart"
+
+msgid "取消"
+msgstr "Cancel"
+
+msgid "新开局"
+msgstr "New run"
+
+msgid "请直接按一个键。"
+msgstr "Press a single key."
+
+msgid "阿禾 · 前厅"
+msgstr "He · Front of house"
+
+msgid "夜晚用左键按住一张餐桌，等它抬起后拖到同规格的桌上，再松手。两张单人桌合成双人桌，两张双人桌合成四人桌。"
+msgstr "At night, hold a table until it lifts, drag it onto a matching table, then release. Two singles make a two-seat table. Two doubles make a four-seat table."
+
+msgid "重大事件预告会出现在前一份日报的「明日预告」。公告按钮会在事件生效期间的夜晚出现。点右上角红色的「重大事件」，查看生效日期、客流变化和限时任务。带奖励的公告会显示「确定并领取」。"
+msgstr "Check Tomorrow's Forecast in the previous report. During the event, open the red Major Event button at night to see dates, guest traffic, and timed goals. Choose Confirm & Claim if there is a reward."
+
+msgid "21:00 停止接待新客，00:00 解散店外队伍。店内客人会继续点餐、用餐和结账。最后一位客人离开后才出日报。"
+msgstr "New guests stop arriving at 21:00. The queue leaves at midnight. Seated guests still order, eat, and pay. The report opens when the last guest leaves."
+
+msgid "客人选好菜后还在等点单。点「在餐厅定位」，看看等得最久的桌离服务员有多远。"
+msgstr "Guests have chosen dishes and are waiting to order. Select Locate in Tavern to see how far the busiest tables are from your servers."
+
+msgid "等餐主要卡在出餐口之前。点「在餐厅定位」，检查交单、灶台和厨师搬餐的路线。"
+msgstr "Most of the wait happens before the pass. Use Locate in Tavern to check order drop-off, stoves, and the cooks' route."
+
+msgid "餐已经到了出餐口，客人还在等。点「在餐厅定位」，检查服务员取餐到客桌的路。"
+msgstr "Food is at the pass but guests are still waiting. Use Locate in Tavern to check the servers' route from the pass to the tables."
+
+msgid "有人因为队伍满员或等到午夜而没能入座。点「在餐厅定位」看入口，左栏还会单独统计缺匹配餐桌的客人。"
+msgstr "Some guests found no space in the queue or waited until midnight. Locate in Tavern shows the entrance. The left column also counts guests without matching tables."
+
+msgid "左边看客人的去向，右边找经营卡在哪一步。调整布局后，可以对照下一份日报。"
+msgstr "The left side shows what happened to guests. The right side shows bottlenecks. Compare with tomorrow's report after a layout change."
+
+msgid "老板，我是跑堂的阿禾。开店后，厨师和服务员会自己接单上菜。我先带你认两个柜台，再看看怎么合桌。"
+msgstr "Boss, I'm He, your server. When we open, the cooks and servers handle orders automatically. I'll show you the two counters, then how to combine tables."
+
+msgid "跟你看看"
+msgstr "Show me"
+
+msgid "我自己逛"
+msgstr "I'll look around"
+
+msgid "这是出餐口。厨师把做好的菜放在这里，服务员再取餐送到客桌。"
+msgstr "This is the pass. Cooks put finished dishes here, and servers carry them to the tables."
+
+msgid "记住了"
+msgstr "Got it"
+
+msgid "这是订单口。服务员给客人点单后，会把订单送到这里，厨师从这里接单。"
+msgstr "This is the order counter. Servers drop off orders here for the cooks."
+
+msgid "再看出餐口"
+msgstr "Show the pass again"
+
+msgid "跳过引导"
+msgstr "Skip tutorial"
+
+msgid "今天的菜单上有%s，一锅出%d份。准备好了就点下方「开店」，我会带你看第一桌怎么点餐。"
+msgstr "Today's menu: %s, %d servings per batch. When you're ready, open the tavern and I'll show you how the first table orders."
+
+msgid "\n合成需要留出桌面和走道。"
+msgstr "\nLeave room for the table and an aisle."
+
+msgid "右边"
+msgstr "right"
+
+msgid "左边"
+msgstr "left"
+
+msgid "下方"
+msgstr "bottom"
+
+msgid "上方"
+msgstr "top"
+
+msgid "同一组客人只坐人数相同的桌。用左键按住%s高亮的%s，等它抬起后拖到另一张高亮桌上，再松手。"
+msgstr "Parties need a matching table. Hold the highlighted %s %s until it lifts, drag it onto the other table, then release."
+
+msgid "稍后再试"
+msgstr "Try later"
+
+msgid "两张双人桌还能合成 2×2 的四人桌。"
+msgstr "Two double tables can also form a 2×2 four-seat table."
+
+msgid "四人桌只接待四人组，记得保留单人桌和双人桌。"
+msgstr "Four-seat tables serve parties of four. Keep some singles and doubles."
+
+msgid "合成成功。%s\n%s。选中多人桌后可用右下角的拆分图标或按 %s。"
+msgstr "Tables combined. %s\n%s. Select the table and use Split or press %s."
+
+msgid "继续"
+msgstr "Continue"
+
+msgid "高亮这桌已经选好菜，正等服务员过去点单。点「查看客人」能看他选了什么，我先把营业计时停住。"
+msgstr "The highlighted table has chosen a dish and is waiting to order. Select View Guest to see their choice. I'll pause service for now."
+
+msgid "查看客人"
+msgstr "View guest"
+
+msgid "看正在端盘的服务员。他刚从出餐口取到菜，接下来会送到点这道菜的客桌。"
+msgstr "Watch the server with the plate. They've picked up the food at the pass and will take it to the table that ordered it."
+
+msgid "第一笔饭钱到账了。顶栏的「今日营收」记录今天赚了多少，金币是现在能花的余额。想暂停观察，可以按 %s。"
+msgstr "Our first payment is in. Today's Revenue shows what we've earned. Gold is what we can spend. Press %s to pause and look around."
+
+msgid "右侧信息框显示客人的状态和菜名。等餐时，这里还会显示剩余耐心。看完再继续营业。"
+msgstr "The right panel shows what the guest is doing and their dish. While they wait, you'll also see how much patience is left. Resume when ready."
+
+msgid "顶栏左边是下次房租。今天营业结束会扣 %d 金币，采购前记得留足。"
+msgstr "Next rent is at the top left. You'll pay %d gold after service today. Keep enough before buying supplies."
+
+msgid "右上角红色的「重大事件」亮了。开店前点开「%s」，看看哪几天生效、客流怎么变。有奖励时，记得点公告底部领取。"
+msgstr "The red Major Event button is lit. Open %s before service for dates and traffic changes, and claim the reward at the bottom if there is one."
+
+msgid "查看公告"
+msgstr "View announcement"
+
+msgid "稍后查看"
+msgstr "Check later"
+
+msgid "这回咱们赶集。拼盘小食一锅四份，桌子翻得也快。开门时一起看看第一波客人。"
+msgstr "Today's market day. Snacks come in batches of four and tables turn faster. Let's see who arrives first."
+
+msgid "点收银台，再选「招聘与改造」。桌位和员工都要花声望与金币。招聘与改造页会列出两种价格和下次房租，手头的钱也得留一份给房东。"
+msgstr "Select the cash register and choose Hiring & Upgrades. Extra tables and staff cost reputation and gold. Check both prices and set aside the next rent."
+
+msgid "花 %d 颗闪星打开采购小厅。采购处每晚到货菜谱和增益。"
+msgstr "Spend %d stars to open the supply hall. The stall gets recipes and boosts each night."
+
+msgid "花 %d 颗闪星开放装饰商店。装饰放下后，会为范围内的餐桌、员工或灶台提供效果。"
+msgstr "Spend %d stars to open the decor shop. Place an item to affect nearby tables, staff, or stoves."
+
+msgid "花 %d 颗闪星扩开厨房，就多一口灶，也多一位厨师。"
+msgstr "Spend %d stars to expand the kitchen and add a stove and a cook."
+
+msgid "花 %d 颗闪星可开放奖杯展廊和旁边的奖杯商店，还会送一座铜摆钟。"
+msgstr "Spend %d stars to open the trophy gallery and shop. A brass pendulum clock comes with it."
+
+msgid "东边一开就多四张桌，花 %d 颗闪星。门口没坐上的客人，这回有地方请了。"
+msgstr "Open the east wing for %d stars and gain four tables. That's more room for guests waiting at the door."
+
+msgid "南边还能添三张桌，花 %d 颗闪星。这回你来掌眼，端到最远那桌得走多远？"
+msgstr "The south wing adds three tables for %d stars. Can you spot the quickest route to the farthest one?"
+
+msgid "%s需要 %d 颗闪星。"
+msgstr "%s costs %d stars."
+
+msgid " 还差 %d 颗，攒够了再来。"
+msgstr " You need %d more."
+
+msgid "奖杯商店开门了，就在展廊里。用闪星买奖杯，点右下角的背包图标取出。放到展廊里亮起的格子后，奖杯就会生效。"
+msgstr "The trophy shop in the gallery is open. Buy trophies with stars and take them from the bag at the bottom right. Place them on lit gallery tiles to activate them."
+
+msgid "查看奖杯商店"
+msgstr "View trophy shop"
+
+msgid "稍后再看"
+msgstr "Look later"
+
+msgid "采购小厅开门了。今晚可以用金币买新菜谱和营业增益。"
+msgstr "The supply hall is open. Visit tonight to buy recipes and service boosts with gold."
+
+msgid "装饰商店开门了。买到的装饰在建造背包里，摆放时会亮出效果范围。"
+msgstr "The decor shop is open. Purchases go into build inventory. Their range lights up during placement."
+
+msgid "查看采购处"
+msgstr "View supply stall"
+
+msgid "查看装饰商店"
+msgstr "View decor shop"
+
+msgid "点右侧「进入采购」。买到的菜谱会永久进收藏，增益只在标明的营业日内生效。"
+msgstr "Select Browse Supplies on the right. Recipes stay in your collection. Boosts last for the stated number of service days."
+
+msgid "点击餐厅里的空格放置新设施，给座位和柜台留出通路。暂时不用的设施，可以在右下角「建造」背包里找回。"
+msgstr "Place new facilities on empty tiles and leave paths to seats and counters. You can recover stored items from Build at the bottom right."
+
+msgid "在下方选物件，再到地图上放置。选中场景里的设施时，可以用右下角的图标移动、旋转或收起。"
+msgstr "Select an item below and place it on the map. Select an existing facility to move, rotate, or store it with the controls at the bottom right."
+
+msgid "夜晚点右下角的锤子，或按 %s 打开底部建造目录。按类别找物件，选中后点地图放置。隔墙可以拖成一排。按 Esc 取消当前操作，再按 Esc 关闭目录。"
+msgstr "At night, select the hammer or press %s to open Build. Choose an item, then place it on the map. Drag a row to place partitions. Esc cancels the action, then closes Build."
+
+msgid "%d 人组从第 %d 天来店"
+msgstr "Parties of %d arrive from Day %d"
+
+msgid "合桌与客人组"
+msgstr "Tables & parties"
+
+msgid "。客人组只坐人数相同的桌，店里没有对应的桌就会离开。\n选中多人桌后，点右下角的拆分图标或按 %s，可以逐级拆回。"
+msgstr ". Parties need tables of the matching size and leave if none are available.\nSelect a combined table and use Split or press %s to split it."
+
+msgid "重大事件"
+msgstr "Major event"
+
+msgid "奖杯商店"
+msgstr "Trophy shop"
+
+msgid "解锁右上角的奖杯展廊后，点外墙上的奖杯商店。用闪星购买，摆进展廊后生效。"
+msgstr "Unlock the trophy gallery at the top right, then select the shop on the outer wall. Buy trophies with stars and display them to activate their effects."
+
+msgid "建造和布置"
+msgstr "Building & layout"
+
+msgid "\n选中设施后，右下角会显示可用工具。把鼠标停在图标上可查看名称。也可以按 %s 旋转。"
+msgstr "\nSelect a facility for tools at the bottom right. Hover over an icon for its name. You can also press %s to rotate."
+
+msgid "营业与复盘"
+msgstr "Service & reports"
+
+msgid "服务员点单后送到订单口，厨师做好后放到出餐口，服务员再取餐上桌。\n"
+msgstr "Servers bring orders to the order counter. Cooks take finished dishes to the pass. Servers pick them up and deliver them to the table.\n"
+
+msgid "\n日报的「在餐厅定位」会标出瓶颈。缺匹配餐桌时，先按客组人数调整桌型。"
+msgstr "\nLocate in Tavern highlights bottlenecks. If guests can't find a table, adjust table sizes for their parties."
+
+msgid "零拒客、等餐无扣分也无超时、午夜前完餐人数比例达标。三个目标各值一颗闪星。"
+msgstr "Refuse no guests, avoid waiting penalties and timeouts, and meet the target for meals finished before midnight. Each goal earns one star."
+
+msgid "看「明日预告」里的客流高峰，确认哪段时间会集中来客。开店前，左上角也会显示时段。"
+msgstr "Check Tomorrow's Forecast for rush hour. The times also appear at the top left before opening."
+
+msgid "待点单"
+msgstr "Waiting to order"
+
+msgid "查看等待最久的桌位，检查它们与服务员往返订单口的路线。"
+msgstr "Check the tables with the longest wait and the servers' route to the order counter."
+
+msgid "到出餐口前"
+msgstr "Before the pass"
+
+msgid "等餐主要发生在餐品到达出餐口之前。先看送单、灶台和厨师搬运。"
+msgstr "Most of the wait is before food reaches the pass. Check order delivery, stoves, and cooks' carrying routes."
+
+msgid "出餐口到客桌"
+msgstr "Pass to table"
+
+msgid "等餐主要发生在餐品到达出餐口之后。先看取餐和送到客桌的路线。"
+msgstr "Most of the wait is after food reaches the pass. Check pickup and routes to the tables."
+
+msgid "排队未入座率"
+msgstr "Queue left without seating"
+
+msgid "这批客人未能入座。查看入口队列，检查餐桌是否周转得过来。"
+msgstr "These guests never got a seat. Check the entrance queue and how quickly tables free up."
+
+msgid "收摊金币"
+msgstr "Gold at closing"
+
+msgid "今日营收"
+msgstr "Today's revenue"
+
+msgid "收摊声望"
+msgstr "Reputation at closing"
+
+msgid "当前声望"
+msgstr "Current reputation"
+
+msgid "今日声望变化"
+msgstr "Today's reputation change"
+
+msgid "闪星余额"
+msgstr "Stars on hand"
+
+msgid "今日获得闪星"
+msgstr "Stars earned today"
+
+msgid "零拒客"
+msgstr "No turnaways"
+
+msgid "所有计划到店者均进入餐厅"
+msgstr "All expected guests entered the tavern"
+
+msgid "无等餐扣分"
+msgstr "No waiting penalties"
+
+msgid "没有等餐扣分或超时"
+msgstr "No waiting penalties or timeouts"
+
+msgid "午夜前完餐 %d/%d · ≥%d%%"
+msgstr "Finished before midnight: %d/%d · ≥%d%%"
+
+msgid "午夜前至少 %d 人完餐"
+msgstr "At least %d guests finish before midnight"
+
+msgid "%s挑战 · %d/%d 天达成"
+msgstr "%s challenge · %d/%d days met"
+
+msgid " · 获得 "
+msgstr " · Earned "
+
+msgid " · 已结束"
+msgstr " · Ended"
+
+msgid "重大事件限时任务"
+msgstr "Timed event challenge"
+
+msgid "品质 %.0f%% · 声望 %+d"
+msgstr "Quality %.0f%% · Reputation %+d"
+
+msgid "上餐 %d/%d · 声望 %+d"
+msgstr "Served %d/%d · Reputation %+d"
+
+msgid "（评定 %+d）"
+msgstr " (rating %+d)"
+
+msgid "食品安全检查 · "
+msgstr "Food safety inspection · "
+
+msgid "评定声望 %+d"
+msgstr "Inspection reputation %+d"
+
+msgid "已缴清"
+msgstr "Paid"
+
+msgid "还差 %d$，章节结束"
+msgstr "%d$ short. Chapter ended."
+
+msgid "周租 %d$ · %s"
+msgstr "Weekly rent %d$ · %s"
+
+msgid "进入第 %d 天夜晚"
+msgstr "Plan for Day %d"
+
+msgid "重新挑战本章"
+msgstr "Retry this chapter"
+
+msgid "重新挑战"
+msgstr "Retry"
+
+msgid "总览"
+msgstr "Overview"
+
+msgid "到店结果"
+msgstr "Guest outcomes"
+
+msgid "明日预告"
+msgstr "Tomorrow's forecast"
+
+msgid "明细"
+msgstr "Details"
+
+msgid "阿禾手记"
+msgstr "He’s notes"
+
+msgid "阿禾 · 收摊手记"
+msgstr "He · Closing notes"
+
+msgid "主要瓶颈"
+msgstr "Main bottleneck"
+
+msgid "服务状态"
+msgstr "Service status"
+
+msgid "缺匹配餐桌 · %d 人"
+msgstr "No matching table · %d guests"
+
+msgid "无明显瓶颈"
+msgstr "No clear bottleneck"
+
+msgid "在餐厅定位"
+msgstr "Locate in tavern"
+
+msgid "完成用餐"
+msgstr "Finished meal"
+
+msgid "队满拒客"
+msgstr "Queue full"
+
+msgid "缺匹配餐桌"
+msgstr "No matching table"
+
+msgid "点单超时"
+msgstr "Order timed out"
+
+msgid "等餐超时"
+msgstr "Food timed out"
+
+msgid "清场未完餐"
+msgstr "Meal unfinished at closing"
+
+msgid "其他离店"
+msgstr "Other departures"
+
+msgid "%d 人"
+msgstr "%d guests"
+
+msgid "昨日对比"
+msgstr "Compared with yesterday"
+
+msgid "营业表现"
+msgstr "Service performance"
+
+msgid "│ 昨日"
+msgstr "│ Yesterday"
+
+msgid "午夜前完餐率"
+msgstr "Finished before midnight"
+
+msgid "拒客率"
+msgstr "Turnaway rate"
+
+msgid "平均排队"
+msgstr "Average queue time"
+
+msgid " 秒"
+msgstr "s"
+
+msgid "平均等餐"
+msgstr "Average food wait"
+
+msgid "暂无记录"
+msgstr "No records"
+
+msgid "昨日 %.1f%s"
+msgstr "Yesterday %.1f%s"
+
+msgid "服务明细"
+msgstr "Service breakdown"
+
+msgid "环节"
+msgstr "Stage"
+
+msgid "今日"
+msgstr "Today"
+
+msgid "昨日"
+msgstr "Yesterday"
+
+msgid "昨日重点\n"
+msgstr "Yesterday's notes\n"
+
+msgid "座位占用率"
+msgstr "Seat occupancy"
+
+msgid "灶台使用率"
+msgstr "Stove utilization"
+
+msgid "排队峰值"
+msgstr "Peak queue"
+
+msgid "午夜后完餐"
+msgstr "Finished after midnight"
+
+msgid "收尾用时"
+msgstr "Closing duration"
+
+msgid "%.1f 秒"
+msgstr "%.1fs"
+
+msgid "厨房与收入"
+msgstr "Kitchen & revenue"
+
+msgid "制作"
+msgstr "Cooked"
+
+msgid "%d 份"
+msgstr "%d servings"
+
+msgid "已食用"
+msgstr "Eaten"
+
+msgid "损耗"
+msgstr "Wasted"
+
+msgid "昨夜支出"
+msgstr "Last night's spending"
+
+msgid "菜品营收"
+msgstr "Food revenue"
+
+msgid "声望来源"
+msgstr "Reputation sources"
+
+msgid "完餐与增益"
+msgstr "Meals & boosts"
+
+msgid "等餐扣分"
+msgstr "Waiting penalties"
+
+msgid "品质扣分"
+msgstr "Quality penalties"
+
+msgid "食品安全检查"
+msgstr "Food safety inspection"
+
+msgid "活动奖励"
+msgstr "Event rewards"
+
+msgid "调整建议"
+msgstr "Suggested adjustments"
+
+msgid "暂无样本"
+msgstr "No data"
+
+msgid "营收"
+msgstr "Revenue"
+
+msgid "前一天"
+msgstr "Previous day"
+
+msgid "第 %d 天 · 经营明细"
+msgstr "Day %d · Service details"
+
+msgid "后一天"
+msgstr "Arrivals"
+
+msgid "到店"
+msgstr "Arrival"
+
+msgid "第 %d 天"
+msgstr "Day %d"
+
+msgid "第 %d–%d 天"
+msgstr "Days %d–%d"
+
+msgid "事件生效日期"
+msgstr "Event dates"
+
+msgid "营业影响"
+msgstr "Service impact"
+
+msgid "限时任务"
+msgstr "Timed challenge"
+
+msgid "每天各获 %d 闪星 · 奖励 %s"
+msgstr "Earn %d stars each day · Reward: %s"
+
+msgid "确定并领取 "
+msgstr "Confirm & claim "
+
+msgid "确定"
+msgstr "Confirm"
+
+msgid "%d 声望"
+msgstr "%d reputation"
+
+msgid "%d 金币"
+msgstr "%d gold"
+
+msgid "和"
+msgstr " and "
+
+msgid "普通客人"
+msgstr "Regular guests"
+
+msgid "稀有客人"
+msgstr "Rare guests"
+
+msgid "双人组"
+msgstr "Parties of two"
+
+msgid "四人组"
+msgstr "Parties of four"
+
+msgid "每天  "
+msgstr "Daily "
+
+msgid "每天的常规客流减少 %d%%"
+msgstr "%d%% fewer regular arrivals each day"
+
+msgid "第 %d 天来一人，第 %d 天来两人。记得留出双人桌。"
+msgstr "One guest on Day %d and two on Day %d. Keep a two-seat table ready."
+
+msgid "地痞会一直等到上菜，每人每轮等餐扣 %d 声望。"
+msgstr "Ruffians wait until served and cost %d reputation per guest per round."
+
+msgid "%d 位安全员同桌用餐，用餐时长为平时的 %d 倍。"
+msgstr "%d inspectors dine together for %d times the usual duration."
+
+msgid "全组餐点平均品质 %d%% 时声望持平。100%% 品质扣 %d 声望，超出标准有奖励。"
+msgstr "Average quality of %d%% breaks even. 100%% quality costs %d reputation. Higher quality earns a bonus."
+
+msgid "未上齐的餐点会拉低检查结果。"
+msgstr "Missing dishes lower the inspection result."
+
+msgid "会有一位%s到店。"
+msgstr "One %s will arrive."
+
+msgid "%s 集中约 %d%% 的计划客流"
+msgstr "%s · About %d%% of scheduled guests arrive"
+
+msgid "客人品质要求 +%d 个百分点"
+msgstr "Quality expectations +%d percentage points"
+
+msgid "菜价收益 +%d%%"
+msgstr "Dish revenue +%d%%"
+
+msgid "全部"
+msgstr "All"
+
+msgid "餐桌"
+msgstr "Tables"
+
+msgid "厨房"
+msgstr "Kitchen"
+
+msgid "奖杯"
+msgstr "Trophies"
+
+msgid "隔墙"
+msgstr "Partitions"
+
+msgid "装饰"
+msgstr "Decor"
+
+msgid "搜索物件"
+msgstr "Search items"
+
+msgid "关闭建造 [Esc]"
+msgstr "Close build menu [Esc]"
+
+msgid "关闭建造"
+msgstr "Close build menu"
+
+msgid "%d 座"
+msgstr "%d seats"
+
+msgid "展示位已满，先收起一件奖杯"
+msgstr "Display full. Store a trophy first."
+
+msgid "木纹隔墙"
+msgstr "Wooden partition"
+
+msgid "免费"
+msgstr "Free"
+
+msgid "没有找到物件"
+msgstr "No matching items"
+
+msgid "背包里还没有此类物件。选中场景里的设施，可用右下角的收起工具。"
+msgstr "No items of this type. Select a placed facility and use Store at the bottom right."
+
+msgid " · 选中后在场景放置"
+msgstr " · Select to place"
+
+msgid "点单"
+msgstr "Ordering"
+
+msgid "等餐"
+msgstr "Waiting for food"
+
+msgid "用餐"
+msgstr "Dining"
+
+msgid "离店"
+msgstr "Leaving"
+
+msgid "走向店门"
+msgstr "Walking to the door"
+
+msgid "排队等位"
+msgstr "Queuing"
+
+msgid "前往座位"
+msgstr "Heading to a seat"
+
+msgid "挑选菜品"
+msgstr "Choosing a dish"
+
+msgid "等待点单"
+msgstr "Waiting to order"
+
+msgid "正在点单"
+msgstr "Ordering"
+
+msgid "等待上菜"
+msgstr "Waiting to be served"
+
+msgid "正在用餐"
+msgstr "Eating"
+
+msgid "等同桌"
+msgstr "Waiting for tablemates"
+
+msgid "等同伴会合"
+msgstr "Rejoining the party"
+
+msgid "已离店"
+msgstr "Left"
+
+msgid "在餐厅"
+msgstr "In the tavern"
+
+msgid "日常客人"
+msgstr "Regular guest"
+
+msgid "特殊来客"
+msgstr "Special guest"
+
+msgid " · %d 人同行"
+msgstr " · Party of %d"
+
+msgid "尚未选菜"
+msgstr "No dish chosen"
+
+msgid "所点菜 · "
+msgstr "Order · "
+
+msgid "已排队"
+msgstr "In the queue"
+
+msgid "距下次扣声望"
+msgstr "Until next reputation penalty"
+
+msgid "剩余等餐耐心"
+msgstr "Patience left"
+
+msgid "用餐进度"
+msgstr "Meal progress"
+
+msgid "剩 %.1f 秒"
+msgstr "%.1fs left"
+
+msgid "已完成用餐"
+msgstr "Finished eating"
+
+msgid "等同桌客人"
+msgstr "Waiting for tablemates"
+
+msgid "好香呀。"
+msgstr "Smells good."
+
+msgid "有座吗？"
+msgstr "Any seats?"
+
+msgid "来碗热的。"
+msgstr "Something hot, please."
+
+msgid "就这家！"
+msgstr "This is the place!"
+
+msgid "先喝口茶。"
+msgstr "Time for some tea."
+
+msgid "闻着真香。"
+msgstr "What a lovely smell."
+
+msgid "有点期待。"
+msgstr "Can't wait."
+
+msgid "我等会儿。"
+msgstr "I can wait a bit."
+
+msgid "菜快好了吗？"
+msgstr "Is my food ready?"
+
+msgid "茶喝完啦……"
+msgstr "I'm out of tea…"
+
+msgid "帮我催催？"
+msgstr "Could you check?"
+
+msgid "呼，好烫！"
+msgstr "Ooh, hot!"
+
+msgid "味道正好。"
+msgstr "That's just right."
+
+msgid "慢慢尝。"
+msgstr "I'll savor this."
+
+msgid "趁热吃！"
+msgstr "Eat while it's hot!"
+
+msgid "吃饱啦。"
+msgstr "I'm full."
+
+msgid "多谢招待！"
+msgstr "Thanks for the meal!"
+
+msgid "光盘啦。"
+msgstr "Clean plate!"
+
+msgid "下次再来。"
+msgstr "I'll be back."
+
+msgid "该回家啦。"
+msgstr "Time to head home."
+
+msgid "师傅辛苦！"
+msgstr "Thanks, cook!"
+
+msgid "明天见。"
+msgstr "See you tomorrow."
+
+msgid "九点啦？"
+msgstr "Nine already?"
+
+msgid "要打烊啦。"
+msgstr "They're closing."
+
+msgid "街灯亮了。"
+msgstr "The streetlamps are on."
+
+msgid "这么晚啦。"
+msgstr "It's late!"
+
+msgid "旋转设施"
+msgstr "Rotate facility"
+
+msgid "收起设施"
+msgstr "Store facility"
+
+msgid "建造背包"
+msgstr "Build inventory"
+
+msgid "采购"
+msgstr "Supplies"
+
+msgid "暂停 / 继续"
+msgstr "Pause / resume"
+
+msgid "切换倍速"
+msgstr "Toggle speed"
+
+msgid "复位视野"
+msgstr "Reset camera"
+
+msgid "空格"
+msgstr "Space"
+
+msgid "找不到这项操作"
+msgstr "Unknown action"
+
+msgid "此键用于镜头、返回或界面导航，请选其他键。"
+msgstr "This key is reserved for the camera, Back, or navigation. Choose another."
+
+msgid "这个键已用于「%s」。"
+msgstr "This key is already bound to %s."
+
+msgid "%s · %d 闪星"
+msgstr "%s · %d stars"
+
+msgid "%d 人组"
+msgstr "Party of %d"
+
+msgid "没有%s？我们换一家吧。"
+msgstr "No %s? Let's try somewhere else."
+
+msgid "阿禾"
+msgstr "He"
+
+msgid "厨"
+msgstr "Cook"
+
+msgid "服"
+msgstr "Srv"
+
+msgid "做"
+msgstr "Cook"
+
+msgid "单"
+msgstr "Ord"
+
+msgid "选菜"
+msgstr "Pick"
+
+msgid "奖杯展示区 · 亮格可放"
+msgstr "Trophy display · Place on lit tiles"
+
+msgid "奖杯展示区 · 暂无空位"
+msgstr "Trophy display · No open tiles"
+
+msgid "关闭 [Esc]"
+msgstr "Close [Esc]"
+
+msgid "单人桌"
+msgstr "single table"
+
+msgid "双人桌"
+msgstr "two-seat table"
+
+msgid "四人桌"
+msgstr "four-seat table"
+
+msgid "设施 ID 重复"
+msgstr "Duplicate facility ID"
+
+msgid " 的座位数无效"
+msgstr " has an invalid seat count"
+
+msgid " 的朝向无效"
+msgstr " has an invalid orientation"
+
+msgid " 与其他设施重叠"
+msgstr " overlaps another facility"
+
+msgid " 放在不可用的墙体或边界"
+msgstr " is on a wall or the map boundary"
+
+msgid " 的交互位置不可达"
+msgstr " cannot be reached"
+
+msgid " 的座位与其他餐桌重叠"
+msgstr " has seats overlapping another table"
+
+msgid "出生点 / 出口被阻挡："
+msgstr "Blocked spawn or exit: "
+
+msgid "员工初始站位被阻挡："
+msgstr "Blocked staff starting tile: "
+
+msgid "员工初始站位重叠或占用出入口"
+msgstr "Staff positions overlap or block a doorway"
+
+msgid "请在夜晚确认重大事件"
+msgstr "Confirm major events at night"
+
+msgid "这个重大事件已结束或尚未开始"
+msgstr "This event has ended or has not started"
+
+msgid "该地块已经解锁"
+msgstr "This plot is already unlocked"
+
+msgid "需按顺序先解锁前面的地块"
+msgstr "Unlock the previous plots first"
+
+msgid "第 %d 天解锁"
+msgstr "Unlocks on Day %d"
+
+msgid "闪星不足，还差 %d"
+msgstr "%d more stars needed"
+
+msgid "地块不存在"
+msgstr "Plot not found"
+
+msgid "只能在夜晚解锁地块"
+msgstr "Unlock plots at night"
+
+msgid "赠送家具超过本章容量，请检查配置"
+msgstr "Bonus furniture exceeds the chapter's capacity"
+
+msgid "奖杯展示位不足"
+msgstr "Not enough trophy display space"
+
+msgid "地块通路冲突："
+msgstr "Expansion blocks a route: "
+
+msgid "预留地块赠送容量，请先解锁场地"
+msgstr "Capacity reserved for an expansion. Unlock it first."
+
+msgid "本阶段已达上限"
+msgstr "Current limit reached"
+
+msgid " · 第 %d 天开放更多"
+msgstr " · More available on Day %d"
+
+msgid "仅能在夜晚扩容"
+msgstr "Upgrade at night"
+
+msgid "已达到本章上限"
+msgstr "Chapter limit reached"
+
+msgid "还差 "
+msgstr "Still needed: "
+
+msgid "餐桌 "
+msgstr "Table "
+
+msgid "灶台 "
+msgstr "Stove "
+
+msgid "装饰商店尚未开放"
+msgstr "The decor shop is still locked"
+
+msgid "该装饰不存在"
+msgstr "Decoration not found"
+
+msgid "金币不足，还差 %d"
+msgstr "%d more gold needed"
+
+msgid "营业中不能移动设施"
+msgstr "Facilities cannot be moved during service"
+
+msgid "未找到设施"
+msgstr "Facility not found"
+
+msgid "商店的位置固定"
+msgstr "Shops have fixed locations"
+
+msgid "该地块尚未解锁"
+msgstr "This plot is locked"
+
+msgid "不能放在墙体或地图边界"
+msgstr "Cannot place on walls or map boundaries"
+
+msgid "奖杯仅能放在展廊展示区"
+msgstr "Trophies belong in the gallery"
+
+msgid "奖杯展示位已满，请升级容量或收起奖杯"
+msgstr "Display full. Upgrade capacity or store a trophy."
+
+msgid "这个格子已有设施"
+msgstr "This tile is occupied"
+
+msgid "此处没有足够空间，或会阻断通路和设施交互"
+msgstr "Insufficient space or a blocked path or interaction point"
+
+msgid "两张单人桌或两张双人桌才能合成"
+msgstr "Combine two singles or two doubles"
+
+msgid "空间不足，放不下%s。请留出桌面和座位的通路。"
+msgstr "Not enough space for %s. Leave a path to the table and seats."
+
+msgid "仅能在夜晚拆分餐桌"
+msgstr "Split tables at night"
+
+msgid "请选择双人桌或四人桌"
+msgstr "Select a two-seat or four-seat table"
+
+msgid "拆分后的桌位无法通行"
+msgstr "The split tables would block access"
+
+msgid "仅能在夜晚建造墙体"
+msgstr "Build partitions at night"
+
+msgid "请在餐厅内选定墙体位置"
+msgstr "Select tiles inside the tavern"
+
+msgid "墙体需要放在室内空格"
+msgstr "Place walls on empty indoor tiles"
+
+msgid "墙体会阻断通路、座位或员工站位"
+msgstr "The wall would block a route, seat, or staff position"
+
+msgid "仅能在夜晚旋转设施"
+msgstr "Rotate facilities at night"
+
+msgid "这件设施不可旋转"
+msgstr "This facility cannot be rotated"
+
+msgid "其他朝向没有足够空间或无法通行"
+msgstr "The other orientations lack space or block access"
+
+msgid "仅能在夜晚调整员工站位"
+msgstr "Move staff starting positions at night"
+
+msgid "未找到员工"
+msgstr "Staff member not found"
+
+msgid "请选择可通行的室内空格"
+msgstr "Select an empty, accessible indoor tile"
+
+msgid "这个格子已有员工"
+msgstr "A staff member occupies this tile"
+
+msgid "仅能在夜晚收起餐桌、灶台、奖杯或自建墙体"
+msgstr "Store tables, stoves, trophies, or partitions at night"
+
+msgid "至少上架一道菜，且不能超出菜单容量"
+msgstr "List at least one dish without exceeding menu capacity"
+
+msgid "至少放置一张餐桌"
+msgstr "Place at least one table"
+
+msgid "每位厨师需要一个已放置的灶台"
+msgstr "Each cook needs a placed stove"
+
+msgid "展示的奖杯超过当前遗物上限"
+msgstr "Too many trophies on display"
+
+msgid "奖杯超出右上展示区"
+msgstr "Trophy is outside the gallery"
+
+msgid "需要一个订单口与一个出餐口"
+msgstr "An order counter and a pass are required"
+
+msgid "仅可在夜晚更换已拥有菜谱"
+msgstr "Swap recipes at night"
+
+msgid "这道菜已上架"
+msgstr "This dish is already on the menu"
+
+msgid "无可用菜单槽位"
+msgstr "No menu slots available"
+
+msgid "至少保留一道上架菜"
+msgstr "Keep at least one dish on the menu"
+
+msgid "先解锁采购小厅"
+msgstr "Unlock the supply hall first"
+
+msgid "仅在夜晚购买"
+msgstr "Buy at night"
+
+msgid "此格没有可购买商品"
+msgstr "Nothing for sale in this slot"
+
+msgid "已拥有该菜谱"
+msgstr "You already own this recipe"
+
+msgid "选择要替换的菜品，确认后才扣款"
+msgstr "Select a dish to replace. Pay when you confirm."
+
+msgid "替换槽位无效"
+msgstr "Invalid replacement slot"
+
+msgid "Buff 授予参数 / 阶段无效"
+msgstr "Invalid boost parameters or phase"
+
+msgid "该 Buff 已达层数上限"
+msgstr "This boost is at its stack limit"
+
+msgid "已经开店"
+msgstr "Tavern is already open"
+
+msgid "暂无任务"
+msgstr "No tasks"
+
+msgid "只有夜晚可以刷新奖杯"
+msgstr "Refresh trophies at night"
+
+msgid "请先解锁奖杯展廊"
+msgstr "Unlock the trophy gallery first"
+
+msgid "闪星不足，刷新需要 1 闪星"
+msgstr "Refreshing costs 1 star"
+
+msgid "可购买种类不足，刷新无法产生新奖杯"
+msgstr "Too few available trophies to refresh the stock"
+
+msgid "只有夜晚可购买奖杯"
+msgstr "Buy trophies at night"
+
+msgid "该奖杯已售出或不可购买"
+msgstr "This trophy is sold or unavailable"
+
+msgid "等待"
+msgstr "Waiting"
+
+msgid "返还容量不足"
+msgstr "No space to return food"
+
+msgid "暂无待点单 / 可配送食品"
+msgstr "No orders to take or food to deliver"
+
+msgid "在餐厅走动"
+msgstr "Walking around"
+
+msgid "暂无已提交的未供应订单"
+msgstr "No pending submitted orders"
+
+msgid "等待出餐口空间"
+msgstr "Waiting for room at the pass"
+
+msgid "库存整理"
+msgstr "Sorting stock"
+
+msgid "等待灶台 / 厨房库存空间"
+msgstr "Waiting for stove or kitchen space"
+
+msgid "客人离席"
+msgstr "Guest left the table"
+
+msgid "闭店清空"
+msgstr "Cleared at closing"
+
+msgid "本章已经结束或尚未结算"
+msgstr "The chapter has ended or results are pending"
+
+msgid "资源为负"
+msgstr "Negative resources"
+
+msgid "食品绑定了无效订单"
+msgstr "Food linked to an invalid order"
+
+msgid "食品不守恒"
+msgstr "Food counts do not balance"
+
+msgid "出餐口溢出"
+msgstr "Pass capacity exceeded"
+
+msgid "厨房容量溢出"
+msgstr "Kitchen capacity exceeded"
+
+msgid "订单重复食品绑定"
+msgstr "Duplicate food assignment"
+
+msgid "座位预留未释放"
+msgstr "Seat reservation not released"
+
+msgid "客人漏斗不守恒"
+msgstr "Guest counts do not balance"
+
+msgid "闭店后存在食品"
+msgstr "Food remains after closing"
+
+msgid "存档版本不兼容，请重新开始本章"
+msgstr "Incompatible save version. Restart the chapter."
+
+msgid "存档阶段无效"
+msgstr "Invalid saved phase"
+
+msgid "存档缺少字段："
+msgstr "Missing save field: "
+
+msgid "存档对象类型无效："
+msgstr "Invalid saved object type: "
+
+msgid "存档列表类型无效："
+msgstr "Invalid saved list type: "
+
+msgid "重大事件领取记录格式错误"
+msgstr "Invalid format for event reward claims"
+
+msgid "重大事件查看记录无效"
+msgstr "Invalid event announcement history"
+
+msgid "重大事件领取记录无效"
+msgstr "Invalid event reward claims"
+
+msgid "存档布局缺字段："
+msgstr "Missing layout field: "
+
+msgid "存档地块配置无效"
+msgstr "Invalid saved expansion configuration"
+
+msgid "存档地块解锁顺序无效"
+msgstr "Invalid expansion unlock order"
+
+msgid "存档升级次数无效"
+msgstr "Invalid upgrade count"
+
+msgid "存档设施列表无效"
+msgstr "Invalid facility list"
+
+msgid "存档设施无效"
+msgstr "Invalid saved facility"
+
+msgid "存档装饰无效"
+msgstr "Invalid saved decoration"
+
+msgid "存档地块或设施位置无效"
+msgstr "Invalid saved expansion or facility position"
+
+msgid "存档商品结构无效"
+msgstr "Invalid saved offer structure"
+
+msgid "存档商品价格 / 类型无效"
+msgstr "Invalid saved offer price or type"
+
+msgid "存档商品引用无效"
+msgstr "Invalid saved offer reference"
+
+msgid "存档奖杯商店或闪星无效"
+msgstr "Invalid saved trophy shop or star balance"
+
+msgid "存档奖杯报价无效"
+msgstr "Invalid saved trophy price"
+
+msgid "存档奖杯引用无效"
+msgstr "Invalid saved trophy reference"
+
+msgid "存档奖杯重复或不存在"
+msgstr "Duplicate or missing trophy"
+
+msgid "奖杯实体与背包不一致"
+msgstr "Placed trophies do not match inventory"
+
+msgid "奖杯实体重复"
+msgstr "Duplicate placed trophy"
+
+msgid "奖杯位置超出展示区"
+msgstr "Trophy is outside the display area"
+
+msgid "奖杯背包缺少实体"
+msgstr "Trophy inventory is missing a placed item"
+
+msgid "奖杯超过当前展示上限"
+msgstr "Trophy count exceeds display capacity"
+
+msgid "存档报告缺字段："
+msgstr "Missing report field: "
+
+msgid "存档三星记录无效"
+msgstr "Invalid daily star record"
+
+msgid "存档报告结果无效"
+msgstr "Invalid report result"
+
+msgid "存档资源 / 菜单无效"
+msgstr "Invalid saved resources or menu"
+
+msgid "存档菜单超过容量"
+msgstr "Saved menu exceeds capacity"
+
+msgid "存档菜谱无效"
+msgstr "Invalid saved recipe"
+
+msgid "存档菜单未解锁"
+msgstr "Saved menu contains a locked recipe"
+
+msgid "存档容量无效"
+msgstr "Invalid saved capacity"
+
+msgid "存档Buff结构无效"
+msgstr "Invalid saved boost structure"
+
+msgid "存档 Buff 无效"
+msgstr "Invalid saved boost"
+
+msgid "存档布局为空"
+msgstr "Empty saved layout"
+
+msgid "有客人组找不到匹配的桌位。夜晚可把同规格餐桌拖到一起合成。"
+msgstr "Some parties could not find matching tables. Drag matching tables together at night."
+
+msgid "待点单流失偏多：考虑加服务员，或缩短餐桌到订单口的路线。"
+msgstr "Too many guests left while waiting to order. Add a server or shorten the route to the order counter."
+
+msgid "等餐链路偏慢：先看订单积压还是出餐口堆积，再决定加厨师还是服务员。"
+msgstr "Food took too long. Check whether orders pile up in the kitchen or meals pile up at the pass before hiring."
+
+msgid "队列满额拒客较多：可在收银台扩大队列，同时检查餐桌和出餐速度。"
+msgstr "The queue turned away many guests. Expand it at the register and check your tables and service speed."
+
+msgid "排队时间偏长：更多桌位或更短的用餐周转能改善接待。"
+msgstr "Guests queued for a long time. Add tables or improve turnover."
+
+msgid "品质低于预期：品质 Buff 可改善声望与客单，但不能解决配送等待。"
+msgstr "Quality fell short. Quality boosts help reputation and revenue, while delivery routes affect waiting time."
+
+msgid "有客人午夜后才完餐。更快的上菜和配送能让更多人赶上完餐目标。"
+msgstr "Some guests finished after midnight. Faster cooking and delivery can help more guests meet the target."
+
+msgid "流水线较稳定：根据明日事件调整菜单，并保留下一笔房租现金。"
+msgstr "Service is running smoothly. Plan for tomorrow's events and keep enough gold for rent."
+
+msgid "无法创建存档目录（%s）"
+msgstr "Could not create save directory (%s)"
+
+msgid "无法写入存档（%s）"
+msgstr "Could not write save (%s)"
+
+msgid "无法备份旧存档（%s）"
+msgstr "Could not back up previous save (%s)"
+
+msgid "无法提交存档（%s）"
+msgstr "Could not commit save (%s)"
+
+msgid "缺少配置："
+msgstr "Missing configuration: "
+
+msgid "配置格式错误："
+msgstr "Invalid configuration format: "
+
+msgid "章节根节点必须是对象："
+msgstr "Chapter root must be an object: "
+
+msgid "配置列表必须是数组："
+msgstr "Configuration must be an array: "
+
+msgid "配置条目缺少ID："
+msgstr "Configuration item has no ID: "
+
+msgid "重复 ID："
+msgstr "Duplicate ID: "
+
+msgid "无法加载章节："
+msgstr "Could not load chapter: "
+
+msgid "未知的章节配置项："
+msgstr "Unknown chapter option: "
+
+msgid "章节配置为空"
+msgstr "Empty chapter configuration"
+
+msgid "章节缺少字段："
+msgstr "Missing chapter field: "
+
+msgid "章节属性格式错误："
+msgstr "Invalid chapter attributes: "
+
+msgid "品质溢价系数必须在 0 到 1 之间"
+msgstr "Quality premium must be between 0 and 1"
+
+msgid "阶段客流配置不能为空"
+msgstr "Traffic stages cannot be empty"
+
+msgid "缺少必要升级属性："
+msgstr "Missing upgrade attribute: "
+
+msgid "升级价格字段缺失："
+msgstr "Missing upgrade cost field: "
+
+msgid "升级步长或声望成本无效："
+msgstr "Invalid upgrade step or reputation cost: "
+
+msgid "升级金币成本无效："
+msgstr "Invalid upgrade gold cost: "
+
+msgid "升级缺少按天解锁配置："
+msgstr "Missing unlock day for upgrade: "
+
+msgid "升级解锁格式错误："
+msgstr "Invalid upgrade unlock format: "
+
+msgid "升级解锁日期越界："
+msgstr "Upgrade day is out of range: "
+
+msgid "升级次数配置错误："
+msgstr "Invalid upgrade count configuration: "
+
+msgid "升级次数日期或上限无效："
+msgstr "Invalid upgrade day or limit: "
+
+msgid "奖杯展示区配置缺失"
+msgstr "Missing trophy display area"
+
+msgid "奖杯展示区越界"
+msgstr "Trophy display area is out of bounds"
+
+msgid "奖杯配置字段或价格无效"
+msgstr "Invalid trophy field or price"
+
+msgid "奖杯效果无效："
+msgstr "Invalid trophy effect: "
+
+msgid "奖杯候选不足三种"
+msgstr "At least three trophies are required"
+
+msgid "可解锁地块配置不能为空"
+msgstr "Unlockable plots cannot be empty"
+
+msgid "地块配置字段缺失"
+msgstr "Missing plot field"
+
+msgid "地块边界或赠送家具格式无效"
+msgstr "Invalid plot bounds or bonus items"
+
+msgid "地块日期、价格或赠送厨师无效"
+msgstr "Invalid plot day, price, or bonus cooks"
+
+msgid "地块范围越界"
+msgstr "Plot is out of bounds"
+
+msgid "可解锁地块范围重叠"
+msgstr "Unlockable plots overlap"
+
+msgid "地块赠送设施字段缺失"
+msgstr "Missing bonus facility field"
+
+msgid "地块赠送设施冲突或越界"
+msgstr "Bonus facilities overlap or are out of bounds"
+
+msgid "地块赠送设施类型无效"
+msgstr "Invalid bonus facility type"
+
+msgid "地块赠送奖杯不存在"
+msgstr "Bonus trophy does not exist"
+
+msgid "初始家具占用锁定地块"
+msgstr "Starting furniture occupies a locked plot"
+
+msgid "新地块与餐厅通路不连通："
+msgstr "No path between the new plot and the tavern: "
+
+msgid "快进倍率必须大于1"
+msgstr "Fast-forward multiplier must exceed 1"
+
+msgid "阶段客流缺少字段"
+msgstr "Missing traffic stage field"
+
+msgid "阶段客流日期或人数无效"
+msgstr "Invalid traffic stage day or guest count"
+
+msgid "阶段客流必须从第1天开始"
+msgstr "Traffic stages must begin on Day 1"
+
+msgid "客人组配置必须是列表"
+msgstr "Guest parties must be an array"
+
+msgid "客人组缺少人数、开放日或客流占比"
+msgstr "Missing party size, unlock day, or traffic share"
+
+msgid "客人组人数、开放日或客流占比无效"
+msgstr "Invalid party size, unlock day, or traffic share"
+
+msgid "客人组占比合计不可超过 100%"
+msgstr "Combined party traffic cannot exceed 100%"
+
+msgid "初始资源不能为负"
+msgstr "Starting resources cannot be negative"
+
+msgid "模拟时长必须为正"
+msgstr "Simulation duration must be positive"
+
+msgid "到店比例必须在 (0, 1] 内"
+msgstr "Arrival cutoff must be in (0, 1]"
+
+msgid "完餐闪星必须配置阶段目标"
+msgstr "Meal completion stars need stage targets"
+
+msgid "完餐闪星缺少开放日或目标百分比"
+msgstr "Missing meal completion target day or percentage"
+
+msgid "完餐闪星目标日期或百分比无效"
+msgstr "Invalid meal completion target day or percentage"
+
+msgid "租金必须日期升序、金额递增且不越界"
+msgstr "Rent dates and amounts must increase and stay within the chapter"
+
+msgid "最后营业日必须有房租"
+msgstr "Rent is required on the last service day"
+
+msgid "初始容量无效："
+msgstr "Invalid starting capacity: "
+
+msgid "初始菜单引用不存在："
+msgstr "Unknown recipe in starting menu: "
+
+msgid "初始菜单不能为空"
+msgstr "Starting menu cannot be empty"
+
+msgid "烹饪时长 / 产量无效："
+msgstr "Invalid cooking time or batch size: "
+
+msgid "菜品价格无效（首版基础价值支持0—10000）："
+msgstr "Invalid dish price. Base value must be between 0 and 10,000: "
+
+msgid "品质档位无效："
+msgstr "Invalid quality level: "
+
+msgid "增益缺少有效的星级或效果字段："
+msgstr "Boost has an invalid star rating or effect: "
+
+msgid "Buff 配置无效："
+msgstr "Invalid boost configuration: "
+
+msgid "增益"
+msgstr "Boost"
+
+msgid "装饰缺少有效字段："
+msgstr "Decoration is missing a valid field: "
+
+msgid "装饰占地无效："
+msgstr "Invalid decoration footprint: "
+
+msgid "装饰范围或效果无效："
+msgstr "Invalid decoration range or effect: "
+
+msgid "首版章节消费倍率须在(0,3]，避免价格中间值溢出"
+msgstr "Chapter spending multiplier must be in (0, 3] to keep prices in range"
+
+msgid "首版客人倍率不得超过6"
+msgstr "Guest multiplier cannot exceed 6"
+
+msgid "等餐规则无效："
+msgstr "Invalid food wait rules: "
+
+msgid "客人奖励不能为负"
+msgstr "Guest rewards cannot be negative"
+
+msgid "普通与稀有客人池必须有正权重"
+msgstr "Regular and rare guest pools must have positive weights"
+
+msgid "章节天气配置格式无效"
+msgstr "Invalid chapter weather configuration"
+
+msgid "章节默认天气未定义"
+msgstr "No default chapter weather"
+
+msgid "天气预设缺少名称、雨量、风力或云量："
+msgstr "Weather preset lacks a name, rain, wind, or cloud level: "
+
+msgid "天气预设的雨量、风力或云量越界："
+msgstr "Weather preset rain, wind, or cloud level out of range: "
+
+msgid "雷雨预设的打雷间隔无效："
+msgstr "Invalid lightning interval: "
+
+msgid "天气日历引用无效"
+msgstr "Invalid weather calendar reference"
+
+msgid "天气日历日期越界："
+msgstr "Weather calendar day out of range: "
+
+msgid "事件引用了未知天气："
+msgstr "Unknown weather in event: "
+
+msgid "事件日历格式无效"
+msgstr "Invalid event calendar format"
+
+msgid "事件日历引用无效"
+msgstr "Invalid event calendar reference"
+
+msgid "事件日历日期越界："
+msgstr "Event calendar day out of range: "
+
+msgid "重大事件只能安排一次："
+msgstr "A major event can only be scheduled once: "
+
+msgid "到店高峰缺少时段或比例："
+msgstr "Missing rush hour interval or share: "
+
+msgid "到店高峰时段或比例无效："
+msgstr "Invalid rush hour interval or share: "
+
+msgid "同一营业日只能配置一个到店高峰"
+msgstr "Only one rush hour per service day"
+
+msgid "常规客流倍率无效："
+msgstr "Invalid regular traffic multiplier: "
+
+msgid "特殊客人来访配置无效："
+msgstr "Invalid special guest visit: "
+
+msgid "特殊客人的日期、人数或到店时间无效："
+msgstr "Invalid special guest date, count, or arrival time: "
+
+msgid "特殊客人引用无效："
+msgstr "Unknown special guest: "
+
+msgid "食品安全检查规则无效："
+msgstr "Invalid food safety rules: "
+
+msgid "重大事件公告格式无效："
+msgstr "Invalid major event announcement: "
+
+msgid "重大事件海报缺失："
+msgstr "Missing major event poster: "
+
+msgid "事件客流倍率格式无效："
+msgstr "Invalid event traffic multiplier format: "
+
+msgid "事件客流倍率无效："
+msgstr "Invalid event traffic multiplier: "
+
+msgid "事件品质或收入倍率无效："
+msgstr "Invalid event quality or revenue multiplier: "
+
+msgid "重大事件确认奖励无效："
+msgstr "Invalid major event claim reward: "
+
+msgid "重大事件目标无效："
+msgstr "Invalid major event goal: "
+
+msgid "等级权重表不能为空"
+msgstr "Level weights cannot be empty"
+
+msgid "等级权重缺少日期或权重"
+msgstr "Level weights need a day and weights"
+
+msgid "等级权重须从第 1 天开始并按日期递增"
+msgstr "Level weights must begin on Day 1 and increase by date"
+
+msgid "等级权重包含无效星级或权重"
+msgstr "Invalid star rating or weight in level weights"
+
+msgid "每个阶段至少需要一个正权重"
+msgstr "Each stage needs at least one positive weight"
+
+msgid "范围内服务员移速 +%d%%"
+msgstr "Server movement speed within range +%d%%"
+
+msgid "十字相邻餐桌用餐时间缩短 %d%%"
+msgstr "Orthogonally adjacent tables finish meals %d%% faster"
+
+msgid "范围内餐桌用餐品质 +%d%%"
+msgstr "Meal quality at tables within range +%d%%"
+
+msgid "范围内餐桌每位完餐客人 +%d 声望"
+msgstr "+%d reputation per finished meal at tables within range"
+
+msgid "范围内餐桌结账金币 +%d%%"
+msgstr "Payments at tables within range +%d%%"
+
+msgid "范围内多人桌每位客人基础餐费 +%d 金币"
+msgstr "+%d base gold per guest at nearby group tables"
+
+msgid "相邻灶台烹饪速度 +%d%%"
+msgstr "Adjacent stove cooking speed +%d%%"
+
+msgid "相邻灶台出品品质 +%d%%"
+msgstr "Adjacent stove meal quality +%d%%"
+
+msgid "餐"
+msgstr "Food"
+
+msgid "书铺"
+msgstr "Books"
+
+msgid "面包房"
+msgstr "Bakery"
+
+msgid "花房"
+msgstr "Flowers"
+
+msgid "茶馆"
+msgstr "Tea House"
+
+msgid "木器铺"
+msgstr "Woodworks"
+
+msgid "邮局"
+msgstr "Post"
+
+msgid "茶叶行"
+msgstr "Tea Shop"
+
+msgid "咖啡"
+msgstr "Coffee"
+
+msgid "钟表"
+msgstr "Clocks"
+
+msgid "玻璃花室"
+msgstr "Glasshouse"
+
+msgid "果摊"
+msgstr "Fruit"
+
+msgid "杂货铺"
+msgstr "General Store"
+
+msgid "糕团铺"
+msgstr "Rice Cakes"
+
+msgid "修鞋"
+msgstr "Cobbler"
+
+msgid "夜市"
+msgstr "Night Market"
+
+msgid "照相馆"
+msgstr "Portraits"
+
+msgid "南街茶摊"
+msgstr "South Street Tea"
+
+msgid "食 堂"
+msgstr "Tavern"
+
+msgid "迅捷步伐"
+msgstr "Quick Steps"
+
+msgid "服务员移速 +20%"
+msgstr "Server movement speed +20%"
+
+msgid "大火收汁"
+msgstr "High Flame"
+
+msgid "烹饪速率 +20%"
+msgstr "Cooking speed +20%"
+
+msgid "5 星服务"
+msgstr "Five-Star Service"
+
+msgid "等餐耐心 +25%"
+msgstr "Waiting patience +25%"
+
+msgid "声名鹊起"
+msgstr "Rising Fame"
+
+msgid "完成用餐声望 +1"
+msgstr "+1 reputation per finished meal"
+
+msgid "物超所值"
+msgstr "Worth Every Coin"
+
+msgid "菜品品质 +25%"
+msgstr "Dish quality +25%"
+
+msgid "发薪日"
+msgstr "Payday"
+
+msgid "每次正常结账金币 +3"
+msgstr "+3 gold per regular payment"
+
+msgid "门庭若市"
+msgstr "Packed House"
+
+msgid "当日普通到店人数 +50%"
+msgstr "Regular arrivals today +50%"
+
+msgid "快食节奏"
+msgstr "Quick Bites"
+
+msgid "客人用餐时间缩短 20%"
+msgstr "Guests finish meals 20% faster"
+
+msgid "街角食堂"
+msgstr "Corner Tavern"
+
+msgid "第一章 · 从一碗家常饭开始"
+msgstr "Chapter I · A bowl of home cooking"
+
+msgid "晴朗"
+msgstr "Clear"
+
+msgid "下雨"
+msgstr "Rain"
+
+msgid "雷雨"
+msgstr "Thunderstorm"
+
+msgid "午市高峰"
+msgstr "Lunch Rush"
+
+msgid "一部分常规客人集中在午间到店"
+msgstr "Some regular guests arrive around midday"
+
+msgid "周末小高峰"
+msgstr "Weekend Rush"
+
+msgid "普通客人 +20%"
+msgstr "Regular guests +20%"
+
+msgid "街角美食节"
+msgstr "Corner Food Fair"
+
+msgid "街坊把长桌和灯笼都搬了出来。连办三天，约着一起来吃饭的人会格外多。"
+msgstr "Neighbors have brought out long tables and lanterns. For the next three days, expect more guests to dine together."
+
+msgid "地痞出没"
+msgstr "Ruffians About"
+
+msgid "连日下雨，沿街店铺清静了许多。街坊晚报提醒，最近有地痞在这一带出没。"
+msgstr "Days of rain have quieted the street. The Evening Gazette warns that ruffians have been seen in the area."
+
+msgid "四位食品安全员到店抽查。他们会仔细试吃每份餐点，检查出品并给出评价。"
+msgstr "Four food inspectors will dine together, taste every dish, and assess its quality."
+
+msgid "团餐预约"
+msgstr "Group Booking"
+
+msgid "街坊协会把聚餐订在餐馆。散客仍会来，四人桌和晚市出餐会最忙。"
+msgstr "The neighborhood association booked dinner. Walk-ins will still come, and four-seat tables and the kitchen will be busiest that evening."
+
+msgid "恶劣天气"
+msgstr "Severe Weather"
+
+msgid "街坊晚报发出连日雷雨预警。沿街客流会一直偏少，直到缴租日。"
+msgstr "The Evening Gazette forecasts days of thunder. Expect fewer guests until rent day."
+
+msgid "街区品鉴"
+msgstr "District Tasting"
+
+msgid "街区评审要连续两天巡店。吃客会用更挑剔的标准品尝，出品跟得上的店能赚更多。"
+msgstr "Local judges visit for two days. Guests will expect higher quality, and taverns that meet the standard can earn more."
+
+msgid "法定节日"
+msgstr "Public Holiday"
+
+msgid "普通客人 +50%"
+msgstr "Regular guests +50%"
+
+msgid "订单口"
+msgstr "Order counter"
+
+msgid "出餐口"
+msgstr "Pass"
+
+msgid "灶台 1"
+msgstr "Stove 1"
+
+msgid "灶台 2"
+msgstr "Stove 2"
+
+msgid "餐桌 1"
+msgstr "Table 1"
+
+msgid "餐桌 2"
+msgstr "Table 2"
+
+msgid "餐桌 3"
+msgstr "Table 3"
+
+msgid "餐桌 4"
+msgstr "Table 4"
+
+msgid "餐桌 5"
+msgstr "Table 5"
+
+msgid "餐桌 6"
+msgstr "Table 6"
+
+msgid "餐桌 7"
+msgstr "Table 7"
+
+msgid "餐桌 8"
+msgstr "Table 8"
+
+msgid "采购小厅"
+msgstr "Supply Hall"
+
+msgid "奖杯展廊"
+msgstr "Trophy Gallery"
+
+msgid "铜摆钟"
+msgstr "Brass Pendulum Clock"
+
+msgid "装饰工坊"
+msgstr "Decor Workshop"
+
+msgid "扩建厨房"
+msgstr "Kitchen Expansion"
+
+msgid "扩建灶台"
+msgstr "Expansion Stove"
+
+msgid "南侧客席"
+msgstr "South Dining Room"
+
+msgid "南侧餐桌 1"
+msgstr "South Table 1"
+
+msgid "南侧餐桌 2"
+msgstr "South Table 2"
+
+msgid "南侧餐桌 3"
+msgstr "South Table 3"
+
+msgid "庭院客席"
+msgstr "Courtyard Dining"
+
+msgid "庭院餐桌 1"
+msgstr "Courtyard Table 1"
+
+msgid "庭院餐桌 2"
+msgstr "Courtyard Table 2"
+
+msgid "庭院餐桌 3"
+msgstr "Courtyard Table 3"
+
+msgid "东侧客席"
+msgstr "East Dining Room"
+
+msgid "东侧餐桌 1"
+msgstr "East Table 1"
+
+msgid "东侧餐桌 2"
+msgstr "East Table 2"
+
+msgid "东侧餐桌 3"
+msgstr "East Table 3"
+
+msgid "东侧餐桌 4"
+msgstr "East Table 4"
+
+msgid "集市快线"
+msgstr "Market Express"
+
+msgid "第二章 · 店门外就是集市"
+msgstr "Chapter II · A market on your doorstep"
+
+msgid "街角试营业"
+msgstr "Corner Opening"
+
+msgid "家常饭 · 渐进扩建"
+msgstr "Home cooking · Gradual expansion"
+
+msgid "四份拼盘 · 高周转"
+msgstr "Four-portion platters · Fast turnover"
+
+msgid "竹影风扇"
+msgstr "Bamboo Shade Fan"
+
+msgid "春铃餐灯"
+msgstr "Springbell Lamp"
+
+msgid "映月莲池"
+msgstr "Moonlit Lotus Pool"
+
+msgid "松影花屏"
+msgstr "Pine Shadow Screen"
+
+msgid "金桂灯盏"
+msgstr "Golden Osmanthus Lamp"
+
+msgid "芳庭花架"
+msgstr "Garden Flower Stand"
+
+msgid "香草置架"
+msgstr "Herb Rack"
+
+msgid "琉璃调味台"
+msgstr "Glazed Spice Table"
+
+msgid "街坊客人"
+msgstr "Neighborhood Guest"
+
+msgid "通勤客"
+msgstr "Commuter"
+
+msgid "学生客"
+msgstr "Student"
+
+msgid "邻店店主"
+msgstr "Neighboring Shopkeeper"
+
+msgid "逛街客"
+msgstr "Shopper"
+
+msgid "探店博主"
+msgstr "Food Blogger"
+
+msgid "大胃袋"
+msgstr "Big Eater"
+
+msgid "霸王餐"
+msgstr "Dine-and-Dasher"
+
+msgid "楼下老头"
+msgstr "Downstairs Elder"
+
+msgid "地痞"
+msgstr "Ruffian"
+
+msgid "食品安全员"
+msgstr "Food Inspector"
+
+msgid "家常饭"
+msgstr "Home-Style Meal"
+
+msgid "一锅两份，开店的起点"
+msgstr "Two portions per batch, a good starting dish"
+
+msgid "招牌盖饭"
+msgstr "House Rice Bowl"
+
+msgid "更高客单，适合稳定的厨房"
+msgstr "Higher spend per guest, best with a reliable kitchen"
+
+msgid "快手面"
+msgstr "Quick Noodles"
+
+msgid "单份出餐快，减少首单等待"
+msgstr "Quick single portions reduce the first order's wait"
+
+msgid "拼盘小食"
+msgstr "Snack Platter"
+
+msgid "低单价大产量，适合人潮"
+msgstr "Low price and large batches for busy service"
+
+msgid "甜品套餐"
+msgstr "Dessert Set"
+
+msgid "中等单价与产量的折中"
+msgstr "A balance of price and batch size"
+
+msgid "慢炖套餐"
+msgstr "Slow-Cooked Set"
+
+msgid "长烹饪换取批量高价值"
+msgstr "Slow cooking yields several high-value portions"
+
+msgid "主厨拼盘"
+msgstr "Chef's Platter"
+
+msgid "高价值，但注意厨房积压"
+msgstr "High value. Watch for orders piling up."
+
+msgid "精品主菜"
+msgstr "Signature Main"
+
+msgid "后期高客单，考验整条流水线"
+msgstr "High-value late-game dish that tests the whole kitchen"
+
+msgid "常驻：服务员移动速度 +12%"
+msgstr "Permanent: Server movement speed +12%"
+
+msgid "余烬之杯"
+msgstr "Cup of Embers"
+
+msgid "常驻：烹饪速率 +15%"
+msgstr "Permanent: Cooking speed +15%"
+
+msgid "银铃"
+msgstr "Silver Bell"
+
+msgid "常驻：等餐耐心 +20%"
+msgstr "Permanent: Waiting patience +20%"
+
+msgid "翠玉勋章"
+msgstr "Jade Medal"
+
+msgid "常驻：菜品品质 +25%"
+msgstr "Permanent: Dish quality +25%"
+
+msgid "鎏金汤匙"
+msgstr "Gilded Spoon"
+
+msgid "常驻：每位正常结账客人额外 +2 金币"
+msgstr "Permanent: +2 gold per regular payment"
+
+msgid "月桂冠"
+msgstr "Laurel Crown"
+
+msgid "常驻：完成用餐额外 +1 声望"
+msgstr "Permanent: +1 reputation per finished meal"
+
+msgid "流沙漏"
+msgstr "Hourglass"
+
+msgid "常驻：客人用餐时间缩短 15%"
+msgstr "Permanent: Guests finish meals 15% faster"
+
+msgid "为已选好菜的客人更快点单。"
+msgstr "Takes orders faster once guests have chosen a dish."
+
+msgid "今日排班"
+msgstr "Today's roster"
+
+msgid "保存分组"
+msgstr "Save group"
+
+msgid "先选好五位并分配岗位。"
+msgstr "Choose five staff and assign their roles first."
+
+msgid "分组名称"
+msgstr "Group name"
+
+msgid "分组已保存。"
+msgstr "Group saved."
+
+msgid "受河道急送影响时多维持片刻。"
+msgstr "Keeps the River Rush boost a little longer."
+
+msgid "受阻"
+msgstr "Blocked"
+
+msgid "和炉生相邻备锅时，更早准备好连灶飞火。"
+msgstr "Prepares pots earlier for Hearth Chain when next to Lu."
+
+msgid "在后厨加快家常饭的烹饪。"
+msgstr "Cooks Home-Style Meals faster when assigned to the kitchen."
+
+msgid "备锅"
+msgstr "Preparing pot"
+
+msgid "套用分组"
+msgstr "Apply group"
+
+msgid "存档阵容无效"
+msgstr "Invalid saved crew"
+
+msgid "安排今天的员工岗位"
+msgstr "Assign today's staff roles"
+
+msgid "客人"
+msgstr "Guest"
+
+msgid "小兵"
+msgstr "Helper"
+
+msgid "已选 %d / 5    厨师 %d / 2    服务员 %d / 4"
+msgstr "Selected %d / 5    Cooks %d / 2    Servers %d / 4"
+
+msgid "小兵补前厅"
+msgstr "Helper fills a server slot"
+
+msgid "小兵补后厨"
+msgstr "Helper fills a cook slot"
+
+msgid "白天手动应急 · %s"
+msgstr "Manual service skills · %s"
+
+msgid "选择本局英雄"
+msgstr "Choose your champions"
+
+msgid "待命"
+msgstr "Idle"
+
+msgid "手动开启出餐口旁的短时配送加速。"
+msgstr "Manually boost delivery near the pass."
+
+msgid "手动点燃附近已经备锅的灶。"
+msgstr "Manually ignite nearby stoves with prepared pots."
+
+msgid "手动重选"
+msgstr "Choose again"
+
+msgid "新建分组"
+msgstr "New group"
+
+msgid "潮爪"
+msgstr "Tideclaw"
+
+msgid "炉生"
+msgstr "Lu"
+
+msgid "点燃附近已备锅的灶，最多并行三锅。"
+msgstr "Ignite up to three nearby prepared pots at once."
+
+msgid "焰铃"
+msgstr "Emberbell"
+
+msgid "熟客一眼"
+msgstr "Quick Read"
+
+msgid "熟锅"
+msgstr "Seasoned Stove"
+
+msgid "确认阵容"
+msgstr "Confirm crew"
+
+msgid "组名需要 1 至 36 个字符。"
+msgstr "Use a group name of 1 to 36 characters."
+
+msgid "编辑并保存局外分组"
+msgstr "Edit and save crew groups"
+
+msgid "返回"
+msgstr "Back"
+
+msgid "这个组名已被使用。"
+msgstr "That group name is in use."
+
+msgid "连灶飞火"
+msgstr "Hearth Chain"
+
+msgid "连灶飞火 · %d 锅"
+msgstr "Hearth Chain · %d pots"
+
+msgid "选出本局的五位特色员工"
+msgstr "Choose five specialty staff for this run"
+
+msgid "选择已保存分组"
+msgstr "Choose a saved group"
+
+msgid "阵容分组"
+msgstr "Crew groups"
+
+msgid "阿苔"
+msgstr "Moss"
+
+msgid "隔灶助火"
+msgstr "Neighboring Flame"
+
+msgid "顺水"
+msgstr "With the Current"
+
+msgid "飞火 · %d秒"
+msgstr "Hearth Chain · %ds"
+
+msgid "麦叔"
+msgstr "Mai"
+
+msgid "前厅羁绊 · 阿禾与潮爪同班，潮爪的急送余速延长 1 秒。"
+msgstr "Front-of-house synergy · With He and Tideclaw serving, Tideclaw keeps River Rush for 1 extra second."
+
+msgid "后厨羁绊 · 炉生与焰铃相邻备锅时，焰铃的锅可提前点燃。"
+msgstr "Kitchen synergy · When Emberbell preps beside Lu, her pot becomes eligible for Hearth Chain earlier."
+
+msgid "布兰德"
+msgstr "Brand"
+
+msgid "复仇焰魂"
+msgstr "the Burning Vengeance"
+
+msgid "烈焰风暴"
+msgstr "Pyroclasm"
+
+msgid "潘森"
+msgstr "Pantheon"
+
+msgid "不屈之枪"
+msgstr "the Unbreakable Spear"
+
+msgid "大荒星陨"
+msgstr "Grand Starfall"
+
+msgid "希维尔"
+msgstr "Sivir"
+
+msgid "战争女神"
+msgstr "the Battle Mistress"
+
+msgid "狩猎"
+msgstr "On The Hunt"
+
+msgid "安妮"
+msgstr "Annie"
+
+msgid "黑暗之女"
+msgstr "the Dark Child"
+
+msgid "提伯斯之怒"
+msgstr "Summon: Tibbers"
+
+msgid "峡谷迅捷蟹"
+msgstr "Rift Scuttler"
+
+msgid "魔沼蛙"
+msgstr "Gromp"
+
+msgid "前厅羁绊 · 希维尔与峡谷迅捷蟹同班，迅捷蟹的急送余速延长 1 秒。"
+msgstr "Front of house · On Sivir’s shift, Scuttler carries the current’s speed for 1 second longer."
+
+msgid "后厨羁绊 · 布兰德与安妮相邻备锅时，安妮的锅可提前点燃。"
+msgstr "Kitchen · Beside Brand, Annie prepares her stove for an earlier ignition."
+
+msgid "和布兰德相邻备锅时，更早准备好连灶飞火。"
+msgstr "Prepare an adjacent stove for Brand’s chain of fire."
+
+msgid "看屋顶"
+msgstr "View roof"
+
+msgid "看室内"
+msgstr "View interior"
+
+msgid "春季"
+msgstr "Spring"
+
+msgid "夏季"
+msgstr "Summer"
+
+msgid "秋季"
+msgstr "Autumn"
+
+msgid "冬季"
+msgstr "Winter"
+
+msgid "音乐已开启"
+msgstr "Music on"
+
+msgid "音乐已关闭"
+msgstr "Music off"
+
+msgid "合上店门"
+msgstr "Close the door"
+
+msgid "推开店门"
+msgstr "Open the door"
+
+msgid "存档无法读取"
+msgstr "Unreadable save"
+
+msgid "存档 %d · 第 %d 天"
+msgstr "Save %d · Day %d"
+
+msgid "新开游戏 · 选择英雄"
+msgstr "New game · Choose champions"
+
+msgid "保存进度"
+msgstr "Save progress"
+
+msgid "进度已保存"
+msgstr "Progress saved"
+
+msgid "打烊后自动存档"
+msgstr "Autosaves at closing"
+
+msgid "锁定阵容"
+msgstr "Lock in lineup"
+
+msgid "可选员工"
+msgstr "Available crew"
+
+msgid "当班阵容"
+msgstr "Your lineup"
+
+msgid "野怪"
+msgstr "Jungle creature"
+
+msgid "编辑分组"
+msgstr "Edit groups"
+
+msgid "加入阵容"
+msgstr "Add to lineup"
+
+msgid "移出阵容"
+msgstr "Remove from lineup"
+
+msgid "候选角色"
+msgstr "Available characters"
+
+msgid "更多"
+msgstr "More"
+
+msgid "营业簿"
+msgstr "Tavern register"
+
+msgid "营业"
+msgstr "Service"
+
+msgid "章节"
+msgstr "Chapters"
+
+msgid "门厅设置"
+msgstr "At the door"
+
+msgid "第 %d 章"
+msgstr "Chapter %d"
+
+msgid "存档 %d"
+msgstr "Save %d"
+
+msgid "继续经营"
+msgstr "Continue"
+
+msgid "新开游戏"
+msgstr "New game"
+
+msgid "查看结算"
+msgstr "View results"
+
+msgid "从家常饭起步，逐步扩建餐厅。"
+msgstr "Grow the tavern from its first home-cooked meals."
+
+msgid "用四人份拼盘应对集市客流。"
+msgstr "Serve the market crowd with platters for four."
+
+msgid "近战小兵"
+msgstr "Melee minion"
+
+msgid "法师小兵"
+msgstr "Caster minion"
+
+msgid "炮车兵"
+msgstr "Cannon minion"
+
+msgid "补位小兵"
+msgstr "Minion crew"
+
+msgid "后厨补位 %d"
+msgstr "Kitchen helper %d"
+
+msgid "前厅补位 %d"
+msgstr "Floor helper %d"
+
+msgid "前往灶位时移速提高 6%。"
+msgstr "Moves 6% faster to a stove."
+
+msgid "前往客桌接单时移速提高 6%。"
+msgstr "Moves 6% faster to take an order."
+
+msgid "烹饪用时减少 4%。"
+msgstr "Cooks in 4% less time."
+
+msgid "桌边点单用时减少 10%。"
+msgstr "Takes table orders in 10% less time."
+
+msgid "将成菜搬往出餐口时移速提高 8%。"
+msgstr "Moves 8% faster carrying dishes to the pass."
+
+msgid "端菜送往客桌时移速提高 8%。"
+msgstr "Moves 8% faster delivering dishes to a table."
+
+msgid "当前岗位已排满。"
+msgstr "All positions are staffed."
+
+msgid "小兵排班无效"
+msgstr "Invalid minion assignment"
+
+msgid "加速 ×3"
+msgstr "Speed up ×3"
+
+msgid "恢复原速"
+msgstr "Normal speed"
+
+msgid "跳过入场"
+msgstr "Skip entrance"

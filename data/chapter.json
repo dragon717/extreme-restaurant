@@ -188,6 +188,10 @@
       "event": "weekend"
     },
     {
+      "day": 23,
+      "event": "river_lantern_run"
+    },
+    {
       "day": 24,
       "duration_days": 2,
       "event": "food_review"
@@ -244,7 +248,7 @@
       "special_guest": "food_inspector",
       "special_visits": [{"day_offset": 0, "size": 4, "spawn_seconds": 52}],
       "quality_inspection": {"neutral_quality": 1.25, "reputation_per_percentage_point": 2, "limit": 100},
-      "notice": {}
+      "notice": {"art": "res://assets/events/guild-inspection.png"}
     },
     "group_booking": {
       "name": "团餐预约",
@@ -259,6 +263,13 @@
       "weather": "thunderstorm",
       "traffic": {"normal": -0.60, "rare": -0.60, "2": -0.60, "4": -0.60},
       "notice": {"art": "res://assets/events/bad_weather.png"}
+    },
+    "river_lantern_run": {
+      "name": "灯灵回游",
+      "description": "雷雨退去，灯灵沿河渠洄游。外乡客顺着桥头的灯火来访，摆好餐桌，准备接待看灯的人。",
+      "traffic": {"normal": 0.15, "rare": 0.10},
+      "payment_pct": 0.05,
+      "notice": {"art": "res://assets/events/lantern-spirit-run.png"}
     },
     "food_review": {
       "name": "街区品鉴",

@@ -1,0 +1,80 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/modal_frame.gd" id="1"]
+
+[node name="ModalFrame" type="CenterContainer"]
+script = ExtResource("1")
+
+[node name="Plate" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Contents" type="VBoxContainer" parent="Plate"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="MarginContainer" parent="Plate/Contents"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 4
+
+[node name="Row" type="HBoxContainer" parent="Plate/Contents/Header"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Seal" type="CenterContainer" parent="Plate/Contents/Header/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(32, 42)
+mouse_filter = 2
+
+[node name="Heading" type="Label" parent="Plate/Contents/Header/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="Close" type="Button" parent="Plate/Contents/Header/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+tooltip_text = "关闭 [Esc]"
+
+[node name="GoldThread" type="TextureRect" parent="Plate/Contents"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Scroll" type="ScrollContainer" parent="Plate/Contents"]
+unique_name_in_owner = true
+layout_mode = 2
+follow_focus = true
+horizontal_scroll_mode = 0
+
+[node name="Inset" type="MarginContainer" parent="Plate/Contents/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 17
+
+[node name="Body" type="VBoxContainer" parent="Plate/Contents/Scroll/Inset"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Feedback" type="Label" parent="Plate/Contents"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+autowrap_mode = 3

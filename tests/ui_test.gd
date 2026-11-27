@@ -236,8 +236,10 @@ func execute() -> void:
 	var title = load("res://scenes/title.tscn").instantiate()
 	root.add_child(title)
 	for i in range(5): await process_frame
+	title.get_node("Menu/CanyonHub/Places/tavern").pressed.emit()
+	await title.get_node("Menu/CanyonHub").at_door
 	var start_bounds = title.start_button.get_global_rect()
-	expect(title.menu.visible and start_bounds.position.x >= 0 and start_bounds.end.x <= root.size.x and start_bounds.end.y <= root.size.y, "主界面章节入口完整显示在窗口内")
+	expect(title.menu.visible and start_bounds.position.x >= 0 and start_bounds.end.x <= title.page.size.x and start_bounds.end.y <= title.page.size.y and title.register_enabled, "主界面章节入口完整显示在窗口内")
 	expect(title.chapter_buttons.market_lane.status.visible and title.chapter_buttons.market_lane.status.glyph == "lock", "主界面用锁图标表达第二章尚未解锁")
 	await shot("title")
 	title.queue_free()
@@ -265,12 +267,12 @@ func execute() -> void:
 	scene.world.sun_light.shadow_enabled = true
 	for actor in scene.world.actors.values(): actor.show()
 	var sun_cell = (scene.world.sun_light.position-scene.world._origin())/scene.world._unit()
-	var road_center = scene.world._origin() + Vector2(scene.world.street.ROAD_CENTER, 10) * scene.world._unit()
-	expect(Rect2(Vector2.ZERO, scene.world.size).has_point(road_center), "默认视野直接露出双车道和人行道")
+	var road_center = scene.world.screen_point(Vector2(-3.1,7.8))
+	expect(Rect2(Vector2.ZERO, scene.world.size).has_point(road_center), "默认视野能看见门外的井台和石径")
 	await shot("street")
 	scene.world.camera_pan = Vector2(-220,110)
 	scene.world._update_lighting()
-	expect(((scene.world.sun_light.position-scene.world._origin())/scene.world._unit()).is_equal_approx(sun_cell) and scene.world.city_geometry.get_child_count()>0,"移动视野时太阳固定在世界坐标，外围房屋持续投影")
+	expect(((scene.world.sun_light.position-scene.world._origin())/scene.world._unit()).is_equal_approx(sun_cell) and scene.world.district_3d.light.shadow_enabled and scene.world.district_3d.district.get_node("workshop").is_visible_in_tree(),"移动视野时太阳固定在世界坐标，峡谷使用同一套实体建筑与光源")
 	for i in range(2): await process_frame
 	await shot("neighborhood")
 	scene.world.focus_restaurant()
@@ -329,16 +331,17 @@ func execute() -> void:
 	await verify_major_notice(scene)
 	await shot("night")
 	var purchase_marker = scene.world.plot_buttons.purchase_annex.button
+	scene.world._sync_plot_buttons()
 	var marker_origin = purchase_marker.position
 	scene.world.camera_pan += Vector2(23, 11)
 	scene.world._sync_plot_buttons()
-	expect(purchase_marker.position == marker_origin + Vector2(23, 11), "地块按钮跟随地图而非 HUD，镜头平移位置正确")
+	expect(purchase_marker.position.is_equal_approx(marker_origin + Vector2(23, 11)), "地块按钮跟随地图而非 HUD，镜头平移位置正确")
 	scene.world.focus_restaurant()
 	scene.world._sync_plot_buttons()
 	var inactive_gallery = scene.world.plot_buttons.trophy_gallery.button
 	click_control(inactive_gallery)
 	scene._inspect("plot", "trophy_gallery")
-	expect(inactive_gallery.disabled and inactive_gallery.mouse_filter == Control.MOUSE_FILTER_IGNORE and scene.world.plot_buttons.trophy_gallery.ready == 0 and scene.modal_kind.is_empty(), "后续地块灰显且点击不打开弹窗")
+	expect(not inactive_gallery.visible and inactive_gallery.disabled and inactive_gallery.mouse_filter == Control.MOUSE_FILTER_IGNORE and scene.world.plot_buttons.trophy_gallery.ready == 0 and scene.modal_kind.is_empty(), "后续野地隐藏地块按钮，点击不会进入扩建确认")
 	click_control(purchase_marker)
 	await process_frame
 	expect(scene.modal_kind == "plot_unlock" and scene.modal_layer.find_child("ConfirmLandUnlock", true, false).disabled, "鼠标点击锁定采购区上的按钮，只查看该地块且显示开放条件")
@@ -370,20 +373,14 @@ func execute() -> void:
 	var buff_tiers = scene.modal_layer.find_children("*", "Label", true, false).filter(func(label): return label.text.ends_with("★"))
 	expect(buff_tiers.size() == 2, "两格增益均标注星级")
 	expect(scene._guest_effect(scene.sim.guest_defs.blogger).contains("金币倍率") and scene._guest_effect(scene.sim.guest_defs.elder).contains("用餐时间") and scene._guest_effect(scene.sim.guest_defs.thug).contains("等餐耐心"),"稀有与特别效果在信息窗可解释")
-	var hero_sprites = scene.modal_layer.find_children("*","AnimatedSprite2D",true,false)
-	expect(not hero_sprites.is_empty() and hero_sprites[0].sprite_frames.has_animation("idle") and hero_sprites[0].get_parent().z_index>=2,"采购页厨师图片加载在卡片前景")
-	expect(not hero_sprites.is_empty() and hero_sprites[0].get_parent().display_zoom>5,"厨师立绘缩放可见")
 	if scene.modal_frame.motion.is_running(): await scene.modal_frame.motion.finished
+	var counter_cell := Grid.vec(Grid.find(scene.sim.layout, "slot").pos)
+	expect(scene.world.feature_active and scene.world.feature_cell == counter_cell, "采购页对准扩建得到的采购处")
+	var district = scene.world.district_3d
+	expect(district.wings.has("purchase_annex") and district.fixture_models.has("slot"), "采购小厅及真实设施已建成")
 	await shot("purchase")
-	var image = root.get_texture().get_image()
-	var visible_skin = 0
-	var chef_center = hero_sprites[0].get_parent().get_global_transform_with_canvas().origin
-	for y in range(maxi(0,int(chef_center.y)-150),mini(image.get_height(),int(chef_center.y)+150),4):
-		for x in range(maxi(0,int(chef_center.x)-110),mini(image.get_width(),int(chef_center.x)+110),4):
-			var pixel = image.get_pixel(x,y)
-			if absf(pixel.r-217.0/255.0)<0.06 and absf(pixel.g-169.0/255.0)<0.06 and absf(pixel.b-118.0/255.0)<0.06:
-				visible_skin += 1
-	expect(visible_skin>30,"采购主厨形象实际出现在截图像素中")
+	var counter_point: Vector2 = scene.world.screen_point(counter_cell)
+	expect(Rect2(Vector2.ZERO, root.size).has_point(counter_point) and not scene.modal_frame.panel.get_global_rect().has_point(counter_point), "采购处在交易窗旁可见")
 	var money = scene.sim.gold
 	scene._buy(0)
 	expect(scene.modal_kind=="buy","新菜购买需要确认")
@@ -417,6 +414,7 @@ func execute() -> void:
 	scene._upgrade("tables")
 	expect(not scene.world.editing and Grid.placed(Grid.find(scene.sim.layout,"table_9")) and scene.sim.opening_errors().is_empty(),"新桌子自动摆放合法空位，保留招聘页")
 	scene._dismiss_modal()
+	var initial_pan: Vector2 = scene.world.camera_pan
 	var right = InputEventMouseButton.new()
 	right.button_index=MOUSE_BUTTON_RIGHT
 	right.pressed=true
@@ -429,7 +427,7 @@ func execute() -> void:
 	scene.world._gui_input(motion)
 	right.pressed=false
 	scene.world._gui_input(right)
-	expect(scene.world.camera_pan==Vector2(20,16),"按住右键拖动场景")
+	expect(scene.world.camera_pan.is_equal_approx(initial_pan + Vector2(20,16)),"按住右键拖动场景")
 	right.pressed=true
 	scene.world._gui_input(right)
 	var released_elsewhere=InputEventMouseMotion.new()
@@ -437,7 +435,7 @@ func execute() -> void:
 	released_elsewhere.relative=Vector2(20,14)
 	released_elsewhere.button_mask=0
 	scene.world._gui_input(released_elsewhere)
-	expect(scene.world.camera_pan==Vector2(20,16) and not scene.world.dragging_camera,"右键在浮层外释放后不再卡住镜头")
+	expect(scene.world.camera_pan.is_equal_approx(initial_pan + Vector2(20,16)) and not scene.world.dragging_camera,"右键在浮层外释放后不再卡住镜头")
 	scene.world.focus_restaurant()
 	scene.ui.open.pressed.emit()
 	expect(scene.sim.phase=="DAY" and not scene.ui.open.visible,"开店并隐藏夜晚按钮")
@@ -545,6 +543,8 @@ func execute() -> void:
 	click_control(scene.ui.trophy_bag)
 	expect(scene.modal_kind == "trophy_bag" and scene.sim.stars < before_stars and scene.sim.owned_relics.size() == 2, "解锁后的商店正常出售奖杯")
 	scene._close_modal()
+	if scene.world.feature_motion != null and scene.world.feature_motion.is_running():
+		await scene.world.feature_motion.finished
 	await drag_on_board(scene.world, scene.world.screen_point(Vector2(7, 8)), scene.world.screen_point(Vector2(4, 8)))
 	var first_pair = Grid.find(scene.sim.layout, "table_1")
 	expect(Grid.table_size(first_pair) == 2 and scene.ui.toast_label.text.contains("合成双人桌"), "原生鼠标长按拖桌可合成双人桌")

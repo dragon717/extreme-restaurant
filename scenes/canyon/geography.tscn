@@ -1,0 +1,45 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/canyon_world/valley.glb" id="valley"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/warehouse.glb" id="warehouse"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/crane.glb" id="crane"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/supply.glb" id="supply"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/workshop.glb" id="workshop"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/gallery.glb" id="gallery"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/stone_bridge.glb" id="stone_bridge"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/timber_bridge.glb" id="timber_bridge"]
+[ext_resource type="PackedScene" path="res://assets/canyon_world/dock.glb" id="dock"]
+
+[ext_resource type="Script" path="res://scripts/visuals/painted_canyon.gd" id="paint"]
+
+[node name="Canyon" type="Node3D"]
+script = ExtResource("paint")
+
+[node name="valley" parent="." instance=ExtResource("valley")]
+position = Vector3(0.000000, 0.000000, 0.000000)
+
+
+
+[node name="warehouse" parent="." instance=ExtResource("warehouse")]
+position = Vector3(-27.352942, 0.000000, -39.767109)
+
+[node name="crane" parent="." instance=ExtResource("crane")]
+position = Vector3(0.147059, 0.000000, -47.720531)
+
+[node name="supply" parent="." instance=ExtResource("supply")]
+position = Vector3(78.382355, 0.000000, -18.911470)
+
+[node name="workshop" parent="." instance=ExtResource("workshop")]
+position = Vector3(110.735291, 0.000000, -37.292713)
+
+[node name="gallery" parent="." instance=ExtResource("gallery")]
+position = Vector3(129.264709, 0.000000, -11.665019)
+
+[node name="stone_bridge" parent="." instance=ExtResource("stone_bridge")]
+position = Vector3(46.029411, 0.000000, -53.376297)
+
+[node name="timber_bridge" parent="." instance=ExtResource("timber_bridge")]
+position = Vector3(55.000000, 0.000000, 27.395121)
+
+[node name="dock" parent="." instance=ExtResource("dock")]
+position = Vector3(129.264709, 0.000000, 48.957729)

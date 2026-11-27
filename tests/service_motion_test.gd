@@ -130,7 +130,8 @@ func run() -> void:
 	world._sync_actors()
 	check(world.actors["s_1"].sprite.speed_scale == 0.0 and world.actor_cells["s_1"].is_equal_approx(start.lerp(end, .75)), "暂停时位置与步行动画一起冻结")
 	var sprite = world.actors["s_1"].sprite
-	check(sprite.sprite_frames.get_frame_count("walk") == 8 and sprite.sprite_frames.get_animation_speed("walk") == 12.0, "步行动画使用更密的帧")
+	for direction in ["walk","walk_side","walk_away"]:
+		check(sprite.sprite_frames.has_animation(direction) and sprite.sprite_frames.get_frame_count(direction)>=4,"行程驱动的独立步态 "+direction)
 	game.accumulator = .75 * float(sim.tick_ms) / 1000.0
 	game._on_focus_lost()
 	game._process(1.0 / 60.0)

@@ -145,14 +145,14 @@ func paint_scenery(board: Control, evening: float) -> void:
 	for lot in buildings: Buildings.draw(board, lot, evening)
 	_draw_furniture(board, evening)
 
-func paint_activity(board: Control, origin: Vector2, unit: float, evening: float) -> void:
+func paint_activity(board: Control, origin: Vector2, unit: float, evening: float, flat_scenery := true) -> void:
 	if dimensions == Vector2i.ZERO: return
 	var view = Rect2(-origin / unit, board.size / unit).grow(2.1)
 	if not view.intersects(bounds.grow(1.0)): return
 	board.draw_set_transform(origin, 0, Vector2.ONE * unit)
-	_draw_water(board)
+	if flat_scenery: _draw_water(board)
 	var street_limit = Rect2(ROAD_LEFT, NORTH_EDGE, ROAD_RIGHT - ROAD_LEFT, bounds.size.y)
-	for index in range(CARS_PER_LANE * 2):
+	for index in range(CARS_PER_LANE * 2 if flat_scenery else 0):
 		var point = vehicle_position(index)
 		# Keep the whole vehicle and its lights inside the road cutoff.
 		if street_limit.grow(-1.08).has_point(point) and view.has_point(point):
@@ -171,8 +171,9 @@ func paint_signs(board: Control, origin: Vector2, unit: float, font: Font) -> vo
 		if str(lot.name).is_empty() or not view.intersects(lot.box): continue
 		var sign = Buildings.sign_rect(lot)
 		var center = origin + sign.get_center() * unit
-		var width = font.get_string_size(lot.name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-		board.draw_string(font, center + Vector2(-width*.5, font_size*.34), lot.name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("f5e3b9"))
+		var caption := str(tr(str(lot.name)))
+		var width = font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		board.draw_string(font, center + Vector2(-width*.5, font_size*.34), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("f5e3b9"))
 
 func _ground(board: Control) -> void:
 	var x = bounds.position.x

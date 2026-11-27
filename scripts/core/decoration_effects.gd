@@ -10,14 +10,14 @@ const TARGETS = {
 static func description(definition: Dictionary) -> String:
 	var amount = roundi(float(definition.value) * 100)
 	match str(definition.effect):
-		"waiter_speed": return "范围内服务员移速 +%d%%" % amount
-		"table_eat": return "十字相邻餐桌用餐时间缩短 %d%%" % amount
-		"table_quality": return "范围内餐桌用餐品质 +%d%%" % amount
-		"table_reputation": return "范围内餐桌每位完餐客人 +%d 声望" % int(definition.value)
-		"table_gold": return "范围内餐桌结账金币 +%d%%" % amount
-		"group_base_gold": return "范围内多人桌每位客人基础餐费 +%d 金币" % int(definition.value)
-		"stove_speed": return "相邻灶台烹饪速度 +%d%%" % amount
-		"stove_quality": return "相邻灶台出品品质 +%d%%" % amount
+		"waiter_speed": return TranslationServer.translate("范围内服务员移速 +%d%%") % amount
+		"table_eat": return TranslationServer.translate("十字相邻餐桌用餐时间缩短 %d%%") % amount
+		"table_quality": return TranslationServer.translate("范围内餐桌用餐品质 +%d%%") % amount
+		"table_reputation": return TranslationServer.translate("范围内餐桌每位完餐客人 +%d 声望") % int(definition.value)
+		"table_gold": return TranslationServer.translate("范围内餐桌结账金币 +%d%%") % amount
+		"group_base_gold": return TranslationServer.translate("范围内多人桌每位客人基础餐费 +%d 金币") % int(definition.value)
+		"stove_speed": return TranslationServer.translate("相邻灶台烹饪速度 +%d%%") % amount
+		"stove_quality": return TranslationServer.translate("相邻灶台出品品质 +%d%%") % amount
 	return ""
 
 static func coverage(fixture: Dictionary, definition: Dictionary, layout: Dictionary) -> Dictionary:

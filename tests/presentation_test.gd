@@ -33,7 +33,11 @@ func canyon_preview() -> void:
 	root.add_child(title)
 	await RenderingServer.frame_post_draw
 	await shot("canyon-title")
+	title._select_place("tavern")
+	await title.get_node("Menu/CanyonHub").at_door
 	title.start_button.pressed.emit()
+	await title.get_node("Menu/CanyonHub").door_crossed
+	await title.game.world.entry_finished
 	var game = title.game
 	game.guide.skip()
 	game.set_process(false)

@@ -118,7 +118,7 @@ func _draw_diner() -> void:
 	_box(377, 220, 241, 1, Color("b47247"))
 	_box(396, 208, 44, 2, Color("d49b5a", 0.7))
 	_box(556, 208, 43, 2, Color("d49b5a", 0.7))
-	draw_string(sign_font, Vector2(471, 217), "食 堂", HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("ffdaa0"))
+	draw_string(sign_font, Vector2(471, 217), tr("食 堂"), HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("ffdaa0"))
 	for x in range(351, 641, 14):
 		var is_light = (x - 351) % 28 == 0
 		var awning = Color("bb6448") if is_light else Color("e5bb82")

@@ -16,8 +16,11 @@ static func completed(options: Array, testing := false) -> Array:
 	var wins: Array = saved.duplicate() if saved is Array else []
 	for option in options:
 		var id = str(option.id)
-		if id not in wins and _has_victory(Store.read_checkpoint(Store.default_path(id, testing)), id):
-			wins.append(id)
+		if id in wins: continue
+		for slot in Store.chapter_slots(id,testing):
+			if slot.phase == "REPORT" and _has_victory(Store.read_checkpoint(slot.path),id):
+				wins.append(id)
+				break
 	return wins
 
 static func record_win(checkpoint: Dictionary, testing := false) -> String:

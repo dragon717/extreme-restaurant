@@ -1,0 +1,97 @@
+[gd_scene format=3]
+
+[node name="PauseMenu" type="VBoxContainer"]
+theme_override_constants/separation = 11
+
+[node name="Chapter" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.945, 0.757, 0.506, 1)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="SaveStatus" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.71, 0.79, 0.76, 1)
+text = "本章进度仅在夜晚与结算点存档"
+autowrap_mode = 3
+
+[node name="Resume" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+text = "返回餐厅"
+mouse_default_cursor_shape = 2
+
+[node name="Controls" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="ResetCamera" type="Button" parent="Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_default_cursor_shape = 2
+
+[node name="Music" type="Button" parent="Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "音乐已开启"
+
+[node name="SaveRun" type="Button" parent="Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "保存进度"
+
+[node name="OpenKeySettings" type="Button" parent="Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "按键设置"
+mouse_default_cursor_shape = 2
+
+[node name="Handbook" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+layout_mode = 2
+text = "玩法指南"
+mouse_default_cursor_shape = 2
+
+[node name="Guidance" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="ReplayGuide" type="Button" parent="Guidance"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "再听阿禾讲一遍"
+mouse_default_cursor_shape = 2
+
+[node name="DisableGuide" type="Button" parent="Guidance"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "关闭阿禾引导"
+mouse_default_cursor_shape = 2
+
+[node name="ExitActions" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Restart" type="Button" parent="ExitActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "重新开始本章"
+mouse_default_cursor_shape = 2
+
+[node name="TitleMenu" type="Button" parent="ExitActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 43)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "返回主界面"
+mouse_default_cursor_shape = 2

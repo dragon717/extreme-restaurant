@@ -1,0 +1,49 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Texture2D" path="res://assets/interface/hub-rail.webp" id="rail"]
+
+[node name="ServiceHub" type="TextureRect"]
+anchor_right = 1.0
+offset_bottom = 74.0
+mouse_filter = 2
+expand_mode = 1
+texture_filter = 2
+texture = ExtResource("rail")
+
+[node name="Resources" type="HBoxContainer" parent="."]
+anchor_left = 0.026
+anchor_right = 0.285
+anchor_bottom = 0.84
+offset_top = 3.0
+alignment = 1
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Service" type="HBoxContainer" parent="."]
+anchor_left = 0.366
+anchor_right = 0.632
+anchor_bottom = 0.83
+offset_top = 3.0
+alignment = 1
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Season" type="Label" parent="Service"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.84,0.76,0.56,1)
+
+[node name="Phase" type="Label" parent="Service"]
+layout_mode = 2
+text = "夜间规划"
+theme_override_font_sizes/font_size = 17
+mouse_filter = 2
+
+[node name="Actions" type="HBoxContainer" parent="."]
+anchor_left = 0.707
+anchor_right = 0.971
+anchor_bottom = 0.84
+offset_top = 3.0
+alignment = 1
+mouse_filter = 2
+theme_override_constants/separation = 4

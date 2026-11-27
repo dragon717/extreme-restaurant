@@ -1,72 +1,52 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://scripts/ui/title.gd" id="1_title"]
-
-[ext_resource type="Texture2D" path="res://assets/canyon/tavern.webp" id="2_cover"]
+[ext_resource type="Script" path="res://scripts/ui/title.gd" id="title"]
+[ext_resource type="Script" path="res://scripts/audio/seasonal_music.gd" id="music"]
+[ext_resource type="PackedScene" path="res://scenes/canyon/title_hub.tscn" id="hub"]
+[ext_resource type="PackedScene" path="res://scenes/canyon/door_register.tscn" id="register"]
 
 [node name="RestaurantTitle" type="Control"]
-layout_mode = 3
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_title")
+script = ExtResource("title")
 
 [node name="Menu" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="Cover" type="TextureRect" parent="Menu"]
+[node name="CanyonHub" parent="Menu" instance=ExtResource("hub")]
+
+[node name="ArrivalControls" type="HBoxContainer" parent="Menu"]
+visible = false
+anchor_left = 1.0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 2
-texture_filter = 2
-texture = ExtResource("2_cover")
-expand_mode = 1
-stretch_mode = 6
+offset_left = -324.0
+offset_top = -76.0
+offset_right = -26.0
+offset_bottom = -25.0
+alignment = 2
+theme_override_constants/separation = 12
 
-[node name="Left" type="CenterContainer" parent="Menu"]
-anchor_bottom = 1.0
-offset_left = 56.0
-offset_right = 500.0
-mouse_filter = 2
-
-[node name="Stack" type="VBoxContainer" parent="Menu/Left"]
-custom_minimum_size = Vector2(420, 0)
-theme_override_constants/separation = 14
-
-[node name="Location" type="Label" parent="Menu/Left/Stack"]
-text = "河港夜市"
-theme_override_colors/font_color = Color(0.95, 0.73, 0.43, 1)
-theme_override_font_sizes/font_size = 21
-
-[node name="Title" type="Label" parent="Menu/Left/Stack"]
-text = "峡谷餐厅"
-theme_override_colors/font_color = Color(1, 0.94, 0.81, 1)
-theme_override_colors/font_shadow_color = Color(0.04, 0.10, 0.13, 1)
-theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/font_size = 73
-
-[node name="Chapters" type="VBoxContainer" parent="Menu/Left/Stack"]
-theme_override_constants/separation = 8
-
-[node name="Caption" type="Label" parent="Menu/Left/Stack/Chapters"]
-text = "选择章节"
-theme_override_colors/font_color = Color(0.95, 0.73, 0.43, 1)
-
-[node name="Start" type="Button" parent="Menu/Left/Stack"]
-text = "开始经营"
-custom_minimum_size = Vector2(0, 52)
-theme_override_font_sizes/font_size = 20
+[node name="Rate" type="Button" parent="Menu/ArrivalControls"]
+custom_minimum_size = Vector2(108,46)
+text = "加速 ×3"
 mouse_default_cursor_shape = 2
 
-[node name="Quit" type="Button" parent="Menu/Left/Stack"]
-text = "退出游戏"
-custom_minimum_size = Vector2(106, 36)
-size_flags_horizontal = 0
+[node name="Skip" type="Button" parent="Menu/ArrivalControls"]
+custom_minimum_size = Vector2(112,46)
+text = "跳过入场"
 mouse_default_cursor_shape = 2
+
+[node name="RegistryViewport" type="SubViewport" parent="."]
+size = Vector2i(640,820)
+disable_3d = true
+gui_disable_input = false
+handle_input_locally = true
+render_target_update_mode = 2
+
+[node name="Register" parent="RegistryViewport" instance=ExtResource("register")]
 
 [node name="Soundtrack" type="AudioStreamPlayer" parent="."]
-volume_db = -15.0
-autoplay = true
+script = ExtResource("music")

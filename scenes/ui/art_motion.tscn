@@ -1,0 +1,98 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/art_motion.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/interface/gold-pulse.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/interface/lantern-ember.png" id="3"]
+
+[sub_resource type="CanvasItemMaterial" id="add"]
+blend_mode = 1
+
+[sub_resource type="Gradient" id="fade"]
+offsets = PackedFloat32Array(0, 0.12, 0.50, 1)
+colors = PackedColorArray(1, 0.80, 0.38, 0, 1, 0.93, 0.60, 0.85, 1, 0.66, 0.28, 0.45, 1, 0.48, 0.15, 0)
+
+[sub_resource type="AtlasTexture" id="f0"]
+atlas = ExtResource("2")
+region = Rect2(0, 0, 443, 443)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="f1"]
+atlas = ExtResource("2")
+region = Rect2(443, 0, 443, 443)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="f2"]
+atlas = ExtResource("2")
+region = Rect2(887, 0, 443, 443)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="f3"]
+atlas = ExtResource("2")
+region = Rect2(1330, 0, 443, 443)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="f4"]
+atlas = ExtResource("2")
+region = Rect2(0, 443, 443, 443)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="f5"]
+atlas = ExtResource("2")
+region = Rect2(443, 443, 443, 443)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="f6"]
+atlas = ExtResource("2")
+region = Rect2(887, 443, 443, 443)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="f7"]
+atlas = ExtResource("2")
+region = Rect2(1330, 443, 443, 443)
+filter_clip = true
+
+[sub_resource type="SpriteFrames" id="pulse"]
+animations = [{
+"frames": [{"duration": 1.0, "texture": SubResource("f0")},
+{"duration": 1.0, "texture": SubResource("f1")},
+{"duration": 1.0, "texture": SubResource("f2")},
+{"duration": 1.0, "texture": SubResource("f3")},
+{"duration": 1.0, "texture": SubResource("f4")},
+{"duration": 1.0, "texture": SubResource("f5")},
+{"duration": 1.0, "texture": SubResource("f6")},
+{"duration": 1.0, "texture": SubResource("f7")}],
+"loop": false,
+"name": &"default",
+"speed": 19.0
+}]
+
+[node name="ArtMotion" type="Node2D"]
+z_index = 7
+script = ExtResource("1")
+
+[node name="Pulse" type="AnimatedSprite2D" parent="."]
+material = SubResource("add")
+scale = Vector2(0.30, 0.30)
+sprite_frames = SubResource("pulse")
+
+[node name="Sparks" type="CPUParticles2D" parent="."]
+material = SubResource("add")
+emitting = false
+amount = 19
+lifetime = 1.0
+one_shot = true
+explosiveness = 0.9
+fixed_fps = 30
+texture = ExtResource("3")
+direction = Vector2(0, -1)
+spread = 116.0
+gravity = Vector2(0, 123)
+initial_velocity_min = 31.0
+initial_velocity_max = 117.0
+angular_velocity_min = -135.0
+angular_velocity_max = 153.0
+damping_min = 20.0
+damping_max = 43.0
+scale_amount_min = 0.006
+scale_amount_max = 0.018
+color_ramp = SubResource("fade")

@@ -9,12 +9,16 @@ const DecorArt = preload("res://scripts/visuals/decoration_art.gd")
 const GuestChatter = preload("res://scripts/ui/guest_chatter.gd")
 const Bubble = preload("res://scripts/ui/speech_bubble.gd")
 const Actor = preload("res://scripts/visuals/actor_view.gd")
-const CommercialStreet = preload("res://scripts/visuals/commercial_street.gd")
+const CommercialStreet = preload("res://scripts/visuals/canyon_paths.gd")
+const Plan = preload("res://scripts/visuals/canyon_plan.gd")
+const WorldSigns = preload("res://scenes/canyon/signs.tscn")
+const District3D = preload("res://scripts/visuals/district_3d.gd")
+const Crew = preload("res://scripts/core/crew_roster.gd")
+const EMBER = preload("res://assets/interface/lantern-ember.png")
 const Style = preload("res://scripts/ui/style.gd")
 const Icon = preload("res://scripts/ui/ui_icon.gd")
 const HOLD_TO_DRAG = .30
 const STREET_APPROACH_SECONDS := 4.5
-const STREET_HANDOFF_SECONDS := 1.6
 signal move_requested(entity_id: String, cell: Vector2i)
 signal wall_requested(cells: Array, turns: int)
 signal inspect_requested(kind: String, id: String)
@@ -64,6 +68,8 @@ var decor_preview_turns := -1
 var decor_preview_key := []
 var decor_preview := {}
 var hovered = Vector2i(-1, -1)
+var route_preview_key: Array = []
+var route_preview: Array = []
 var camera_pan = Vector2.ZERO
 var zoom = 1.0
 var dragging_camera = false
@@ -72,8 +78,15 @@ var pressed_entity = ""
 var press_elapsed = 0.0
 var drag_active = false
 var grab_offset = Vector2i.ZERO
+var touches: Dictionary = {}
+var touch_origin := Vector2.ZERO
+var touch_panning := false
+var touch_multitouch := false
+var touch_primary_started := false
 var actors: Dictionary = {}
 var actor_cells := {}
+var queue_motion := {}
+var nearby_feet := {}
 var street_arrivals := {}
 var sampled_tick := -1
 var sampled_fraction := 1.0
@@ -90,6 +103,25 @@ var navigation: Dictionary = {}
 var preview_positions: Dictionary = {}
 var accessibility_revision = -1
 var font: Font
+var district_3d: SubViewportContainer
+var signs: Control
+var overview := false
+var overview_mix := 0.0
+var flight: Tween
+signal roof_view_changed(closed: bool)
+var inspect_roof := false
+var keep_cutaway := false
+var roof_blend := 0.
+var entering_canyon := false
+var threshold_approach := false
+var threshold_mix := 0.
+var threshold_cross := 0.
+var threshold_aperture := 0.
+var traffic_aperture := 0.
+var traffic_door_hold := 0.
+var scroll_target := -1.0
+var scroll_anchor := Vector2.ZERO
+signal entry_finished
 var sun_light: PointLight2D
 var shadow_geometry: Node2D
 var city_geometry: Node2D
@@ -99,8 +131,10 @@ var street_backdrop := ColorRect.new()
 var street_activity := Control.new()
 var street_signs := Control.new()
 var floor_canvas := Control.new()
-var weather = Weather.new()
+var weather
+var carry_weather := false
 var weather_day := -1
+var migration_today := false
 var room_lamp_light := 0.0
 var street_lamp_light := 0.0
 var street_draw_bounds := Rect2()
@@ -109,6 +143,9 @@ var floor_style := []
 var sign_view := []
 const FLOOR_DRAW_UNIT := 28.0
 var plot_buttons: Dictionary = {}
+var home_bounds := Rect2()
+var home_target := Rect2()
+var home_signature := 0
 var shadow_revision = -1
 var shadow_layout_hash
 var lamp_positions: Array[Vector2] = []
@@ -125,15 +162,45 @@ var guide_target := Vector2.ZERO
 var guide_zoom := 1.0
 var prior_pan := Vector2.ZERO
 var prior_zoom := 1.0
+var feature_home := Vector3.ZERO
+var feature_active := false
+var feature_cell := Vector2.ZERO
+var feature_zoom := 1.0
+var feature_motion: Tween
 var rendered_phase := ""
 var rendered_hour := 22.0
 var transition_from := 22.0
 var transition_time := 0.0
 var transition_duration := 0.0
 
+func _init(atmosphere: Dictionary = {}) -> void:
+	carry_weather = not atmosphere.is_empty()
+	weather = atmosphere.weather if carry_weather else Weather.new()
+	if carry_weather: street.elapsed = atmosphere.elapsed
+
+func release_atmosphere() -> Dictionary:
+	var atmosphere := {"weather":weather,"elapsed":street.elapsed}
+	remove_child(weather.ground)
+	remove_child(weather)
+	weather = null
+	return atmosphere
+
+func release_stage():
+	var stage = district_3d
+	district_3d = null
+	if stage != null:
+		for id in stage.actor_planes.keys(): stage.remove_actor(id)
+		remove_child(stage)
+	return stage
+
 func _ready() -> void:
 	font = Style.font()
 	light_mask = 2
+	if DisplayServer.get_name() != "headless":
+		if district_3d == null: district_3d = District3D.new()
+		district_3d.name = "District3D"
+		add_child(district_3d)
+		district_3d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_add_scenery_layer(street_backdrop, "StreetBackdrop", 4, true)
 	_add_scenery_layer(street_canvas, "OutdoorStreet", 4, false)
 	street_canvas.draw.connect(_paint_street)
@@ -145,6 +212,17 @@ func _ready() -> void:
 	_add_scenery_layer(weather, "StreetWeather", 0, false)
 	_add_scenery_layer(floor_canvas, "RestaurantFloor", light_mask, false)
 	floor_canvas.draw.connect(_paint_floor)
+	if district_3d != null:
+		street_backdrop.hide()
+		street_canvas.hide()
+		floor_canvas.hide()
+		street_activity.hide()
+		street_signs.hide()
+		weather.use_spatial_rain = true
+		# Wetness and audio drive the 3D scene. The old TileMap puddle and lamp
+		# canvases have no perspective transform.
+		weather.ground.hide()
+		weather.hide()
 	shadow_geometry = Node2D.new()
 	shadow_geometry.name = "WallAndFurnitureOccluders"
 	add_child(shadow_geometry)
@@ -167,6 +245,11 @@ func _ready() -> void:
 	lanterns.board = self
 	lanterns.glow = glow
 	add_child(lanterns)
+	signs = WorldSigns.instantiate()
+	add_child(signs)
+	signs.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	signs.hide()
+	signs.landmark_pressed.connect(func(id): inspect_requested.emit("landmark", id))
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	custom_minimum_size = Vector2(500, 450)
@@ -263,7 +346,7 @@ func _rebuild_room_lighting() -> void:
 		var first = -1
 		for x in range(int(l.width) + 1):
 			var cell = Vector2i(x, y)
-			var solid = x < int(l.width) and (walls.has(cell) or (Grid.structural_blocked(l, cell) and Grid.locked_plot_at(l, cell).is_empty()))
+			var solid = Grid.has_room(l, cell) and (walls.has(cell) or Grid.structural_blocked(l, cell))
 			if solid and first < 0: first = x
 			if not solid and first >= 0:
 				var length = float(x - first)
@@ -349,13 +432,19 @@ func _advance_weather(delta: float) -> void:
 	if weather_day != int(sim.day):
 		weather_day = int(sim.day)
 		weather.set_preset(sim.weather_for().preset)
+		migration_today = sim.events_for().any(func(event): return event.id == "river_lantern_run")
 	weather.advance(delta, sim.phase == "DAY" and sim.paused)
 	weather.align_to_world(_origin(), _unit(), size, Lighting.lamplight(_scene_hour()))
 
 func reset_scene_time() -> void:
+	home_bounds = Rect2()
+	home_signature = 0
+	if district_3d != null: district_3d.finish_construction()
 	weather_day = -1
-	weather.reset()
+	if carry_weather: carry_weather = false
+	else: weather.reset()
 	street_arrivals.clear()
+	queue_motion.clear()
 	sampled_tick = -1
 	rendered_phase = ""
 	transition_time = 0.0
@@ -394,18 +483,44 @@ func _ambient_tint(hour: float) -> Color:
 func camera_extent() -> Vector2:
 	return Vector2(size.x, maxf(1.0, size.y - bottom_inset))
 
+func _sync_home_bounds(delta: float) -> void:
+	var signature := hash([sim.layout.width, sim.layout.height, sim.layout.unlocked_plots])
+	if home_signature != signature or not home_target.has_area():
+		home_signature = signature
+		home_target = Rect2(Grid.occupied_bounds(sim.layout))
+	if not home_bounds.has_area():
+		home_bounds = home_target
+	elif home_bounds != home_target and not (dragging_camera or drag_active or editing or placing_wall or not pressed_entity.is_empty() or not touches.is_empty()):
+		var blend := 1.0 - exp(-3.7 * delta)
+		home_bounds = Rect2(home_bounds.position.lerp(home_target.position, blend), home_bounds.size.lerp(home_target.size, blend))
+		if home_bounds.size.distance_to(home_target.size) < .015 and home_bounds.position.distance_to(home_target.position) < .015:
+			home_bounds = home_target
+
+func _home_unit() -> float:
+	var dimensions := home_bounds.size if home_bounds.has_area() else Vector2(12,14)
+	return clampf(minf(size.x / (dimensions.x + 12), camera_extent().y / (dimensions.y + 13)), 1.0, 130.0) * zoom
+
+func _wide_unit() -> float:
+	var bounds := Plan.bounds()
+	return minf(size.x / bounds.size.x, size.y / bounds.size.y)
+
 func _unit() -> float:
-	var columns = float(sim.layout.width) + 12.0 if sim != null else 24.0
-	var rows = float(sim.layout.height) + 8.6 if sim != null else 18.6
-	return clampf(minf(size.x / columns, camera_extent().y / rows), 1.0, 130.0) * zoom
+	return exp(lerpf(log(maxf(.01,_home_unit())), log(maxf(.01,_wide_unit())), overview_mix))
 
 func _origin() -> Vector2:
-	var unit = _unit()
-	var columns = float(sim.layout.width) if sim != null else 12.0
-	var rows = float(sim.layout.height) if sim != null else 10.0
-	return (camera_extent() - Vector2(columns, rows) * unit) * 0.5 + Vector2(2.9, 0.45) * unit + camera_pan
+	var home := home_bounds.get_center() if home_bounds.has_area() else Vector2(7,8)
+	var anchor: Vector2 = home - Vector2(1.4,.35) - camera_pan / maxf(.01,_home_unit())
+	return camera_extent().lerp(size,overview_mix) * .5 - anchor.lerp(Plan.bounds().get_center(), smoothstep(.12,1.0,overview_mix)) * _unit()
+
+func play_construction(id: String) -> void:
+	if district_3d == null: return
+	_sync_neighbor_occluders()
+	district_3d.sync_layout(sim.layout, street, pressed_entity if drag_active else "")
+	district_3d.start_construction(id)
 
 func screen_point(cell: Vector2) -> Vector2:
+	if threshold_mix > .001 and district_3d != null:
+		return district_3d.camera.unproject_position(Vector3(cell.x+.5,.10,(cell.y+.5)*District3D.DEPTH))
 	return _origin() + (cell + Vector2(0.5, 0.5)) * _unit()
 
 func cell_at(point: Vector2) -> Vector2i:
@@ -504,26 +619,189 @@ func _advance_follow(delta: float) -> void:
 
 func _manual_camera() -> void:
 	stop_follow()
+	if not feature_active and feature_motion != null:
+		feature_motion.kill()
+		feature_motion = null
 	if guide_camera_active:
 		guide_camera_manual = true
 		end_guide_shot(false)
 
+func enter_feature(cell: Vector2, magnification: float) -> void:
+	if not feature_active and (feature_motion == null or not feature_motion.is_valid()):
+		feature_home = Vector3(camera_pan.x, camera_pan.y, zoom)
+	feature_active = true
+	if overview_mix > .01: _fly(0.0, .85)
+	feature_cell = cell
+	feature_zoom = magnification
+	if feature_motion != null: feature_motion.kill()
+	feature_motion = null
+
+func end_feature() -> void:
+	if not feature_active: return
+	feature_active = false
+	if overview: _fly(1.0,.72)
+	feature_motion = create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	feature_motion.tween_property(self, "zoom", feature_home.z, .52)
+	feature_motion.tween_property(self, "camera_pan", Vector2(feature_home.x, feature_home.y), .52)
+
+func _advance_feature(delta: float) -> void:
+	if not feature_active: return
+	var blend := 1.0 - exp(-6.0 * delta)
+	var anchor := Vector2(.25, .55)
+	zoom = lerpf(zoom, feature_zoom, blend)
+	var home := home_bounds.get_center() if home_bounds.has_area() else Vector2(7,8)
+	var target := camera_extent() * (anchor - Vector2(.5,.5)) + (home - Vector2(1.4,.35) - feature_cell - Vector2(.5,.5)) * _home_unit()
+	camera_pan = camera_pan.lerp(target, blend)
+
+func pan_camera(amount: Vector2) -> void:
+	if not camera_input_enabled: return
+	_manual_camera()
+	camera_pan += amount
+
+# One continuous scale from the whole river valley through the entry court
+# into the dining room. Wheel detents and trackpad gestures share this range.
+func _zoom_limit() -> float:
+	var size_in_cells := home_bounds.size if home_bounds.has_area() else Vector2(12,14)
+	var base: float = _home_unit() / zoom
+	# At least one dimension retains a strip of grounds at maximum magnification.
+	var limit := maxf(size.x / (size_in_cells.x + 10), camera_extent().y / (size_in_cells.y + 9)) / base
+	return clampf(limit, 1.0, 1.8)
+
+func _roof_zoom_limit() -> float:
+	var dims := home_bounds.size if home_bounds.has_area() else Vector2(12,14)
+	var base: float = _home_unit() / zoom
+	return clampf(minf(size.x/(dims.x+16),camera_extent().y/(dims.y+11))/base,1,1.8)
+
+func set_roof_view(closed: bool, explicit := true) -> void:
+	keep_cutaway = explicit and not closed
+	if inspect_roof == closed: return
+	inspect_roof = closed
+	if closed:
+		cancel_placement()
+		stop_follow()
+	roof_view_changed.emit(closed)
+
+func _camera_scale() -> float:
+	return _unit() / maxf(.01,_home_unit() / zoom)
+
+func _apply_scale(point: Vector2, level: float) -> void:
+	var base: float = _home_unit() / zoom
+	var wide := minf(.99, _wide_unit() / base)
+	if not keep_cutaway and not inspect_roof and (overview_mix > .65 or level >= _roof_zoom_limit()-.001):
+		set_roof_view(true,false)
+	level = clampf(level,wide,_roof_zoom_limit() if inspect_roof else _zoom_limit())
+	var before := (point - _origin()) / _unit() - Vector2(.5,.5)
+	var was_near := overview_mix <= .001
+	zoom = maxf(1.0, level)
+	overview_mix = clampf(log(minf(1.,level)) / log(wide),0,1)
+	overview = overview_mix > .93
+	if was_near and overview_mix <= .001 and not inspect_roof:
+		camera_pan += point - screen_point(before)
+	elif overview_mix > .995:
+		camera_pan = Vector2.ZERO
+
+func _push_through_roof(factor: float) -> bool:
+	if factor <= 1. or not inspect_roof or overview_mix > .005: return false
+	if _camera_scale() < _roof_zoom_limit()-.015: return false
+	visit_threshold()
+	return true
+
+func zoom_at(point: Vector2, factor: float) -> void:
+	if not camera_input_enabled or entering_canyon or feature_active or factor <= 0: return
+	if _push_through_roof(factor): return
+	_manual_camera()
+	if flight != null: flight.kill()
+	scroll_target = -1
+	_apply_scale(point, _camera_scale() * factor)
+
+func _wheel_zoom(point: Vector2, factor: float) -> void:
+	if not camera_input_enabled or entering_canyon or feature_active: return
+	if _push_through_roof(factor): return
+	_manual_camera()
+	if flight != null: flight.kill()
+	var base: float = _home_unit() / zoom
+	var start := _camera_scale() if scroll_target < 0 else scroll_target
+	scroll_target = clampf(start * factor,minf(.99,_wide_unit()/base),_roof_zoom_limit() if inspect_roof or not keep_cutaway else _zoom_limit())
+	scroll_anchor = point
+
+func _advance_scroll(delta: float) -> void:
+	if scroll_target <= 0: return
+	var next := exp(lerpf(log(_camera_scale()),log(scroll_target),1.0-exp(-18.*delta)))
+	if absf(next-scroll_target) < .001:
+		next = scroll_target
+		scroll_target = -1
+	_apply_scale(scroll_anchor,next)
+
+func _fly(amount: float, duration: float) -> void:
+	scroll_target = -1
+	if flight != null: flight.kill()
+	flight = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	flight.tween_property(self, "overview_mix", amount, duration)
+
+func _door_flight() -> void:
+	if flight != null: flight.kill()
+	_manual_camera()
+	cancel_placement()
+	scroll_target = -1
+	entering_canyon = true
+	overview = false
+	set_roof_view(false,true)
+	flight = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func _rise_from_door() -> void:
+	flight.tween_callback(func(): threshold_approach = false)
+	flight.tween_property(self,"threshold_mix",0.,1.18)
+	flight.parallel().tween_property(self,"zoom",1.,1.18)
+	flight.parallel().tween_property(self,"camera_pan",Vector2.ZERO,1.18)
+	flight.tween_callback(func():
+		entering_canyon = false
+		keep_cutaway = false
+		threshold_cross = 0.
+		entry_finished.emit()
+	)
+
+func enter_from_threshold() -> void:
+	_door_flight()
+	threshold_mix = 1.
+	threshold_cross = 1.
+	threshold_aperture = 1.
+	overview_mix = 0.
+	_rise_from_door()
+
+func visit_threshold() -> void:
+	if entering_canyon or not camera_input_enabled: return
+	_door_flight()
+	threshold_approach = true
+	threshold_aperture = 0.
+	threshold_cross = 0.
+	flight.tween_property(self,"threshold_mix",1.,.89)
+	flight.parallel().tween_property(self,"overview_mix",0.,.89)
+	flight.tween_property(self,"threshold_aperture",1.,.55)
+	flight.parallel().tween_property(self,"threshold_cross",1.,.66)
+	flight.tween_interval(.18)
+	_rise_from_door()
+
 func focus_restaurant() -> void:
+	if entering_canyon: return
+	set_roof_view(false,false)
+	scroll_target = -1
 	_manual_camera()
 	zoom = 1.0
 	camera_pan = Vector2.ZERO
+	overview = false
+	if overview_mix > 0.0: _fly(0.0, .85)
 
 func focus_district() -> void:
-	if sim == null: return
+	if sim == null or entering_canyon: return
+	set_roof_view(true,false)
 	_manual_camera()
-	_sync_neighbor_occluders()
-	zoom = 1.0
-	var available = camera_extent() - Vector2(62, 146)
-	var required = street.bounds.size * _unit()
-	zoom = maxf(.44, minf(available.x / required.x, available.y / required.y))
-	camera_pan = Vector2.ZERO
-	var center = _origin() + street.bounds.get_center() * _unit()
-	camera_pan = camera_extent() * .5 - center
+	cancel_placement()
+	overview = true
+	_fly(1.0, .95)
+	flight.finished.connect(func():
+		signs.visible = camera_input_enabled and overview
+		signs.focus_tavern()
+	)
 
 func set_diagnostic_targets(facilities: Array, entrance: bool, center := false) -> void:
 	diagnostic_facilities = facilities
@@ -578,17 +856,25 @@ func _sync_plot_buttons() -> void:
 		var button: Button = marker.button
 		var bounds = plot.bounds
 		var center = Vector2((float(bounds.left) + float(bounds.right)) * 0.5, (float(bounds.top) + float(bounds.bottom)) * 0.5)
+		if Grid.has_room(sim.layout, Vector2i(int(bounds.left)-1, floori(center.y))):
+			center.x = float(bounds.left) + .6
+		elif Grid.has_room(sim.layout, Vector2i(floori(center.x), int(bounds.top)-1)):
+			center.y = float(bounds.top) + .6
+		elif Grid.has_room(sim.layout, Vector2i(floori(center.x), int(bounds.bottom)+1)):
+			center.y = float(bounds.bottom) - .6
 		button.position = screen_point(center) - button.size * 0.5
-		button.visible = id not in sim.layout.unlocked_plots and Rect2(Vector2.ZERO, size).intersects(button.get_rect())
 		var current = id == next_plot and sim.phase == "NIGHT"
+		button.visible = current and overview_mix < .40 and not inspect_roof and Rect2(Vector2.ZERO, size).intersects(button.get_rect())
 		var interactive = current and not editing and not placing_wall and pressed_entity.is_empty() and camera_input_enabled
 		button.disabled = not interactive
 		button.mouse_filter = MOUSE_FILTER_PASS if interactive else MOUSE_FILTER_IGNORE
-		if not button.visible: continue
+		if not button.visible:
+			marker.ready = 0 if not current else -1
+			continue
 		var status = sim.land_plot_status(id) if current else {}
 		var ready = bool(status.get("ok", false))
 		marker.cost.text = str(int(plot.star_cost))
-		button.tooltip_text = "%s · %d 闪星" % [plot.name, int(plot.star_cost)] if interactive else ""
+		button.tooltip_text = tr("%s · %d 闪星") % [tr(str(plot.name)), int(plot.star_cost)] if interactive else ""
 		if interactive and not ready:
 			button.tooltip_text += "\n" + str(status.error)
 		var state = 2 if ready else (1 if current else 0)
@@ -605,9 +891,23 @@ func _sync_plot_buttons() -> void:
 		marker.star.set_glyph("star", Style.GOLD if state == 1 else ink)
 		marker.cost.add_theme_color_override("font_color", ink)
 
+func _update_traffic_door(delta: float) -> void:
+	if sim.phase!="DAY":
+		traffic_door_hold=0.
+		traffic_aperture=0.
+		return
+	var near_gate:=Vector2(.355,float(sim.layout.entrance[1])+.5)
+	traffic_door_hold=maxf(0.,traffic_door_hold-delta)
+	for id in actor_cells:
+		if str(id).begins_with("g_") and ((Vector2(actor_cells[id])-near_gate)*Vector2(1,Plan.DEPTH)).length_squared()<9.:
+			traffic_door_hold=.70
+			break
+	traffic_aperture=move_toward(traffic_aperture,1. if traffic_door_hold>0. else 0.,delta*3.4)
+
 func _process(delta: float) -> void:
 	if sim == null:
 		return
+	_sync_home_bounds(delta)
 	if wall_anchor != null and (sim.phase != "NIGHT" or not camera_input_enabled): wall_anchor = null
 	if not pressed_entity.is_empty():
 		if sim.phase != "NIGHT" or not camera_input_enabled:
@@ -619,22 +919,26 @@ func _process(delta: float) -> void:
 				selected_id = pressed_entity
 				mouse_default_cursor_shape = Control.CURSOR_DRAG
 				drag_started.emit()
-	if camera_input_enabled and (get_viewport().gui_get_focus_owner() == null or not get_viewport().gui_get_focus_owner() is LineEdit):
+	if not entering_canyon and camera_input_enabled and (get_viewport().gui_get_focus_owner() == null or not get_viewport().gui_get_focus_owner() is LineEdit):
 		var movement = Vector2.ZERO
-		if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT): movement.x += 1
-		if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT): movement.x -= 1
-		if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): movement.y += 1
-		if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN): movement.y -= 1
+		var arrows_pan := get_viewport().gui_get_focus_owner() == null and not Input.is_physical_key_pressed(KEY_SHIFT)
+		if Input.is_physical_key_pressed(KEY_A) or (arrows_pan and Input.is_physical_key_pressed(KEY_LEFT)): movement.x += 1
+		if Input.is_physical_key_pressed(KEY_D) or (arrows_pan and Input.is_physical_key_pressed(KEY_RIGHT)): movement.x -= 1
+		if Input.is_physical_key_pressed(KEY_W) or (arrows_pan and Input.is_physical_key_pressed(KEY_UP)): movement.y += 1
+		if Input.is_physical_key_pressed(KEY_S) or (arrows_pan and Input.is_physical_key_pressed(KEY_DOWN)): movement.y -= 1
 		if movement != Vector2.ZERO:
 			_manual_camera()
 			camera_pan += movement * delta * 250.0
+	_advance_scroll(delta)
 	_advance_follow(delta)
 	if guide_camera_active and camera_input_enabled and follow_actor_id.is_empty():
 		var blend = 1.0 - exp(-7.0 * delta)
 		zoom = lerpf(zoom, guide_zoom, blend)
 		camera_pan += (camera_extent() * Vector2(0.5, 0.57) - screen_point(guide_target)) * blend
+	_advance_feature(delta)
 	if accessibility_revision != sim.revision:
 		accessibility_cache.clear()
+		street.use_layout(sim.layout)
 		if sim.phase == "NIGHT":
 			navigation = Grid.solid_cells(sim.layout)
 			walkable_cells = Grid.walkable_region(sim.layout, navigation)
@@ -644,26 +948,72 @@ func _process(delta: float) -> void:
 		accessibility_revision = sim.revision
 	_advance_scene_time(delta)
 	_advance_weather(delta)
+	if district_3d != null:
+		district_3d.sync_layout(sim.layout, street, pressed_entity if drag_active else "")
+		var closed: bool = inspect_roof and not feature_active
+		if closed and overview_mix < .03:
+			var ease := 1.0-exp(-9.0*delta)
+			zoom = lerpf(zoom,minf(zoom,_roof_zoom_limit()),ease)
+			var center := home_bounds.get_center() - Vector2(1.4,.35)
+			var envelope := home_bounds.grow(1.8).merge(district_3d.house_bounds)
+			var desired := (center-envelope.get_center()) * _home_unit() + Vector2(0,size.y*.025)
+			camera_pan = camera_pan.lerp(desired,ease)
+		var automatic := smoothstep(.12,.48,overview_mix)
+		if entering_canyon: roof_blend = 1. if threshold_approach else maxf(automatic,smoothstep(.12,.66,threshold_mix))
+		else: roof_blend = move_toward(roof_blend,1. if closed else automatic,delta*2.7)
+		district_3d.show_exterior(roof_blend,sim.layout.unlocked_plots.size())
+		district_3d.advance_construction(delta if sim.phase == "NIGHT" else district_3d.BUILD_SECONDS)
+		district_3d.frame(_origin(), _unit())
+		_update_traffic_door(delta)
+		district_3d.open_door(threshold_aperture if entering_canyon else maxf(1.-roof_blend,traffic_aperture))
+		if entering_canyon: district_3d.frame_door(threshold_mix,threshold_cross)
+		district_3d.set_day(sim.day)
+		district_3d.advance_outdoors(delta,render_motion_paused or (sim.phase == "DAY" and sim.paused))
+		district_3d.sync_atmosphere(street, weather, _scene_hour(), migration_today, render_motion_paused)
 	_sync_trophy_placement()
 	_update_lighting()
+	lanterns.visible = district_3d == null and overview_mix < .50 and roof_blend < .50
 	lanterns.queue_redraw()
 	street.advance(delta, sim.paused)
 	street_activity.queue_redraw()
 	_sync_plot_buttons()
+	signs.visible = overview and overview_mix > .94 and camera_input_enabled
+	if signs.visible: signs.project(_origin(),_unit())
 	_sync_actors()
 	for id in pending_complaints:
 		var c = sim.active_customers.get(id, {})
 		var actor_id = "g_%d" % id
 		if c.is_empty() or not actors.has(actor_id): continue
 		var size = int(c.party_size)
-		say(actor_id, "%d 人组" % size, "没有%s？我们换一家吧。" % Grid.table_label(size), 2.1, false, Color("b46c56"))
+		say(actor_id, tr("%d 人组") % size, tr("没有%s？我们换一家吧。") % tr(Grid.table_label(size)), 2.1, false, Color("b46c56"))
 	pending_complaints.clear()
 	chatter.advance(self, delta, not camera_input_enabled or (is_instance_valid(guide_voice) and not guide_voice.is_queued_for_deletion()))
 	queue_redraw()
 
 func _gui_input(event: InputEvent) -> void:
-	if sim == null:
+	if sim == null or entering_canyon or not camera_input_enabled: return
+	if event is InputEventMagnifyGesture:
+		zoom_at(event.position, event.factor)
+		accept_event()
 		return
+	if event is InputEventPanGesture:
+		_wheel_zoom(event.position, exp(-clampf(event.delta.y,-8,8) * .085))
+		accept_event()
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		var steps := clampf(absf(event.factor), .02, 5.0)
+		_wheel_zoom(event.position, pow(1.16, steps if event.button_index == MOUSE_BUTTON_WHEEL_UP else -steps))
+		accept_event()
+		return
+	if event is InputEventScreenTouch:
+		_handle_touch(event)
+		accept_event()
+		return
+	if event is InputEventScreenDrag:
+		_drag_touch(event)
+		accept_event()
+		return
+	if event is InputEventMouse and event.device == InputEvent.DEVICE_ID_EMULATION: return
 	if event is InputEventMouseMotion:
 		hovered = cell_at(event.position)
 		if dragging_camera:
@@ -677,55 +1027,116 @@ func _gui_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			dragging_camera = event.pressed
 			_update_cursor(event.position)
-		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_manual_camera()
-			zoom = clampf(zoom * 1.1, 0.44, 1.8)
-		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_manual_camera()
-			zoom = clampf(zoom / 1.1, 0.44, 1.8)
 		elif event.button_index == MOUSE_BUTTON_LEFT:
-			var cell = cell_at(event.position)
-			hovered = cell
-			if sim.phase == "NIGHT" and placing_wall:
-				if event.pressed:
-					cancel_drag()
-					if camera_input_enabled: wall_anchor = cell
-				elif wall_anchor != null:
-					var stroke = _wall_row_to(cell)
-					wall_anchor = null
-					wall_brush_rotation = int(stroke.turns)
-					if camera_input_enabled: wall_requested.emit(stroke.cells, wall_brush_rotation)
-				return
-			if event.pressed:
-				cancel_drag()
-				if not camera_input_enabled: return
-				if sim.phase == "NIGHT" and editing and not selected_id.is_empty():
-					move_requested.emit(selected_id, cell)
-					return
-				press_position = event.position
-				var facility = Grid.facility_at(sim.layout, cell)
-				var actor_id = _actor_at(event.position)
-				var id = actor_id
-				if not facility.is_empty() and (actor_id.is_empty() or sim.phase == "NIGHT"):
-					id = str(facility.id)
-				if _trophy_shop_hit(event.position): id = "trophy_shop"
-				if sim.phase == "NIGHT":
-					pressed_entity = id
-					if not facility.is_empty(): grab_offset = cell - Grid.footprint(facility).position
-				else:
-					_inspect_entity(id)
-			elif not pressed_entity.is_empty():
-				var id = pressed_entity
-				var moved = event.position.distance_to(press_position) > 7
-				var drop = _drop_cell(id, cell)
-				var was_dragging = drag_active
-				cancel_drag()
-				if not camera_input_enabled or sim.phase != "NIGHT": return
-				if was_dragging and moved: move_requested.emit(id, drop)
-				elif not moved: _inspect_entity(id)
-				_update_cursor(event.position)
+			_primary_pointer(event.position, event.pressed)
+
+func _primary_pointer(point: Vector2, pressed: bool) -> void:
+	if overview_mix > .65 or inspect_roof:
+		if pressed and district_3d != null and district_3d.house_bounds.has_point((point-_origin())/_unit()):
+			visit_threshold()
+		return
+	var cell = cell_at(point)
+	hovered = cell
+	if sim.phase == "NIGHT" and placing_wall:
+		if pressed:
+			cancel_drag()
+			if camera_input_enabled: wall_anchor = cell
+		elif wall_anchor != null:
+			var stroke = _wall_row_to(cell)
+			wall_anchor = null
+			wall_brush_rotation = int(stroke.turns)
+			if camera_input_enabled: wall_requested.emit(stroke.cells, wall_brush_rotation)
+		return
+	if pressed:
+		cancel_drag()
+		if not camera_input_enabled: return
+		if sim.phase == "NIGHT" and editing and not selected_id.is_empty():
+			move_requested.emit(selected_id, cell)
+			return
+		press_position = point
+		var facility = Grid.facility_at(sim.layout, cell)
+		var actor_id = _actor_at(point)
+		var id = actor_id
+		if not facility.is_empty() and (actor_id.is_empty() or sim.phase == "NIGHT"):
+			id = str(facility.id)
+		if _trophy_shop_hit(point): id = "trophy_shop"
+		if sim.phase == "NIGHT":
+			pressed_entity = id
+			if not id.is_empty() and feature_motion != null and feature_motion.is_running():
+				feature_motion.pause()
+			if not facility.is_empty(): grab_offset = cell - Grid.footprint(facility).position
+		else:
+			_inspect_entity(id)
+	elif not pressed_entity.is_empty():
+		var id = pressed_entity
+		var moved = point.distance_to(press_position) > 7
+		var drop = _drop_cell(id, cell)
+		var was_dragging = drag_active
+		cancel_drag()
+		if not camera_input_enabled or sim.phase != "NIGHT": return
+		if was_dragging and moved: move_requested.emit(id, drop)
+		elif not moved: _inspect_entity(id)
+		_update_cursor(point)
+
+func _handle_touch(event: InputEventScreenTouch) -> void:
+	if event.canceled:
+		cancel_touch()
+		return
+	if not camera_input_enabled: return
+	if event.pressed:
+		touches[event.index] = event.position
+		if touches.size() == 1:
+			touch_origin = event.position
+			touch_panning = false
+			touch_multitouch = false
+			hovered = cell_at(event.position)
+			touch_primary_started = sim.phase == "NIGHT" and (placing_wall or not editing)
+			if touch_primary_started: _primary_pointer(event.position, true)
+		else:
+			touch_multitouch = true
+			cancel_drag()
+		return
+	if not touches.erase(event.index) or not touches.is_empty(): return
+	if not touch_multitouch and not touch_panning:
+		if not touch_primary_started and event.position.distance_to(touch_origin) <= 9:
+			_primary_pointer(event.position, true)
+		_primary_pointer(event.position, false)
+	else:
+		cancel_drag()
+	touch_primary_started = false
+
+func _drag_touch(event: InputEventScreenDrag) -> void:
+	if not camera_input_enabled or not touches.has(event.index): return
+	var previous: Vector2 = touches[event.index]
+	touches[event.index] = event.position
+	if touch_multitouch:
+		var fingers := touches.keys()
+		if fingers.size() != 2: return
+		var other: Vector2 = touches[fingers[1] if fingers[0] == event.index else fingers[0]]
+		var before := (previous + other) * .5
+		var after := (event.position + other) * .5
+		var factor := event.position.distance_to(other) / maxf(1, previous.distance_to(other))
+		zoom_at(before, factor)
+		pan_camera(after - before)
+		return
+	if not placing_wall and not drag_active and event.position.distance_to(touch_origin) > 9:
+		if not touch_panning: cancel_drag()
+		touch_panning = true
+	if touch_panning:
+		pan_camera(event.position - previous)
+	else:
+		hovered = cell_at(event.position)
+
+func cancel_touch() -> void:
+	if not touches.is_empty(): cancel_drag()
+	touches.clear()
+	touch_panning = false
+	touch_multitouch = false
+	touch_primary_started = false
 
 func cancel_drag() -> void:
+	if not pressed_entity.is_empty() and feature_motion != null and feature_motion.is_valid() and not feature_motion.is_running():
+		feature_motion.play()
 	wall_anchor = null
 	pressed_entity = ""
 	press_elapsed = 0.0
@@ -767,7 +1178,7 @@ func _actor_at(point: Vector2) -> String:
 	var best_distance = INF
 	for id in actors:
 		var actor = actors[id]
-		if actor.modulate.a < .15: continue
+		if not actor.visible or actor.modulate.a < .15: continue
 		if str(id).begins_with("g_") and not sim.active_customers.has(int(str(id).substr(2))): continue
 		var local_bounds = actor.click_rect()
 		var box = Rect2(actor.position + local_bounds.position, local_bounds.size)
@@ -789,7 +1200,7 @@ func _trophy_shop_hit(point: Vector2) -> bool:
 
 func _trophy_shop_sign(cell: Vector2i, unit: float) -> Rect2:
 	var font_size = clampi(roundi(unit * .43), 12, 16)
-	var width = font.get_string_size("奖杯商店", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var width = font.get_string_size(tr("奖杯商店"), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var start = screen_point(Vector2(cell)) - Vector2(width * .5 + 4, unit * .68 + font_size)
 	return Rect2(start, Vector2(width + 8, font_size + 5))
 
@@ -853,17 +1264,67 @@ func _render_fraction() -> float:
 
 func _sample_position(entity: Dictionary, fraction: float) -> Vector2:
 	if int(entity.get("position_tick", -1)) != sim.tick: return entity.pos
+	if not entity.get("turns_this_tick",[]).is_empty():
+		var traversed: Array=[entity.previous_pos]
+		traversed.append_array(entity.turns_this_tick)
+		traversed.append(entity.pos)
+		return Plan.route(traversed,fraction)
 	return Vector2(entity.previous_pos).lerp(entity.pos, fraction)
 
 func _street_approach_progress(arrival_tick: int, visual_tick: float) -> float:
-	var lead = ceili(STREET_APPROACH_SECONDS * 1000.0 / sim.tick_ms)
-	var handoff = ceili(STREET_HANDOFF_SECONDS * 1000.0 / sim.tick_ms)
-	var start = maxi(0, arrival_tick - lead)
-	return clampf((visual_tick - start) / maxi(1, arrival_tick + handoff - start), 0, 1)
+	var lead := maxf(1.,street.approach_seconds(float(sim.chapter.movement.guest_speed))*1000./sim.tick_ms)
+	return clampf(1.-(arrival_tick-visual_tick)/lead,0,1)
+
+# Simulation ownership stays on the logical cell. Display bodies in the free
+# portion of that cell at shared counters, keeping a small disc off furniture.
+func _floor_room(at: Vector2,radius: float) -> bool:
+	for dx in [-radius,radius]:
+		for dy in [-radius,radius]:
+			if street.solids.has(Vector2i((at+Vector2(dx,dy)).round())): return false
+	return true
+
+func _space_staff(actor,cell: Vector2) -> Vector2:
+	var key:=Vector2i(cell.floor())
+	var near: Array=[]
+	for x in range(-1,2):
+		for y in range(-1,2): near.append_array(nearby_feet.get(key+Vector2i(x,y),[]))
+	var old: Vector2=actor.get_meta("spacing",Vector2.ZERO)
+	var best:=cell
+	var metric:=-INF
+	var offsets: Array[Vector2]=[Vector2.ZERO,old]
+	if not near.is_empty():
+		for offset: Vector2 in [Vector2(.27,0),Vector2(-.27,0),Vector2(0,.26),Vector2(0,-.26),Vector2(.27,.26),Vector2(-.27,.26),Vector2(.27,-.26),Vector2(-.27,-.26)]:
+			offsets.append(offset)
+	for offset in offsets:
+		var p:=cell+offset
+		if not _floor_room(p,.17):continue
+		var clearance:=.48
+		for other: Vector2 in near:clearance=minf(clearance,((p-other)*Vector2(1.,Plan.DEPTH)).length())
+		var score:=clearance-.065*old.distance_to(offset)-.035*offset.length()
+		if score>metric:
+			metric=score
+			best=p
+	var chosen:=best-cell
+	# Ease lateral corrections; a stop in simulation time holds the pose.
+	var stamp:=float(sim.tick)+_render_fraction()
+	var dt: float=clampf(stamp-float(actor.get_meta("spacing_tick",stamp)),0.,3.)*sim.tick_ms/1000.
+	chosen=old.move_toward(chosen,dt*2.5)
+	if not _floor_room(cell+chosen,.17): chosen=best-cell
+	actor.set_meta("spacing",chosen)
+	actor.set_meta("spacing_tick",stamp)
+	best=cell+chosen
+	key=Vector2i(best.floor())
+	if not nearby_feet.has(key):nearby_feet[key]=[]
+	nearby_feet[key].append(best)
+	return best
 
 func _place_actor(id: String, actor, cell: Vector2, origin: Vector2, unit: float) -> void:
 	actor_cells[id] = cell
-	actor.place_in_world(cell, origin + (cell + Vector2(.5, .5)) * unit, unit / 48.0)
+	var visual:=cell
+	if district_3d!=null and sim.phase=="DAY" and Grid.has_room(sim.layout,Vector2i(cell.round())):
+		visual=_space_staff(actor,cell)
+	var projected := screen_point(visual) if threshold_mix > .001 else origin + (visual + Vector2(.5, .5)) * unit
+	actor.place_in_world(visual,projected,unit / 48.0)
 
 func _set_street_actor(id: String, kind: String, cell: Vector2, origin: Vector2, unit: float) -> void:
 	var actor = _actor(id, kind)
@@ -874,17 +1335,17 @@ func _set_street_actor(id: String, kind: String, cell: Vector2, origin: Vector2,
 
 func _sync_approaching_street(live: Dictionary, origin: Vector2, unit: float, visual_tick: float) -> void:
 	if sim.phase == "DAY":
-		var lead_ticks = ceili(STREET_APPROACH_SECONDS * 1000.0 / sim.tick_ms)
+		var lead_ticks = ceili(street.approach_seconds(float(sim.chapter.movement.guest_speed))*1000.0 / sim.tick_ms)
 		for index in range(sim.arrival_cursor, sim.arrival_plan.size()):
 			var plan = sim.arrival_plan[index]
 			var arrival_tick = int(plan.tick)
 			if arrival_tick > sim.tick + lead_ticks: break
 			var id = int(plan.id)
-			if sim.customers.has(id): continue
+			if sim.customers.has(id) or street_arrivals.has(id): continue
 			var place = Grid.vec(sim.layout.entrance)
 			var member = id - int(plan.get("party_id", id))
 			place.y += .20 + .21 * (member % 2)
-			street_arrivals[id] = {"tick": arrival_tick, "type": plan.type, "target": place}
+			street_arrivals[id] = {"tick": arrival_tick, "type": plan.type, "target": place, "stagger":maxi(0,member)*.76}
 	for id in street_arrivals.keys():
 		var visit = street_arrivals[id]
 		if sim.customers.has(id):
@@ -894,37 +1355,69 @@ func _sync_approaching_street(live: Dictionary, origin: Vector2, unit: float, vi
 		if sim.phase != "DAY" or age >= STREET_APPROACH_SECONDS:
 			street_arrivals.erase(id)
 			continue
-		var cell = street.gate_route(_street_approach_progress(int(visit.tick), visual_tick), visit.target)
+		var distance: float=street.inlet.length*_street_approach_progress(int(visit.tick),visual_tick)-float(visit.stagger)
+		var cell = street.gate_route(distance/street.inlet.length,visit.target)
 		if age >= 0.0:
-			var first = maxi(0, int(visit.tick) - ceili(STREET_APPROACH_SECONDS * 1000.0 / sim.tick_ms))
-			var span = float(visit.tick - first) * sim.tick_ms / 1000.0
-			var approach = span / (span + STREET_HANDOFF_SECONDS)
-			var turned_at = street.gate_route(approach, visit.target)
-			cell = street.exit_route(age / STREET_APPROACH_SECONDS, turned_at)
+			cell=street.exit_route(clampf(age/STREET_APPROACH_SECONDS,0,1),visit.target)
 		var key = "g_%d" % id
 		live[key] = true
 		_set_street_actor(key, visit.type, cell, origin, unit)
 
-var current_sprite: Sprite2D
+var current_sprite
 const CURRENT_TEXTURE = preload("res://assets/canyon/current.webp")
 
 func _sync_current(unit: float) -> void:
 	if current_sprite == null:
-		current_sprite = Sprite2D.new()
-		current_sprite.texture = CURRENT_TEXTURE
-		current_sprite.hframes = 4
-		current_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		current_sprite.z_index = 1
-		add_child(current_sprite)
+		if district_3d != null: current_sprite = district_3d.current_decal
+		else:
+			current_sprite = Sprite2D.new()
+			current_sprite.texture = CURRENT_TEXTURE
+			current_sprite.hframes = 4
+			current_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			current_sprite.z_index = 1
+			add_child(current_sprite)
 	current_sprite.visible = sim.phase == "DAY" and sim.tick < sim.current_until
 	if current_sprite.visible:
-		current_sprite.position = screen_point(sim.current_cell)
-		current_sprite.scale = Vector2.ONE * unit * 1.7 / 128.0
+		if current_sprite is Sprite3D:
+			current_sprite.position = Vector3(sim.current_cell.x+.5,.09,(sim.current_cell.y+.5)*District3D.DEPTH)
+		else:
+			current_sprite.position = screen_point(sim.current_cell)
+			current_sprite.scale = Vector2.ONE * unit * 1.7 / 128.
 		current_sprite.frame = floori(sim.tick * sim.tick_ms / 135.0) % 4
 
+func _queue_display(id: String, actor, rank: int, visual_tick: float) -> Vector2:
+	var target:=maxf(0.,street.inlet.length-1.05-rank*.84)
+	if not queue_motion.has(id):
+		var distance: float=street.inlet.distance_of(actor.world_cell) if actor.world_cell.is_finite() else target
+		queue_motion[id]={"distance":distance,"tick":visual_tick}
+	var entry: Dictionary=queue_motion[id]
+	var dt: float=maxf(0.,visual_tick-float(entry.tick))*sim.tick_ms/1000.
+	entry.distance=move_toward(entry.distance,target,dt*float(sim.chapter.movement.guest_speed))
+	entry.tick=visual_tick
+	return street.inlet.sample(entry.distance)
+
+func _walk_from_queue(id: String,c: Dictionary,actual: Vector2,visual_tick: float) -> Vector2:
+	var entry: Dictionary=queue_motion[id]
+	if not entry.has("path"):
+		var seat:=Vector2(sim.seat_cells.get(c.seat_key,actual.round()))
+		entry.path=street.from_queue(float(entry.distance),seat)
+		entry.distance=0.
+	var dt: float=maxf(0.,visual_tick-float(entry.tick))*sim.tick_ms/1000.
+	entry.tick=visual_tick
+	entry.distance=minf(entry.path.length,entry.distance+dt*float(sim.chapter.movement.guest_speed)*1.12)
+	var end: float=entry.path.distance_of(actual)
+	if entry.distance>=end-.01:
+		queue_motion.erase(id)
+		return actual
+	return entry.path.sample(entry.distance)
+
 func _sync_actors() -> void:
+	if street.inlet==null:
+		_sync_neighbor_occluders()
+		street.use_layout(sim.layout)
 	var live = {}
 	actor_cells.clear()
+	nearby_feet.clear()
 	var unit = _unit()
 	var origin = _origin()
 	_sync_current(unit)
@@ -937,15 +1430,18 @@ func _sync_actors() -> void:
 			for i in range(positions[role].size()):
 				var id = "preview_%s_%d" % [role, i]
 				live[id] = true
-				var actor = _actor(id, role)
+				var profile_id: String = sim.crew_at(role,i)
+				var actor = _actor(id, sim.staff_skin(role,i))
 				var cell = hovered if drag_active and id == pressed_entity else positions[role][i]
 				_place_actor(id, actor, Vector2(cell), origin, unit)
 				actor.present("wave" if id == greeting_actor else "idle", "阿禾" if id == greeting_actor else ("厨" if role == "chef" else "服"))
+				_staff_plate(actor, sim.crew_at(role, i), role, tr("待命"), -1.0, Vector2i(cell) == hovered)
 	else:
 		for s in sim.staff:
 			var id = "s_%d" % s.id
 			live[id] = true
-			var actor = _actor(id, s.role)
+			var profile_id := str(s.get("crew_id",""))
+			var actor = _actor(id, "minion_"+str(s.get("minion","melee")) if profile_id.is_empty() else profile_id)
 			_place_actor(id, actor, _sample_position(s, fraction), origin, unit)
 			var action = "idle"
 			var label = "厨" if s.role == "chef" else "服"
@@ -961,6 +1457,9 @@ func _sync_actors() -> void:
 					progress = float(sim.tick - int(s.task.started_tick)) / maxi(1, int(s.task.done_tick) - int(s.task.started_tick))
 			actor.show_flare(s.task.get("flare", false), sim.tick, sim.tick_ms)
 			actor.present(action, label, progress, not s.carry_food.is_empty())
+			var status := _staff_activity(s)
+			var attention: bool = Vector2i(Vector2(s.pos).round()) == hovered or id == follow_actor_id or bool(s.task.get("linked", false))
+			_staff_plate(actor, str(s.get("crew_id","")), str(s.role), status, progress, attention)
 		_sync_approaching_street(live, origin, unit, visual_tick)
 		var queue_index = 0
 		var party_places = {}
@@ -974,7 +1473,8 @@ func _sync_actors() -> void:
 			var displayed = _sample_position(c, fraction)
 			var phase = str(c.state)
 			if phase == "QUEUE":
-				displayed = sim.queue_spot(c, queue_index, party_places)
+				displayed = _queue_display(id,actor,queue_index,visual_tick)
+				if party!=0: party_places[party]=true
 				queue_index += 1
 			elif phase == "EXITING" and not c.path.is_empty():
 				var departure = Vector2(c.path[0]) + Vector2(4.5, 0)
@@ -983,7 +1483,9 @@ func _sync_actors() -> void:
 				displayed += sim.party_offset(c)
 			elif phase == "SEATING":
 				displayed += sim.party_offset(c) * clampf(1.0 - c.pos.distance_to(Grid.vec(sim.layout.entrance)) / 2.5, 0.0, 1.0)
-			var entering = phase in ["QUEUE", "SEATING", "CHOOSING", "APPROACHING"]
+			var joining: bool = phase in ["SEATING","CHOOSING","READY","TAKING","FOOD","EATING"] and queue_motion.has(id)
+			if joining: displayed=_walk_from_queue(id,c,displayed,visual_tick)
+			var entering = phase in ["SEATING", "CHOOSING", "APPROACHING"] and not joining
 			var approach = _street_approach_progress(int(c.arrival_tick), visual_tick) if entering else 1.0
 			if approach < 1.0:
 				displayed = street.gate_route(approach, displayed)
@@ -992,7 +1494,7 @@ func _sync_actors() -> void:
 			var action = "idle"
 			var label = ""
 			var progress = -1.0
-			if approach < 1.0 or c.state in ["SEATING", "LEAVING", "EXITING", "APPROACHING"]: action = "walk"
+			if joining or (phase=="QUEUE" and actor.gait.last.is_finite() and actor.gait.heading.length_squared()>.1) or approach < 1.0 or c.state in ["SEATING", "LEAVING", "EXITING", "APPROACHING"]: action = "walk"
 			elif c.state in ["READY", "TAKING"]:
 				action = "order"
 				label = "点单"
@@ -1009,16 +1511,54 @@ func _sync_actors() -> void:
 			elif c.state == "STAYING": label = "等同桌"
 			actor.patience_ratio = float(int(c.food_max)-sim.tick) / maxf(1,sim._guest_seconds(c,"food_max")*1000/sim.tick_ms) if c.state=="FOOD" and not sim.guest_defs[c.type].get("unlimited_food_wait", false) else -1.0
 			actor.present(action, label, progress, false, sim.guest_defs[c.type].name if sim.guest_defs[c.type].rarity != "normal" else "")
+			var guest: Dictionary = sim.guest_defs[c.type]
+			var attention: bool = Vector2i(Vector2(displayed).round()) == hovered or id == follow_actor_id or guest.rarity == "special" or (actor.patience_ratio >= 0 and actor.patience_ratio < .22)
+			if not sim.crew_lineup.is_empty() and attention:
+				var meter: float = actor.patience_ratio if c.state == "FOOD" else progress
+				actor.set_overhead(tr(str(guest.name)), tr("客人"), tr(label), meter, Style.RED if meter >= 0 and meter < .22 else Style.MUTED)
+			else:
+				actor.set_overhead("", "", "", -1, Style.MUTED)
 	var minute = _scene_hour() * 60.0
 	var frozen = sim.phase == "DAY" and (sim.paused or (sampled_tick == sim.tick and render_motion_paused))
 	for id in actors.keys():
 		var actor = actors[id]
 		if not live.has(id):
+			queue_motion.erase(id)
+			if district_3d != null: district_3d.remove_actor(id)
 			actor.queue_free()
 			actors.erase(id)
 			continue
 		actor.set_sunlight(minute)
 		actor.sprite.speed_scale = 0.0 if frozen else 1.0
+		if district_3d != null:
+			var cell: Vector2 = actor_cells[id]
+			actor.visible = not entering_canyon and overview_mix < .13 and roof_blend < .65
+			var hero_inside: bool = actor.specialty_staff and roof_blend < .65 and Grid.has_room(sim.layout, Vector2i(cell.round()))
+			district_3d.sync_actor(id, actor, actor.world_cell, hero_inside)
+
+func _staff_plate(actor, profile_id: String, role: String, state: String, progress: float, attention: bool) -> void:
+	actor.specialty_staff = not profile_id.is_empty()
+	var profile: Dictionary = Crew.PROFILES.get(profile_id, {})
+	var helper := str(actor.visual_key).trim_prefix("minion_")
+	var caption := tr(str(profile.get("name",sim.Minions.NAMES.get(helper,"小兵"))))
+	if attention and not str(profile.get("title","")).is_empty(): caption += " · " + tr(profile.title)
+	var job := tr("厨师") if role == "chef" else tr("服务员")
+	var expanded: bool = zoom >= 1.40 or attention
+	actor.set_overhead(caption if expanded or not profile.is_empty() else job, job if expanded else "", state if expanded or progress >= 0 else "", progress, Style.GOLD if role == "chef" else Style.GREEN)
+
+func _staff_activity(person: Dictionary) -> String:
+	var task: Dictionary = person.task
+	if task.is_empty(): return tr("受阻") if str(person.reason).begins_with("等待") else tr("待命")
+	if task.get("linked", false): return tr("连灶飞火")
+	if person.role == "waiter" and sim.tick < int(person.get("haste_until", 0)): return tr("河道急送")
+	if task.stage == "PREP": return tr("备锅")
+	if task.kind == "COOK": return tr("移动") if task.stage == "MOVE" else tr("正在烹饪")
+	match task.kind:
+		"ORDER": return tr("点单")
+		"COLLECT", "PICKUP": return tr("取餐")
+		"TRANSFER", "DELIVER": return tr("给客人上菜")
+		"SUBMIT": return tr("送订单到厨房")
+	return tr("移动")
 
 func _paint_street() -> void:
 	street_canvas.draw_set_transform(-street_draw_bounds.position)
@@ -1026,7 +1566,7 @@ func _paint_street() -> void:
 
 func _paint_street_activity() -> void:
 	if sim == null: return
-	street.paint_activity(street_activity, _origin(), _unit(), street_lamp_light)
+	street.paint_activity(street_activity, _origin(), _unit(), street_lamp_light, district_3d == null)
 
 func _paint_street_signs() -> void:
 	if sim != null and font != null:
@@ -1038,39 +1578,21 @@ func _paint_floor() -> void:
 	var origin = Vector2.ZERO
 	var l = sim.layout
 	var kitchen = Grid.kitchen_bounds(l)
-	var next_plot = str(sim.next_land_plot().get("id", "")) if sim.phase == "NIGHT" else ""
-	var blueprint_tint = street_canvas.self_modulate / self_modulate
 	for y in range(int(l.height)):
 		for x in range(int(l.width)):
+			if not Grid.has_room(l, Vector2i(x,y)): continue
 			var rect = Rect2(origin + Vector2(x, y) * unit, Vector2.ONE * unit)
 			var base_color = Color("e1bf94").lerp(Color("efd5ac"), float((x * 5 + y * 3) % 7) / 7.0)
 			if x >= int(kitchen.left) and x <= int(kitchen.right) and y >= int(kitchen.top) and y <= int(kitchen.bottom):
 				base_color = Color("bcd7c9") if (x+y)%2==0 else Color("c4dfd2")
 			elif x > int(kitchen.right) and y >= 1 and y <= int(kitchen.bottom):
 				base_color = Color("cadabb") if (x+y)%2==0 else Color("bfd2b8")
-			var locked = Grid.locked_plot_at(l,Vector2i(x,y))
-			var wall = Grid.structural_blocked(l,Vector2i(x,y))
-			var inner_wall = wall and locked.is_empty() and x>0 and y>0 and x<int(l.width)-1 and y<int(l.height)-1
-			if not locked.is_empty():
-				var blueprint = Color("5b7681") if str(locked.id) == next_plot else Color("62696b")
-				base_color = (blueprint if y % 2 == 0 else blueprint.lightened(.025)) * blueprint_tint
-			elif wall: base_color = Color("74978b") if inner_wall else Color("587b76")
+			var wall := Grid.structural_blocked(l, Vector2i(x,y))
+			if wall: base_color = Color("74978b")
 			floor_canvas.draw_rect(rect,base_color)
-			if not locked.is_empty():
-				floor_canvas.draw_line(rect.position, rect.position + Vector2(unit, 0), Color("c8dfd6", .17), 1)
-				floor_canvas.draw_line(rect.position, rect.position + Vector2(0, unit), Color("c8dfd6", .17), 1)
-				if x % 3 == 0 and y % 3 == 0:
-					floor_canvas.draw_line(rect.position - Vector2(unit*.12, 0),rect.position + Vector2(unit*.12, 0),Color("e1e5c9",.5),1)
-					floor_canvas.draw_line(rect.position - Vector2(0, unit*.12),rect.position + Vector2(0, unit*.12),Color("e1e5c9",.5),1)
-			elif inner_wall:
+			if wall:
 				floor_canvas.draw_rect(Rect2(rect.position+Vector2(5,5),rect.size-Vector2(10,10)),Color("a9c5b7"))
 				floor_canvas.draw_line(rect.position+Vector2(6,unit*.3),rect.position+Vector2(unit-6,unit*.3),Color("e0e9d7"),2)
-			elif wall:
-				floor_canvas.draw_rect(Rect2(rect.position+Vector2(2,unit-8),Vector2(unit-4,5)),Color("526a56"))
-				if y==0 and x>1 and x<int(l.width)-2 and x%3==0:
-					floor_canvas.draw_rect(Rect2(rect.position+Vector2(unit*.18,unit*.12),Vector2(unit*.64,unit*.53)),Color("405d66"))
-					floor_canvas.draw_rect(Rect2(rect.position+Vector2(unit*.24,unit*.16),Vector2(unit*.5,unit*.42)),Color("a5c9bd"))
-					floor_canvas.draw_line(rect.position+Vector2(unit*.49,unit*.16),rect.position+Vector2(unit*.49,unit*.58),Color("e6d9ad"),maxf(1,unit*.04))
 			else:
 				if y > int(kitchen.bottom):
 					# Half-length staggered joints keep the dining room floor legible as timber.
@@ -1093,23 +1615,31 @@ func _paint_floor() -> void:
 				floor_canvas.draw_rect(rect,Color(0.45,0.4,0.3,0.2),false,1)
 
 func _draw() -> void:
-	if sim == null or font == null: return
+	if sim == null or font == null or entering_canyon or overview_mix > .18 or roof_blend > .65: return
 	var unit = _unit()
 	var origin = _origin()
 	var l = sim.layout
 	var kitchen = Grid.kitchen_bounds(l)
 	var next_plot = str(sim.next_land_plot().get("id", "")) if sim.phase == "NIGHT" else ""
-	_draw_window_light(origin, unit, l)
+	if district_3d == null: _draw_window_light(origin, unit, l)
 	var zone = sim.chapter.trophy_zone
-	if sim.trophy_shop_unlocked():
+	if sim.trophy_shop_unlocked() and (district_3d == null or float(district_3d.construction.get("trophy_gallery", 2.0)) >= 1.1):
 		_draw_unlocked_trophy_zone(origin,unit,zone)
 		if not trophy_placement_id.is_empty(): _draw_trophy_placement(origin, unit, zone)
 		_draw_trophy_shop(unit)
 	_draw_locked_plots(origin,unit,l,next_plot)
-	_draw_frontage(origin, unit, l)
+	if district_3d == null: _draw_frontage(origin, unit, l)
 	draw_rect(Rect2(origin + Vector2(kitchen.left,kitchen.top) * unit, Vector2(int(kitchen.right)-int(kitchen.left)+1,int(kitchen.bottom)-int(kitchen.top)+1) * unit), Color(0.24,0.36,0.27,0.24), false, 2)
+	if sim.phase == "NIGHT" and camera_input_enabled and not selected_id.is_empty():
+		_draw_work_routes()
+	_draw_linked_fire()
 	for f in l.facilities:
-		if Grid.placed(f) and f.type != "trophy_shop" and (not drag_active or f.id != pressed_entity): _draw_facility(f)
+		if not Grid.placed(f) or f.type == "trophy_shop" or (drag_active and f.id == pressed_entity): continue
+		if district_3d == null:
+			_draw_facility(f)
+		elif district_3d.furniture_revealed(str(f.id)) and (f.type not in ["wall", "table"] or f.id == selected_id or Grid.footprint(f).has_point(hovered)):
+			var center := screen_point(Grid.vec(f.pos))
+			_draw_facility_label(f, center, center.y - unit * .52, f.id == selected_id or Grid.footprint(f).has_point(hovered))
 	var moving_staff = selected_id.begins_with("preview_")
 	if sim.phase == "NIGHT" and moving_staff and actors.has(selected_id):
 		draw_circle(actors[selected_id].position, unit * .37, Color("ffe19a"), false, 2.0, true)
@@ -1119,14 +1649,6 @@ func _draw() -> void:
 			draw_arc(press_position, unit * .55, -PI * .5, -PI * .5 + TAU * fraction, 20, Style.GOLD, 2.2, true)
 	if sim.phase == "NIGHT" and (editing or drag_active) and not selected_id.is_empty():
 		var f = Grid.find(l, selected_id)
-		if editing and not f.is_empty() and f.type not in ["trophy", "decoration"] and Grid.placed(f):
-			var route = Grid.approach_cells(l, Grid.vec(l.waiter_spawn), Grid.interaction_cells(f), navigation).get("path", [])
-			var last = screen_point(Grid.vec(l.waiter_spawn))
-			for cell in route:
-				var next = screen_point(cell)
-				draw_line(last, next, Color("698f65"), 2)
-				draw_circle(next, 3, Color("55774f"))
-				last = next
 		if hovered.x >= 1 and hovered.x < int(l.width)-1 and hovered.y >= 1 and hovered.y < int(l.height)-1:
 			_draw_drop_preview(f, moving_staff, origin, unit)
 	if sim.phase == "NIGHT" and placing_wall and Rect2i(0, 0, int(l.width), int(l.height)).has_point(hovered):
@@ -1148,6 +1670,89 @@ func _draw() -> void:
 			var bounds = Rect2(origin + (cell + Vector2.ONE * .04) * unit, (extent - Vector2.ONE * .08) * unit)
 			draw_rect(bounds, Color("302a1c"), false, 6.0)
 			draw_rect(bounds, Color("ffcf68"), false, 3.0)
+
+func _draw_work_routes() -> void:
+	var targeting: bool = editing or drag_active
+	var key := [sim.revision, selected_id, hovered if targeting else Vector2i(-1, -1), targeting]
+	if route_preview_key != key:
+		route_preview_key = key
+		route_preview = _preview_routes(targeting)
+	var elapsed := fposmod(Time.get_ticks_msec() * .024, 16.0)
+	for i in range(route_preview.size()):
+		var route: Array = route_preview[i]
+		var tint := Color("e3af68") if i == 0 else Color("92e0ca")
+		for n in range(1, route.size()):
+			var start := screen_point(Vector2(route[n-1]))
+			var end := screen_point(Vector2(route[n]))
+			var length := start.distance_to(end)
+			if length < .2: continue
+			var direction := start.direction_to(end)
+			draw_line(start, end, Color("142723", .72), 5.0, true)
+			var dash := elapsed - 16.0
+			while dash < length:
+				var from := clampf(dash, 0, length)
+				var to := clampf(dash + 8.0, 0, length)
+				if to > from: draw_line(start + direction * from, start + direction * to, tint, 2.5, true)
+				dash += 16.0
+
+func _preview_routes(targeting: bool) -> Array:
+	var layout: Dictionary = sim.layout.duplicate(true) if targeting else sim.layout
+	var selected := Grid.find(layout, selected_id)
+	if selected.is_empty() and selected_id.begins_with("preview_") and targeting:
+		var staff_target := "pass" if selected_id.begins_with("preview_chef") else "order"
+		var obstacles := Grid.solid_cells(layout)
+		return [_path_to(Vector2(hovered), Grid.find(layout, staff_target), layout, obstacles)]
+	if selected.is_empty() or selected.type not in ["table", "stove", "order", "pass"]: return []
+	if targeting:
+		var landing: Vector2i = _drop_cell(selected_id, hovered) if drag_active else hovered
+		var moving := selected.duplicate()
+		moving.pos = [landing.x, landing.y]
+		for cell in Grid.footprint_cells(moving):
+			var occupying := Grid.facility_at(layout, cell)
+			if Grid.structural_blocked(layout, cell) or (not occupying.is_empty() and occupying.id != selected_id): return []
+		selected.pos = [landing.x, landing.y]
+	var steps := Grid.solid_cells(layout)
+	var order := Grid.find(layout, "order")
+	var pickup := Grid.find(layout, "pass")
+	var tables := Grid.facilities(layout, "table")
+	var stoves := Grid.facilities(layout, "stove")
+	var first_table: Dictionary = tables[0] if not tables.is_empty() else {}
+	var first_stove: Dictionary = stoves[0] if not stoves.is_empty() else {}
+	match selected.type:
+		"table": return [_between(selected, order, layout, steps), _between(pickup, selected, layout, steps)]
+		"order": return [_between(first_table, selected, layout, steps)]
+		"stove": return [_between(selected, pickup, layout, steps)]
+		"pass": return [_between(first_stove, selected, layout, steps), _between(selected, first_table, layout, steps)]
+	return []
+
+func _between(source: Dictionary, target: Dictionary, layout: Dictionary, obstacles: Dictionary) -> Array:
+	if source.is_empty(): return []
+	for approach in Grid.interaction_cells(source):
+		var path := _path_to(Vector2(approach), target, layout, obstacles)
+		if not path.is_empty(): return path
+	return []
+
+func _path_to(source: Vector2, target: Dictionary, layout: Dictionary, obstacles: Dictionary) -> Array:
+	if target.is_empty(): return []
+	var path: Array = Grid.approach_cells(layout, source, Grid.interaction_cells(target), obstacles).get("path", [])
+	if not path.is_empty(): path.push_front(source)
+	return path
+
+func _draw_linked_fire() -> void:
+	if sim.phase != "DAY" or sim.tick >= sim.linked_fire_until or sim.linked_fire_stoves.is_empty(): return
+	var duration := maxf(1, .80 * 1000.0 / sim.tick_ms)
+	var fraction := clampf(1.0 - float(sim.linked_fire_until - sim.tick) / duration, 0, 1)
+	var origin := screen_point(Vector2(sim.linked_fire_origin)) - Vector2(0, _unit() * .53)
+	var hops: Array[Vector2] = [origin]
+	for pot in sim.linked_fire_stoves:
+		hops.append(screen_point(Vector2(pot)) - Vector2(0, _unit() * .38))
+		hops.append(origin)
+	var position_along := fraction * (hops.size() - 1)
+	var segment := mini(floori(position_along), hops.size() - 2)
+	var along := clampf(position_along - segment, 0, 1)
+	var spark := hops[segment].lerp(hops[segment + 1], along) - Vector2(0, sin(along * PI) * _unit() * .64)
+	draw_line(hops[segment], spark, Color("df6b38", .49 * (1.0 - fraction)), 6.0, true)
+	draw_texture_rect(EMBER, Rect2(spark - Vector2(22,22), Vector2(44,44)), false, Color(1,.77,.47,.86))
 
 func _draw_drop_preview(f: Dictionary, moving_staff: bool, origin: Vector2, unit: float) -> void:
 	var area = Rect2i(hovered, Vector2i.ONE)
@@ -1262,7 +1867,7 @@ func _draw_trophy_shop(unit: float) -> void:
 	var sign = _trophy_shop_sign(cell, unit)
 	var font_size = int(sign.size.y) - 5
 	draw_rect(sign, Color("3e3143", .95))
-	draw_string(font, sign.position + Vector2(4, font_size), "奖杯商店", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("ffe4b4"))
+	draw_string(font, sign.position + Vector2(4, font_size), tr("奖杯商店"), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("ffe4b4"))
 
 func _sync_trophy_placement() -> void:
 	var next_id := ""
@@ -1286,7 +1891,7 @@ func _draw_trophy_placement(origin: Vector2, unit: float, zone: Dictionary) -> v
 		draw_rect(bounds, Color("59cc96", .62))
 		draw_rect(bounds, Color("c9ffe4", .86), false, 1.5)
 		draw_circle(bounds.get_center(), 2.2, Color("e2fff0"))
-	var text = "奖杯展示区 · 亮格可放" if not trophy_cells.is_empty() else "奖杯展示区 · 暂无空位"
+	var text = tr("奖杯展示区 · 亮格可放") if not trophy_cells.is_empty() else tr("奖杯展示区 · 暂无空位")
 	var width = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	var caption = Rect2(area.get_center().x - width * .5 - 7, area.position.y - 26, width + 14, 23)
 	draw_rect(caption, Color("183d36"))
@@ -1298,44 +1903,27 @@ func _draw_unlocked_trophy_zone(origin: Vector2, unit: float, zone: Dictionary) 
 	draw_rect(display_area,Color("7b668c",.15))
 	draw_rect(display_area,Color("d5af73",.8),false,2)
 
-func _draw_locked_plots(origin: Vector2, unit: float, l: Dictionary, next_plot: String) -> void:
-	for plot in l.plots:
-		if plot.id in l.unlocked_plots: continue
-		var b = plot.bounds
-		var top = origin+Vector2(float(b.left),float(b.top))*unit
-		var area = Rect2(top,Vector2(float(int(b.right)-int(b.left)+1),float(int(b.bottom)-int(b.top)+1))*unit)
-		draw_rect(area, Color("252c32", .15))
-		var current = str(plot.id) == next_plot
-		var outline = Color("a7adae", .5)
-		if current: outline = Color("efc17a", .92) if sim.land_plot_status(next_plot).ok else Color("d3b78a", .70)
-		draw_rect(area, outline, false, maxf(1.5, unit * .065))
-		for f in plot.fixtures:
-			var center = screen_point(Grid.vec(f.pos))
-			var ghost = Color("eee2bb", .39) if current else Color("c4c8c7", .36)
-			if f.type == "trophy":
-				draw_circle(center - Vector2(0, unit * .07), unit * .19, ghost, false, 1.5, true)
-				draw_line(center + Vector2(-unit * .22, unit * .19), center + Vector2(unit * .22, unit * .19), ghost, 2.0)
-			else:
-				draw_rect(Rect2(center - Vector2(unit * .30, unit * .25), Vector2(unit * .60, unit * .47)), ghost, false, 1.5)
-				if f.type == "stove":
-					for dx in [-.13, .13]:
-						draw_circle(center + Vector2(unit * dx, 0), unit * .058, ghost)
+func _draw_locked_plots(origin: Vector2, unit: float, layout: Dictionary, next_plot: String) -> void:
+	if not plot_buttons.has(next_plot): return
+	var button: Button = plot_buttons[next_plot].button
+	if not button.visible or not (button.is_hovered() or button.has_focus()): return
+	for plot in layout.plots:
+		if str(plot.id) != next_plot: continue
+		var b: Dictionary = plot.bounds
+		var start := origin + Vector2(b.left, b.top) * unit
+		var area := Rect2(start, Vector2(b.right - b.left + 1, b.bottom - b.top + 1) * unit)
+		draw_rect(area, Color("e0bc80", .07))
+		draw_rect(area, Color("e0bc80", .60), false, maxf(1, unit * .042))
+		return
 
 func _draw_frontage(origin: Vector2, unit: float, l: Dictionary) -> void:
 	var door_y = float(l.entrance[1])
 	var entrance = origin + Vector2(0,door_y)*unit
-	# Two walkable gate cells stay clear; the arch and glass panels frame them.
-	draw_rect(Rect2(entrance+Vector2(-unit*.23,-unit*.41),Vector2(unit*1.42,unit*.39)),Color("374f4a"))
-	draw_rect(Rect2(entrance+Vector2(-unit*.24,-unit*.52),Vector2(unit*1.45,unit*.16)),Color("c58b54"))
-	draw_rect(Rect2(entrance+Vector2(unit*.96,0),Vector2(unit*.12,unit*2.0)),Color("495f50"))
-	draw_rect(Rect2(entrance+Vector2(-unit*.19,0),Vector2(unit*.12,unit*2.0)),Color("495f50"))
-	for stripe in range(7):
-		var awning = Color("aa654c") if stripe % 2 == 0 else Color("e1c89d")
-		draw_rect(Rect2(entrance + Vector2((-0.29 + stripe * 0.22) * unit, -0.28 * unit), Vector2(unit * 0.22, unit * 0.32)), awning)
-	for yy in [0.14,1.14]:
-		draw_rect(Rect2(entrance+Vector2(unit*.04,unit*yy),Vector2(unit*.84,unit*.62)),Color("7aa3a0",.25))
-		draw_line(entrance+Vector2(unit*.45,unit*yy),entrance+Vector2(unit*.45,unit*(yy+.62)),Color("eee2bd",.7),maxf(1,unit*.035))
-	var title = str(sim.chapter.title)
+	if district_3d == null:
+		# The headless canvas keeps the same projected gate cells.
+		draw_rect(Rect2(entrance+Vector2(-unit*.23,-unit*.41),Vector2(unit*1.42,unit*.39)),Color("374f4a"))
+		draw_rect(Rect2(entrance+Vector2(-unit*.24,-unit*.52),Vector2(unit*1.45,unit*.16)),Color("c58b54"))
+	var title = tr(str(sim.chapter.title))
 	var sign = entrance + Vector2(-unit * .26, -unit * .60)
 	var title_width = font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	draw_rect(Rect2(sign - Vector2(4, 15), Vector2(title_width + 8, 20)), Color("544137"))
@@ -1506,7 +2094,8 @@ func _draw_facility_label(f: Dictionary, center: Vector2, top: float, hovering: 
 	if f.type not in ["cashier", "slot", "decor_shop"] and f.id != selected_id and not hovering and f.id not in diagnostic_facilities:
 		return
 	var font_size = clampi(roundi(_unit() * 0.27), 13, 17)
-	var width = font.get_string_size(str(f.name), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var caption := Style.facility_name(str(f.name))
+	var width = font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var label_origin = Vector2(roundf(center.x - (width + 8) * .5), roundf(top - font_size - 11))
 	draw_rect(Rect2(label_origin, Vector2(width + 8, font_size + 8)), Color(0.11, 0.19, 0.15, 0.86))
-	draw_string(font, label_origin + Vector2(4, font_size + 1), str(f.name), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Style.INK)
+	draw_string(font, label_origin + Vector2(4, font_size + 1), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Style.INK)

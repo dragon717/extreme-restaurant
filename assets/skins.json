@@ -2,45 +2,55 @@
   "description": "为角色种类设置 SpriteFrames .tres 路径；空字符串使用程序生成像素占位。动画状态由 ActorView 映射，不驱动游戏计时。",
   "font": "",
   "chef": {
-    "frames": "res://assets/canyon/chef.tres",
-    "scale": 1.55,
+    "frames": "res://assets/crew/blue-melee.tres",
+    "scale": 1.0,
+    "art_scale": 0.43,
     "offset": [
       0,
-      -6
+      -22
     ],
+    "faces_left": true,
     "animation_map": {
       "carry": "walk",
       "cook": "work",
       "order": "work",
-      "wave": "work"
-    },
-    "art_scale": 0.27,
-    "faces_left": true
+      "wave": "work",
+      "eat": "work"
+    }
   },
   "waiter": {
-    "frames": "res://assets/canyon/courier.tres",
-    "scale": 1.55,
+    "frames": "res://assets/crew/blue-melee.tres",
+    "scale": 1.0,
+    "art_scale": 0.43,
     "offset": [
       0,
-      -6
+      -22
     ],
+    "faces_left": true,
     "animation_map": {
       "carry": "walk",
       "cook": "work",
       "order": "work",
-      "wave": "work"
-    },
-    "art_scale": 0.27,
-    "faces_left": true
+      "wave": "work",
+      "eat": "work"
+    }
   },
   "normal": {
-    "frames": "",
-    "scale": 1.55,
+    "frames": "res://assets/crew/blue-melee.tres",
+    "scale": 1.0,
+    "art_scale": 0.43,
     "offset": [
       0,
-      -6
+      -22
     ],
-    "animation_map": {}
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work",
+      "eat": "work"
+    }
   },
   "blogger": {
     "frames": "",
@@ -94,5 +104,152 @@
     "order",
     "carry",
     "eat"
-  ]
+  ],
+  "kilnkeeper": {
+    "frames": "res://assets/crew/Brand.tres",
+    "scale": 1.0,
+    "art_scale": 0.58,
+    "offset": [
+      0,
+      -32
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    }
+  },
+  "ovenhand": {
+    "frames": "res://assets/crew/Pantheon.tres",
+    "scale": 1.0,
+    "art_scale": 0.59,
+    "offset": [
+      0,
+      -32
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    }
+  },
+  "ferrier": {
+    "frames": "res://assets/crew/Sivir.tres",
+    "scale": 1.0,
+    "art_scale": 0.62,
+    "offset": [
+      0,
+      -34
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    }
+  },
+  "riverclaw": {
+    "frames": "res://assets/crew/Scuttler.tres",
+    "scale": 1.0,
+    "art_scale": 0.49,
+    "offset": [
+      0,
+      -27
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    }
+  },
+  "mosskeeper": {
+    "frames": "res://assets/crew/Gromp.tres",
+    "scale": 1.0,
+    "art_scale": 0.49,
+    "offset": [
+      0,
+      -27
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    }
+  },
+  "hearthling": {
+    "frames": "res://assets/crew/Annie.tres",
+    "scale": 1.0,
+    "art_scale": 0.46,
+    "offset": [
+      0,
+      -25
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work"
+    }
+  },
+  "minion_melee": {
+    "frames": "res://assets/crew/blue-melee.tres",
+    "scale": 1.0,
+    "art_scale": 0.43,
+    "offset": [
+      0,
+      -22
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work",
+      "eat": "work"
+    }
+  },
+  "minion_caster": {
+    "frames": "res://assets/crew/blue-caster.tres",
+    "scale": 1.0,
+    "art_scale": 0.43,
+    "offset": [
+      0,
+      -22
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work",
+      "eat": "work"
+    }
+  },
+  "minion_siege": {
+    "frames": "res://assets/crew/blue-siege.tres",
+    "scale": 1.0,
+    "art_scale": 0.43,
+    "offset": [
+      0,
+      -22
+    ],
+    "faces_left": true,
+    "animation_map": {
+      "carry": "walk",
+      "cook": "work",
+      "order": "work",
+      "wave": "work",
+      "eat": "work"
+    }
+  }
 }

@@ -1,6 +1,8 @@
 extends Control
 
 const Sim = preload("res://scripts/core/simulation.gd")
+const Seasons = preload("res://scripts/core/seasons.gd")
+const SeasonalMusic = preload("res://scripts/audio/seasonal_music.gd")
 const Catalog = preload("res://scripts/core/catalog.gd")
 const Store = preload("res://scripts/core/save_store.gd")
 const ChapterProgress = preload("res://scripts/core/chapter_progress.gd")
@@ -10,8 +12,13 @@ const Style = preload("res://scripts/ui/style.gd")
 const Icon = preload("res://scripts/ui/ui_icon.gd")
 const World = preload("res://scripts/ui/world_view.gd")
 const DayBadge = preload("res://scripts/ui/day_badge.gd")
-const Actor = preload("res://scripts/visuals/actor_view.gd")
-const ModalFrame = preload("res://scripts/ui/modal_frame.gd")
+const HUB = preload("res://scenes/ui/service_hub.tscn")
+const Plan = preload("res://scripts/visuals/canyon_plan.gd")
+const MODAL_FRAME = preload("res://scenes/ui/modal_frame.tscn")
+const CREW_SELECT = preload("res://scenes/ui/crew_select.tscn")
+const PAUSE_MENU = preload("res://scenes/ui/pause_menu.tscn")
+const REPORT_PANEL = preload("res://scenes/ui/report_panel.tscn")
+const EVENT_PANEL = preload("res://scenes/ui/major_event_panel.tscn")
 const ServiceFeedback = preload("res://scripts/ui/service_feedback.gd")
 const Guide = preload("res://scripts/ui/restaurant_guide.gd")
 const ReportPanel = preload("res://scripts/ui/report_panel.gd")
@@ -20,10 +27,18 @@ const GuestProfile = preload("res://scripts/ui/guest_profile.gd")
 const MajorEventPanel = preload("res://scripts/ui/major_event_panel.gd")
 const KeyBindings = preload("res://scripts/ui/key_bindings.gd")
 const BuildCatalog = preload("res://scripts/ui/build_catalog.gd")
+const GamepadCursor = preload("res://scripts/ui/gamepad_cursor.gd")
 
 signal return_to_title
 
 var chapter_id = Catalog.DEFAULT_CHAPTER
+var starting_crew: Array = []
+var starting_helpers := {}
+var arrive_from_hub := false
+var entry_stage: SubViewportContainer
+var entry_actors := {}
+var entry_atmosphere := {}
+var landmark_context := ""
 var sim:
 	set(value):
 		if sim == value: return
@@ -35,6 +50,8 @@ var sim:
 			sim.payment_received.connect(_on_guest_payment)
 			sim.guest_moment.connect(_on_guest_moment)
 var world
+var gamepad: Node2D
+var soundtrack: SeasonalMusic
 var service_feedback
 var ui: Dictionary = {}
 var accumulator = 0.0
@@ -70,14 +87,15 @@ const SIM_FRAME_BUDGET_US := 4800
 var special_notice_motion: Tween
 
 func _ready() -> void:
+	get_window().title = tr("峡谷餐厅")
 	theme = Style.theme()
-	if not OS.has_feature("web"):
+	if not OS.has_feature("web") and not OS.has_feature("mobile"):
 		DisplayServer.window_set_min_size(Vector2i(1100, 720))
 	sim = Sim.new(Catalog.load_all(chapter_id))
 	if not sim.catalog.errors.is_empty():
-		var box = _new_modal("config_error", "无法载入章节", 640)
+		var box = _new_modal("config_error", tr("无法载入章节"), 640)
 		box.add_child(Style.text("\n".join(sim.catalog.errors), 16, Style.INK, true))
-		var leave = Style.button("返回章节", true)
+		var leave = Style.button(tr("返回章节"), true)
 		leave.pressed.connect(_return_to_title)
 		box.add_child(leave)
 		set_process(false)
@@ -85,13 +103,25 @@ func _ready() -> void:
 		return
 	testing = "--ui-test" in OS.get_cmdline_user_args()
 	keys = KeyBindings.new(Store.default_path("keyboard_bindings", testing))
-	save_path = Store.default_path(chapter_id, testing)
+	if save_path.is_empty(): save_path = Store.default_path(chapter_id, testing)
 	var saved = Store.read_checkpoint(save_path)
 	var load_message = ""
-	if not saved.is_empty():
+	if not starting_crew.is_empty():
+		sim.set_crew(starting_crew)
+		sim.helper_staff=starting_helpers.duplicate(true)
+	elif not saved.is_empty():
 		var result = sim.restore_state(saved)
 		if not result.ok: load_message = result.error
+	if soundtrack == null:
+		soundtrack = SeasonalMusic.new()
+		add_child(soundtrack)
 	_build_interface()
+	var pointer_layer := CanvasLayer.new()
+	pointer_layer.layer = 30
+	add_child(pointer_layer)
+	gamepad = GamepadCursor.new()
+	pointer_layer.add_child(gamepad)
+	gamepad.pointer_canceled.connect(world.cancel_drag)
 	guide = Guide.new()
 	add_child(guide)
 	if tutorial_path.is_empty(): tutorial_path = Store.default_path("tutorial_progress", testing)
@@ -100,17 +130,26 @@ func _ready() -> void:
 	if load_message.is_empty(): _save()
 	_refresh_all()
 	if load_message.is_empty():
-		guide.start_visit()
-		if sim.phase == "REPORT": _show_report()
+		if arrive_from_hub:
+			ui.overlay.hide()
+			world.entry_finished.connect(_begin_visit, CONNECT_ONE_SHOT)
+			world.enter_from_threshold()
+		else:
+			_begin_visit()
 	if not load_message.is_empty():
-		var box = _new_modal("restore_error", "无法恢复旧检查点", 650)
-		box.add_child(Style.text(load_message + "\n旧存档不会自动迁移或覆盖。",16,Style.MUTED,true))
-		var restart = Style.button("建立新局（旧档留作备份）",true)
-		restart.pressed.connect(func(): _restart_run(int(Time.get_ticks_usec() % 1000000000)))
+		var box = _new_modal("restore_error", tr("无法恢复旧检查点"), 650)
+		box.add_child(Style.text(load_message + tr("\n旧存档不会自动迁移或覆盖。"),16,Style.MUTED,true))
+		var restart = Style.button(tr("建立新局（旧档留作备份）"),true)
+		restart.pressed.connect(func(): _choose_restart_crew(int(Time.get_ticks_usec() % 1000000000)))
 		box.add_child(restart)
-		var leave = Style.button("暂不更改，返回主界面")
+		var leave = Style.button(tr("暂不更改，返回主界面"))
 		leave.pressed.connect(_return_to_title)
 		box.add_child(leave)
+
+func _begin_visit() -> void:
+	ui.overlay.show()
+	guide.start_visit()
+	if sim.phase == "REPORT": _show_report()
 
 func _fill(control: Control) -> void:
 	control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -133,8 +172,14 @@ func _icon_button(glyph: String, description: String) -> Button:
 	return button
 
 func _build_interface() -> void:
-	world = World.new()
+	world = World.new(entry_atmosphere)
+	entry_atmosphere = {}
 	world.sim = sim
+	world.district_3d = entry_stage
+	world.actors = entry_actors
+	for actor in entry_actors.values(): world.add_child(actor)
+	entry_actors = {}
+	entry_stage = null
 	add_child(world)
 	_fill(world)
 	world.move_requested.connect(_move_facility)
@@ -155,24 +200,26 @@ func _build_interface() -> void:
 	_fill(overlay)
 	overlay.theme = theme
 	ui.overlay = overlay
+	ui.hub = HUB.instantiate()
+	overlay.add_child(ui.hub)
 	ui.rent_card = Style.card()
 	ui.rent_card.add_theme_stylebox_override("panel", Style.surface(Style.GREEN, 8))
 	overlay.add_child(ui.rent_card)
-	_rect(ui.rent_card, 14, 14, 184, 61)
+	_rect(ui.rent_card, 14, 83, 184, 124)
 	var rent_row = HBoxContainer.new()
 	ui.rent_card.add_child(rent_row)
-	ui.rent_label = Style.readout(rent_row, "rent", "", "下次房租")
-	ui.rent_days = Style.readout(rent_row, "clock", "", "离下次缴租的天数", Style.MUTED, 14)
+	ui.rent_label = Style.readout(rent_row, "rent", "", tr("下次房租"))
+	ui.rent_days = Style.readout(rent_row, "clock", "", tr("离下次缴租的天数"), Style.MUTED, 14)
 	ui.peak_card = Style.card()
 	ui.peak_card.add_theme_stylebox_override("panel", Style.surface(Style.GOLD, 8))
 	overlay.add_child(ui.peak_card)
-	_rect(ui.peak_card, 14, 70, 203, 112)
-	ui.peak_label = Style.readout(ui.peak_card, "crowd", "", "客流高峰", Style.GOLD, 14)
+	_rect(ui.peak_card, 14, 130, 216, 172)
+	ui.peak_label = Style.readout(ui.peak_card, "crowd", "", tr("客流高峰"), Style.GOLD, 14)
 	ui.peak_card.hide()
 	ui.diagnostic_card = Style.card()
 	ui.diagnostic_card.add_theme_stylebox_override("panel", Style.surface(Style.GOLD, 8))
 	overlay.add_child(ui.diagnostic_card)
-	_rect(ui.diagnostic_card, 14, 123, 240, 207)
+	_rect(ui.diagnostic_card, 14, 181, 240, 265)
 	var diagnostic_body = VBoxContainer.new()
 	ui.diagnostic_card.add_child(diagnostic_body)
 	ui.diagnostic_label = Style.text("", 15, Style.GOLD)
@@ -181,48 +228,35 @@ func _build_interface() -> void:
 	ui.diagnostic_button.pressed.connect(_dismiss_diagnostic)
 	diagnostic_body.add_child(ui.diagnostic_button)
 	ui.diagnostic_card.hide()
-	var top_center = CenterContainer.new()
-	top_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(top_center)
-	_rect(top_center, -272, 8, 272, 72, .5, 0)
-	var top_row = HBoxContainer.new()
-	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_center.add_child(top_row)
+	var top_row: HBoxContainer = ui.hub.get_node("Service")
 	ui.badge = DayBadge.new()
 	top_row.add_child(ui.badge)
-	var time_card = Style.card()
-	time_card.custom_minimum_size.y = 45
-	time_card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	time_card.add_theme_stylebox_override("panel", Style.surface(Style.MUTED, 7))
-	top_row.add_child(time_card)
-	var time_row = HBoxContainer.new()
-	time_card.add_child(time_row)
+	top_row.move_child(ui.badge,0)
+	var time_row := HBoxContainer.new()
+	top_row.add_child(time_row)
 	ui.clock = Style.readout(time_row, "clock", "09:00", "")
 	ui.cleanup = Icon.make("door", Style.GOLD, 18.0)
 	time_row.add_child(ui.cleanup)
 	ui.cleanup.hide()
-	var resources = Style.card()
-	resources.custom_minimum_size.y = 45
-	resources.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	resources.add_theme_stylebox_override("panel", Style.surface(Style.MUTED, 8))
-	top_row.add_child(resources)
-	var resources_row = HBoxContainer.new()
-	resources_row.add_theme_constant_override("separation", 13)
-	resources.add_child(resources_row)
-	ui.income_label = Style.readout(resources_row, "income", "0$", "今日收入")
-	ui.gold_label = Style.readout(resources_row, "coins", "0$", "持有金币")
-	ui.rep_label = Style.readout(resources_row, "reputation", "0", "声望", Style.GREEN)
-	ui.star_label = Style.readout(resources_row, "star", "0", "闪星 · 购买地块扩建和奖杯")
-	ui.gear = _icon_button("settings", "设置")
+	var resources_row: HBoxContainer = ui.hub.get_node("Resources")
+	ui.income_label = Style.readout(resources_row, "income", "0$", tr("今日收入"))
+	ui.gold_label = Style.readout(resources_row, "coins", "0$", tr("持有金币"))
+	ui.rep_label = Style.readout(resources_row, "reputation", "0", tr("声望"), Style.GREEN)
+	ui.star_label = Style.readout(resources_row, "star", "0", tr("闪星 · 购买地块扩建和奖杯"))
+	ui.gear = _icon_button("settings", tr("设置"))
 	overlay.add_child(ui.gear)
 	_rect(ui.gear, -61, 14, -14, 61, 1, 0)
 	ui.gear.pressed.connect(_show_settings)
-	ui.history = _icon_button("history", "历史日报")
+	ui.shift = _icon_button("chef", tr("今日排班"))
+	overlay.add_child(ui.shift)
+	_rect(ui.shift, -115, 14, -68, 61, 1, 0)
+	ui.shift.pressed.connect(_show_shift_roster)
+	ui.history = _icon_button("history", tr("历史日报"))
 	ui.history.name = "OpenReportHistory"
 	overlay.add_child(ui.history)
 	_rect(ui.history, -232, 14, -179, 61, 1, 0)
 	ui.history.pressed.connect(_show_report_history)
-	ui.district = _icon_button("district", "街区全景 · F 返回餐厅")
+	ui.district = _icon_button("district", tr("街区全景 · F 返回餐厅"))
 	ui.district.name = "DistrictOverview"
 	overlay.add_child(ui.district)
 	_rect(ui.district, -290, 14, -237, 61, 1, 0)
@@ -247,29 +281,60 @@ func _build_interface() -> void:
 	overlay.add_child(ui.pause)
 	_rect(ui.pause, -112, 14, -65, 61, 1, 0)
 	ui.pause.pressed.connect(_toggle_pause)
-	ui.open = Style.button("开店",true)
+	var actions: HBoxContainer = ui.hub.get_node("Actions")
+	ui.roof = Style.button(tr("看屋顶"))
+	ui.roof.name = "RoofView"
+	ui.roof.custom_minimum_size = Vector2(68,36)
+	actions.add_child(ui.roof)
+	ui.roof.pressed.connect(func():
+		if world.overview:
+			world.focus_restaurant()
+			world.set_roof_view(false)
+		else:
+			world.set_roof_view(not world.inspect_roof)
+	)
+	world.roof_view_changed.connect(func(closed): ui.roof.text = tr("看室内") if closed else tr("看屋顶"))
+	for state in ["normal","hover","pressed"]:
+		ui.roof.add_theme_stylebox_override(state,StyleBoxEmpty.new())
+	for command: Button in [ui.district, ui.fast, ui.pause, ui.gear]:
+		command.reparent(actions,false)
+		command.custom_minimum_size = Vector2(39,40)
+		command.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		for state in ["normal","hover","pressed","disabled"]:
+			command.add_theme_stylebox_override(state,StyleBoxEmpty.new())
+	_rect(ui.history, -66, 82, -18, 126, 1, 0)
+	_rect(ui.shift, -120, 82, -72, 126, 1, 0)
+	ui.rent_card.hide()
+	ui.history.hide()
+	ui.shift.hide()
+	ui.open = Style.button(tr("开店"),true)
 	ui.open.add_theme_font_size_override("font_size",21)
 	overlay.add_child(ui.open)
 	_rect(ui.open, -104, -67, 104, -19, .5, 1)
 	ui.open.pressed.connect(_open_day)
 	ui.skills = preload("res://scenes/service_skills.tscn").instantiate()
 	overlay.add_child(ui.skills)
-	_rect(ui.skills, -158, -67, 158, -19, .5, 1)
+	_rect(ui.skills, -255, -67, 255, -19, .5, 1)
+	ui.linked_fire = ui.skills.get_node("LinkedFire")
+	ui.linked_fire.pressed.connect(func():
+		if guide.blocks_clock or not modal_kind.is_empty(): return
+		if sim.call_linked_fire(): _update_hud()
+	)
 	ui.rush = ui.skills.get_node("Rush")
 	ui.rush.pressed.connect(func():
 		if guide.blocks_clock or not modal_kind.is_empty(): return
 		if sim.call_current(): _update_hud()
 	)
-	ui.menu = _icon_button("recipe", "菜谱")
+	ui.menu = _icon_button("recipe", tr("菜谱"))
 	overlay.add_child(ui.menu)
 	_rect(ui.menu, -65, -67, -18, -19, 1, 1)
 	ui.menu.pressed.connect(_show_menu_page)
-	ui.build = _icon_button("build", "建造")
+	ui.build = _icon_button("build", tr("建造"))
 	ui.build.name = "OpenBuildInventory"
 	overlay.add_child(ui.build)
 	_rect(ui.build, -124, -67, -77, -19, 1, 1)
 	ui.build.pressed.connect(_show_build_page)
-	ui.trophy_bag = _icon_button("bag", "奖杯背包")
+	ui.trophy_bag = _icon_button("bag", tr("奖杯背包"))
 	ui.trophy_bag.name = "OpenTrophyBag"
 	overlay.add_child(ui.trophy_bag)
 	ui.trophy_bag.pressed.connect(_show_trophy_bag)
@@ -312,13 +377,13 @@ func _build_interface() -> void:
 	ui.info_glyph = Icon.make("table", Style.GREEN, 22)
 	info_header.add_child(ui.info_glyph)
 	info_header.add_child(ui.info_title)
-	ui.info_follow = _icon_button("follow", "镜头跟随")
+	ui.info_follow = _icon_button("follow", tr("镜头跟随"))
 	ui.info_follow.name = "FollowNpc"
 	ui.info_follow.custom_minimum_size.x = 40
 	info_header.add_child(ui.info_follow)
 	ui.info_follow.pressed.connect(_follow_inspected)
 	ui.info_follow.hide()
-	var close = _icon_button("close", "关闭")
+	var close = _icon_button("close", tr("关闭"))
 	close.custom_minimum_size.x = 40
 	close.pressed.connect(_clear_inspector)
 	info_header.add_child(close)
@@ -344,11 +409,11 @@ func _build_interface() -> void:
 	overlay.add_child(ui.action_bar)
 	_rect(ui.action_bar, -272, -119, -18, -73, 1, 1)
 	for tool in [
-		["move", "move", "移动", _begin_move],
-		["rotate", "rotate", "旋转", _rotate_selection],
-		["split", "split", "拆分餐桌", _split_selection],
-		["store", "store", "收起", _store_selection],
-		["cancel_placement", "close", "取消布置 [Esc]", _cancel_placement],
+		["move", "move", tr("移动"), _begin_move],
+		["rotate", "rotate", tr("旋转"), _rotate_selection],
+		["split", "split", tr("拆分餐桌"), _split_selection],
+		["store", "store", tr("收起"), _store_selection],
+		["cancel_placement", "close", tr("取消布置 [Esc]"), _cancel_placement],
 	]:
 		var button = _icon_button(tool[1], tool[2])
 		button.custom_minimum_size = Vector2(44, 44)
@@ -365,20 +430,20 @@ func _build_interface() -> void:
 	ui.slot_panel.add_child(slot_body)
 	var slot_header = HBoxContainer.new()
 	slot_body.add_child(slot_header)
-	var slot_title = Style.text("采购处",22,Style.GOLD)
+	var slot_title = Style.text(tr("采购处"),22,Style.GOLD)
 	slot_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slot_header.add_child(Icon.make("coins", Style.GOLD, 22))
 	slot_header.add_child(slot_title)
-	var slot_close = _icon_button("close", "关闭")
+	var slot_close = _icon_button("close", tr("关闭"))
 	slot_close.pressed.connect(func():
 		ui.slot_panel.hide()
 		_clear_inspector()
 	)
 	slot_header.add_child(slot_close)
-	slot_body.add_child(Style.text("每晚到货一道菜谱、两项增益。选中商品即可查看价格和效果。",15,Style.INK,true))
+	slot_body.add_child(Style.text(tr("每晚到货一道菜谱、两项增益。选中商品即可查看价格和效果。"),15,Style.INK,true))
 	ui.slot_hint = Style.text("",14,Style.MUTED,true)
 	slot_body.add_child(ui.slot_hint)
-	ui.enter_shop = Style.button("进入采购",true)
+	ui.enter_shop = Style.button(tr("进入采购"),true)
 	ui.enter_shop.pressed.connect(_show_purchase_page)
 	slot_body.add_child(ui.enter_shop)
 	ui.slot_panel.visible = false
@@ -392,10 +457,11 @@ func _build_interface() -> void:
 
 func _process(delta: float) -> void:
 	if sim == null: return
+	gamepad.move(delta, world)
 	if status_timer > 0: status_timer -= delta
 	_advance_major_event_popup(delta)
 	var tick_seconds = float(sim.tick_ms) / 1000.0
-	var clock_held = sim.paused or guide.blocks_clock or modal_kind == "report_history"
+	var clock_held = sim.paused or guide.blocks_clock or modal_kind in ["settings", "key_settings", "handbook", "restart", "report_history"]
 	if sim.phase == "DAY" and not clock_held:
 		var speed = float(sim.chapter.fast_forward_multiplier) if fast_forward else 1.0
 		accumulator = minf(accumulator + delta * speed, tick_seconds * MAX_SIM_TICKS_PER_FRAME)
@@ -419,13 +485,15 @@ func _process(delta: float) -> void:
 
 func _refresh_all() -> void:
 	if sim == null: return
+	soundtrack.set_day(sim.day)
+	ui.hub.get_node("Service/Season").text = tr(Seasons.NAMES[Seasons.at_day(sim.day)])
 	var night = sim.phase == "NIGHT"
 	if not night and ui.build_catalog.visible: _close_build_page()
 	_sync_build_dock()
 	ui.fast.visible = sim.phase == "DAY"
 	if sim.phase != "DAY": _hide_special_notice()
 	ui.pause.visible = sim.phase == "DAY"
-	ui.slot_hint.text = "仅在夜晚采购；白天请观察经营。" if not night else "今晚商品已准备好，价格在采购页查看。"
+	ui.slot_hint.text = tr("仅在夜晚采购；白天请观察经营。") if not night else tr("今晚商品已准备好，价格在采购页查看。")
 	ui.enter_shop.disabled = not night
 	if not night:
 		ui.info_panel.hide()
@@ -440,19 +508,29 @@ func _update_hud() -> void:
 		opening_check_revision = sim.revision
 	ui.open.disabled = sim.phase != "NIGHT" or not opening_issue.is_empty()
 	ui.skills.visible = sim.phase == "DAY"
+	ui.shift.visible = false
+	ui.rent_card.visible = sim.phase == "NIGHT" and int(sim.next_rent().get("day",99))-sim.day <= 1
+	ui.hub.get_node("Service/Phase").text = tr("夜间规划") if sim.phase == "NIGHT" else (tr("营业中") if sim.phase == "DAY" else tr("营业复盘"))
+	ui.rush.visible = sim.crew_lineup.is_empty() or sim.crew_on_duty("ferrier", "waiter")
+	ui.linked_fire.visible = sim.crew_on_duty("kilnkeeper", "chef")
 	if ui.skills.visible:
 		var remaining := maxi(0, sim.current_ready - sim.tick)
 		ui.rush.disabled = remaining > 0 or sim.paused or guide.blocks_clock or not modal_kind.is_empty()
-		ui.rush.text = "河道急送" if remaining == 0 else "急送 · %d秒" % ceili(remaining * sim.tick_ms / 1000.0)
+		ui.rush.text = tr("河道急送") if remaining == 0 else tr("急送 · %d秒") % ceili(remaining * sim.tick_ms / 1000.0)
+		if ui.linked_fire.visible:
+			var ready_count: int = sim.linked_fire_targets().size()
+			var cooldown := maxi(0, sim.linked_fire_ready - sim.tick)
+			ui.linked_fire.disabled = cooldown > 0 or ready_count == 0 or sim.paused or guide.blocks_clock or not modal_kind.is_empty()
+			ui.linked_fire.text = tr("飞火 · %d秒") % ceili(cooldown * sim.tick_ms / 1000.0) if cooldown > 0 else tr("连灶飞火 · %d 锅") % ready_count
 	ui.history.disabled = sim.reports.is_empty()
-	ui.history.tooltip_text = "历史日报" if not ui.history.disabled else "完成首日营业后可查看历史日报"
+	ui.history.tooltip_text = tr("历史日报") if not ui.history.disabled else tr("完成首日营业后可查看历史日报")
 	if sim.phase == "NIGHT":
-		var expected_groups = ["开店 [%s]" % keys.text("open")]
+		var expected_groups = [tr("开店 [%s]") % keys.text("open")]
 		var seats = Grid.facilities(sim.layout, "table")
 		for group in sim.chapter.guest_groups:
 			var size = int(group.size)
 			if not seats.any(func(f): return Grid.table_size(f) == size):
-				expected_groups.append("第 %d 天起可能到店 %d 人组，需要%s" % [int(group.from_day), size, Grid.table_label(size)])
+				expected_groups.append(tr("第 %d 天起可能到店 %d 人组，需要%s") % [int(group.from_day), size, tr(Grid.table_label(size))])
 		ui.open.tooltip_text = opening_issue if not opening_issue.is_empty() else "\n".join(expected_groups)
 	var weather = sim.weather_for().preset
 	ui.badge.set_state(sim.day,sim.phase,clampf(float(sim.tick)/maxi(1,sim.day_ticks),0,1))
@@ -462,13 +540,13 @@ func _update_hud() -> void:
 	service_feedback.show_resource(ui.rep_label, int(sim.reputation))
 	service_feedback.show_resource(ui.star_label, int(sim.stars))
 	var rent = sim.next_rent()
-	ui.rent_label.text = "$%d" % int(rent.amount) if not rent.is_empty() else "已付清"
+	ui.rent_label.text = "$%d" % int(rent.amount) if not rent.is_empty() else tr("已付清")
 	ui.rent_days.get_parent().visible = not rent.is_empty()
-	ui.rent_days.text = "%d天" % maxi(0, int(rent.get("day", sim.day)) - sim.day)
+	ui.rent_days.text = tr("%d天") % maxi(0, int(rent.get("day", sim.day)) - sim.day)
 	var event_names = []
-	for event in sim.events_for(): event_names.append(str(event.name))
+	for event in sim.events_for(): event_names.append(tr(str(event.name)))
 	_sync_major_notice()
-	ui.rent_card.tooltip_text = ("房租 · 第 %d 天缴 %d 金币" % [int(rent.day), int(rent.amount)] if not rent.is_empty() else "本章房租已全部缴清") + ("\n" + "、".join(event_names) if not event_names.is_empty() else "")
+	ui.rent_card.tooltip_text = (tr("房租 · 第 %d 天缴 %d 金币") % [int(rent.day), int(rent.amount)] if not rent.is_empty() else tr("本章房租已全部缴清")) + ("\n" + "、".join(event_names) if not event_names.is_empty() else "")
 	ui.rent_label.tooltip_text = ui.rent_card.tooltip_text
 	ui.rent_label.get_parent().tooltip_text = ui.rent_card.tooltip_text
 	var peak = _peak_forecast(sim.day, true)
@@ -478,11 +556,11 @@ func _update_hud() -> void:
 	ui.peak_label.get_parent().tooltip_text = ui.peak_label.tooltip_text
 	ui.clock.text = sim.clock_text() if sim.phase == "DAY" else ("09:00" if sim.phase == "NIGHT" else "00:00")
 	ui.cleanup.visible = sim.phase == "DAY" and sim.tick >= sim.day_ticks
-	ui.clock.tooltip_text = "午夜解散队伍，已入座客人继续用餐" if ui.cleanup.visible else "09:00–21:00 接客，00:00 解散队伍"
+	ui.clock.tooltip_text = tr("午夜解散队伍，已入座客人继续用餐") if ui.cleanup.visible else tr("09:00–21:00 接客，00:00 解散队伍")
 	ui.clock.get_parent().tooltip_text = ui.clock.tooltip_text
 	ui.pause_icon.set_glyph("play" if sim.paused else "pause", Style.INK)
 	ui.fast.text = "%d×" % int(sim.chapter.fast_forward_multiplier) if fast_forward else "1×"
-	ui.fast.tooltip_text = ("当前8倍速 · 点击恢复正常" if fast_forward else "当前正常速度 · 点击快进") + " [%s]" % keys.text("fast")
+	ui.fast.tooltip_text = (tr("当前8倍速 · 点击恢复正常") if fast_forward else tr("当前正常速度 · 点击快进")) + " [%s]" % keys.text("fast")
 	if bool(ui.fast.get_meta("active_visual", false)) != fast_forward:
 		ui.fast.set_meta("active_visual", fast_forward)
 		if fast_forward:
@@ -491,23 +569,23 @@ func _update_hud() -> void:
 		else:
 			ui.fast.remove_theme_stylebox_override("normal")
 			ui.fast.remove_theme_color_override("font_color")
-	ui.pause.tooltip_text = ("继续营业" if sim.paused else "暂停观察") + " [%s]" % keys.text("pause")
-	ui.menu.tooltip_text = "菜谱 [%s]" % keys.text("menu")
-	ui.build.tooltip_text = "建造 [%s]" % keys.text("build")
-	ui.trophy_bag.tooltip_text = "奖杯背包 [%s]" % keys.text("trophy_bag")
-	ui.rotate.tooltip_text = "顺时针旋转 [%s]" % keys.text("rotate")
-	ui.split.tooltip_text = "拆分餐桌 [%s]" % keys.text("split")
-	ui.store.tooltip_text = "收起 [%s]" % keys.text("store")
+	ui.pause.tooltip_text = (tr("继续营业") if sim.paused else tr("暂停观察")) + " [%s]" % keys.text("pause")
+	ui.menu.tooltip_text = tr("菜谱 [%s]") % keys.text("menu")
+	ui.build.tooltip_text = tr("建造 [%s]") % keys.text("build")
+	ui.trophy_bag.tooltip_text = tr("奖杯背包 [%s]") % keys.text("trophy_bag")
+	ui.rotate.tooltip_text = tr("顺时针旋转 [%s]") % keys.text("rotate")
+	ui.split.tooltip_text = tr("拆分餐桌 [%s]") % keys.text("split")
+	ui.store.tooltip_text = tr("收起 [%s]") % keys.text("store")
 	_sync_build_tools()
 	if sim.phase == "DAY" and sim.tick >= sim.day_ticks:
-		ui.badge.tooltip_text = "21:00 停止新客到店 · 00:00 解散排队 · 等店内客人离开后结算"
+		ui.badge.tooltip_text = tr("21:00 停止新客到店 · 00:00 解散排队 · 等店内客人离开后结算")
 	else:
-		ui.badge.tooltip_text = "夜晚规划" if sim.phase == "NIGHT" else "营业接客中"
-	ui.badge.tooltip_text += " · " + str(weather.name)
+		ui.badge.tooltip_text = tr("夜晚规划") if sim.phase == "NIGHT" else tr("营业接客中")
+	ui.badge.tooltip_text += " · " + tr(str(weather.name))
 	ui.toast_card.modulate.a = clampf(status_timer / 0.4, 0, 1) if status_timer > 0 else 1.0
 	if sim.phase == "NIGHT" and not opening_issue.is_empty() and status_timer <= 0:
 		ui.toast_card.show()
-		_set_toast_text("开店前需要处理：" + opening_issue, true)
+		_set_toast_text(tr("开店前需要处理：") + opening_issue, true)
 	elif status_timer <= 0:
 		ui.toast_card.hide()
 	if not inspected.is_empty() and ui.info_panel.visible:
@@ -517,8 +595,7 @@ func _build_special_notice(overlay: Control) -> void:
 	var notice = Style.card()
 	notice.name = "SpecialGuestNotice"
 	notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var skin = Style.surface(Color("e2a78e"), 10)
-	skin.modulate_color = Color("e6cabf")
+	var skin = Style.frame(Color("5b3134"), Style.RED, 10)
 	notice.add_theme_stylebox_override("panel", skin)
 	overlay.add_child(notice)
 	_rect(notice, -326, 75, -17, 139, 1, 0)
@@ -530,7 +607,7 @@ func _build_special_notice(overlay: Control) -> void:
 	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	copy.add_theme_constant_override("separation", 2)
 	row.add_child(copy)
-	copy.add_child(Style.text("特别来客", 12, Color("ebbe9d")))
+	copy.add_child(Style.text(tr("特别来客"), 12, Color("ebbe9d")))
 	ui.special_caption = Style.text("", 17, Style.INK)
 	copy.add_child(ui.special_caption)
 	ui.special_notice = notice
@@ -543,7 +620,7 @@ func _on_guest_moment(id: int, moment: StringName) -> void:
 	var profile = sim.guest_defs[customer.type]
 	if profile.rarity != "special": return
 	var size = int(customer.party_size)
-	ui.special_caption.text = "%s 到店" % profile.name if size == 1 else "%d 位%s同行到店" % [size, profile.name]
+	ui.special_caption.text = tr("%s 到店") % tr(str(profile.name)) if size == 1 else tr("%d 位%s同行到店") % [size, tr(str(profile.name))]
 	world.follow_actor("g_%d" % id, SPECIAL_NOTICE_SECONDS)
 	_hide_special_notice()
 	var notice = ui.special_notice
@@ -568,13 +645,14 @@ func _on_guest_payment(cell: Vector2, amount: int) -> void:
 	var point = world.get_global_transform_with_canvas() * world.screen_point(cell + Vector2(0, -.2))
 	service_feedback.add_payment(point, amount)
 
-func _save() -> void:
-	if sim.phase not in ["NIGHT","REPORT"]: return
+func _save() -> bool:
+	if sim.phase not in ["NIGHT","REPORT"]: return false
 	var checkpoint = sim.export_state()
 	var error = Store.write_checkpoint(checkpoint, save_path)
 	if error.is_empty() and sim.phase == "REPORT" and sim.last_report.get("result", "") == "WIN":
 		error = ChapterProgress.record_win(checkpoint, testing)
 	if not error.is_empty(): _notice(error,true)
+	return error.is_empty()
 
 func _notice(message: String, error: bool = false) -> void:
 	if not ui.has("toast_label"): return
@@ -590,9 +668,9 @@ func _set_toast_text(message: String, error: bool) -> void:
 	var width = Style.font().get_string_size(message, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	ui.toast_card.offset_right = ui.toast_card.offset_left + clampf(width + 54.0, 100.0, 385.0)
 
-func _command(result: Dictionary, message: String = "已更新") -> bool:
+func _command(result: Dictionary, message: String = tr("已更新")) -> bool:
 	if not result.ok:
-		_notice(result.get("error","操作失败"),true)
+		_notice(result.get("error",tr("操作失败")),true)
 		return false
 	_save()
 	_refresh_all()
@@ -602,7 +680,7 @@ func _command(result: Dictionary, message: String = "已更新") -> bool:
 func _open_day() -> void:
 	if sim.phase != "NIGHT" or modal_layer != null or ui.build_catalog.visible: return
 	_save()
-	if _command(sim.start_day(), "已开店"):
+	if _command(sim.start_day(), tr("已开店")):
 		guide.opened()
 		_clear_diagnostic()
 		accumulator = 0
@@ -616,11 +694,15 @@ func _on_focus_lost() -> void:
 	if is_instance_valid(world):
 		world.stop_follow()
 		world.cancel_drag()
+		world.cancel_touch()
+	if is_instance_valid(gamepad):
+		gamepad.release_pointer()
+		gamepad.hide()
 	if sim != null and sim.phase == "DAY":
 		sim.paused = true
 		accumulator = minf(accumulator, float(sim.tick_ms) / 1000.0)
 		_update_hud()
-		_notice("窗口失去焦点，营业已暂停。")
+		_notice(tr("窗口失去焦点，营业已暂停。"))
 
 func _toggle_pause() -> void:
 	if sim.phase != "DAY": return
@@ -633,6 +715,9 @@ func _toggle_fast() -> void:
 	_update_hud()
 
 func _inspect(kind: String, id: String) -> void:
+	if kind == "landmark":
+		_visit_landmark(id)
+		return
 	if kind == "trophy_shop":
 		_show_trophy_shop()
 		return
@@ -685,7 +770,7 @@ func _follow_inspected() -> void:
 func _sync_follow_button(_actor_id := "") -> void:
 	if not ui.has("info_follow"): return
 	var following = not world.follow_actor_id.is_empty() and _inspected_actor() == world.follow_actor_id
-	ui.info_follow.tooltip_text = "跟随中 · 点击场景或按键退出" if following else "镜头跟随"
+	ui.info_follow.tooltip_text = tr("跟随中 · 点击场景或按键退出") if following else tr("镜头跟随")
 	ui.info_follow.get_child(0).set_glyph("follow", Style.GOLD if following else Style.INK)
 
 func _update_inspector(reveal := false) -> void:
@@ -705,25 +790,30 @@ func _update_inspector(reveal := false) -> void:
 	_sync_follow_button()
 	match kind:
 		"preview":
-			var role = "厨师" if id.begins_with("preview_chef_") else "服务员"
-			ui.info_title.text = "%s %d · 预备中" % [role, int(id.get_slice("_", 2)) + 1]
-			var count = int(sim.attributes.chefs if role == "厨师" else sim.attributes.waiters)
-			ui.info_body.text = "已雇佣 %d 位 · 可拖动调整开店站位" % count
+			var is_chef := id.begins_with("preview_chef_")
+			var role = tr("厨师") if is_chef else tr("服务员")
+			ui.info_title.text = tr("%s %d · 预备中") % [role, int(id.get_slice("_", 2)) + 1]
+			var count = int(sim.attributes.chefs if is_chef else sim.attributes.waiters)
+			ui.info_body.text = tr("已雇佣 %d 位 · 可拖动调整开店站位") % count
+			var job := str(id.get_slice("_",1))
+			var species := str(sim.helper_at(job,int(id.get_slice("_",2))))
+			if not species.is_empty():
+				ui.info_body.text += "\n"+tr(sim.Minions.NAMES[species])+" · "+tr(sim.Minions.TRAITS[job][species])
 		"facility":
 			if f.is_empty(): ui.info_panel.hide(); return
-			ui.info_title.text = f.name
+			ui.info_title.text = Style.facility_name(str(f.name))
 			var detail = ""
 			match str(f.type):
 				"table":
 					var size = Grid.table_size(f)
-					detail = "%s · %d 座" % [Grid.table_label(size), size]
+					detail = tr("%s · %d 座") % [tr(Grid.table_label(size)), size]
 					if sim.phase == "NIGHT" and size < 4:
-						detail += "\n长按拖到同规格餐桌可合成%s。" % Grid.table_label(size * 2)
-					if size > 1: detail += "\n为 %d 人组整桌留座。" % size
-				"stove": detail = "厨师在此烹饪，做好后会把菜搬到出餐口。" + _efficiency_buff("cook")
-				"order": detail = "服务员交单，厨师接单。四面可操作。"
-				"pass": detail = "厨师放餐，服务员取餐。四面可操作。"
-				"wall": detail = "隔开走道与用餐区域。可移动或收起。"
+						detail += tr("\n长按拖到同规格餐桌可合成%s。") % tr(Grid.table_label(size * 2))
+					if size > 1: detail += tr("\n为 %d 人组整桌留座。") % size
+				"stove": detail = tr("厨师在此烹饪，做好后会把菜搬到出餐口。") + _efficiency_buff("cook")
+				"order": detail = tr("服务员交单，厨师接单。四面可操作。")
+				"pass": detail = tr("厨师放餐，服务员取餐。四面可操作。")
+				"wall": detail = tr("隔开走道与用餐区域。可移动或收起。")
 				"decoration":
 					var definition = sim.decoration_defs[f.decoration_id]
 					detail = Decor.description(definition)
@@ -732,11 +822,11 @@ func _update_inspector(reveal := false) -> void:
 						var cells = Decor.coverage(f, definition, sim.layout)
 						for target in sim.layout.facilities:
 							if Grid.placed(target) and Decor.affects(target, definition, cells): affected += 1
-						if definition.effect != "waiter_speed": detail += "\n当前覆盖 %d 处" % affected
-						detail += "\n点击移动工具可预览范围。"
+						if definition.effect != "waiter_speed": detail += tr("\n当前覆盖 %d 处") % affected
+						detail += tr("\n点击移动工具可预览范围。")
 				"trophy":
 					var relic = sim.relic_defs[str(f.relic_id)]
-					detail = relic.description + "\n常驻效果仅在展示区放下后生效。\n已展示 %d / %d" % [Grid.facilities(sim.layout,"trophy").size(),int(sim.attributes.relic_slots)]
+					detail = tr(str(relic.description)) + tr("\n常驻效果仅在展示区放下后生效。\n已展示 %d / %d") % [Grid.facilities(sim.layout,"trophy").size(),int(sim.attributes.relic_slots)]
 			ui.info_body.text = detail
 		"staff":
 			var person = sim.staff_member(int(id))
@@ -745,9 +835,11 @@ func _update_inspector(reveal := false) -> void:
 				return
 			var chef = person.role == "chef"
 			ui.info_glyph.set_glyph("stove" if chef else "crowd", Style.GREEN)
-			ui.info_title.text = "%s #%d" % ["厨师" if chef else "服务员", person.id]
-			var actions = {"ORDER":"给客人点单","SUBMIT":"送订单到厨房","COOK":"正在烹饪","COLLECT":"领取灶台食物","TRANSFER":"搬运到出餐口","PICKUP":"取餐","DELIVER":"给客人上菜","RETURN":"返还食物"}
-			ui.info_body.text = "当前：%s\n手持食物：%d 份" % [person.reason if person.task.is_empty() else actions.get(person.task.kind,"正在工作"), person.carry_food.size()]
+			ui.info_title.text = "%s #%d" % [tr("厨师") if chef else tr("服务员"), person.id]
+			var actions = {"ORDER":tr("给客人点单"),"SUBMIT":tr("送订单到厨房"),"COOK":tr("正在烹饪"),"COLLECT":tr("领取灶台食物"),"TRANSFER":tr("搬运到出餐口"),"PICKUP":tr("取餐"),"DELIVER":tr("给客人上菜"),"RETURN":tr("返还食物")}
+			ui.info_body.text = tr("当前：%s\n手持食物：%d 份") % [tr(str(person.reason)) if person.task.is_empty() else actions.get(person.task.kind,tr("正在工作")), person.carry_food.size()]
+			var species := str(person.get("minion",""))
+			if not species.is_empty(): ui.info_body.text += "\n"+tr(sim.Minions.NAMES[species])+" · "+tr(sim.Minions.TRAITS[person.role][species])
 		"customer":
 			var customer_id = int(id)
 			var customer = sim.customers.get(customer_id, {})
@@ -755,12 +847,12 @@ func _update_inspector(reveal := false) -> void:
 				_clear_inspector()
 				return
 			var profile = sim.guest_defs[customer.type]
-			ui.info_title.text = str(profile.name)
+			ui.info_title.text = tr(str(profile.name))
 			var traits = _guest_effect(profile) if profile.rarity != "normal" else ""
 			if profile.get("unlimited_food_wait", false):
-				traits = "会一直等到上菜 · 每轮扣 %d 声望" % int(profile.food_penalty_per_cycle)
+				traits = tr("会一直等到上菜 · 每轮扣 %d 声望") % int(profile.food_penalty_per_cycle)
 			elif customer.type == "food_inspector":
-				traits = "用餐时间为平时的 %d 倍 · 会评价餐品品质" % int(profile.eat_time_multiplier)
+				traits = tr("用餐时间为平时的 %d 倍 · 会评价餐品品质") % int(profile.eat_time_multiplier)
 			if not profile.get("unlimited_food_wait", false):
 				traits += _efficiency_buff("patience")
 			traits += _efficiency_buff("eat_time_reduction")
@@ -773,30 +865,30 @@ func _efficiency_buff(effect: String) -> String:
 		var buff = sim.buff_defs[id]
 		if str(buff.effect_type) == effect:
 			var increase = int(round(float(buff.effect_per_stack) * int(sim.buff_states[id].stack_count) * 100.0))
-			lines += "\n增益 (%s%d%%)：%s · %s" % [sign,increase,str(buff.name),str(buff.description)]
+			lines += tr("\n增益 (%s%d%%)：%s · %s") % [sign,increase,tr(str(buff.name)),tr(str(buff.description))]
 	for trophy in Grid.facilities(sim.layout,"trophy"):
 		var relic = sim.relic_defs[str(trophy.relic_id)]
 		if str(relic.effect_type) == effect:
-			lines += "\n常驻 (%s%d%%)：%s · %s" % [sign,int(round(float(relic.effect_value)*100.0)),str(relic.name),str(relic.description)]
+			lines += tr("\n常驻 (%s%d%%)：%s · %s") % [sign,int(round(float(relic.effect_value)*100.0)),tr(str(relic.name)),tr(str(relic.description))]
 	return lines
 
 func _guest_effect(guest: Dictionary) -> String:
 	var parts = []
 	if guest.get("payment_override", "") == "ZERO":
-		parts.append("结账金币为0")
+		parts.append(tr("结账金币为0"))
 	elif not is_equal_approx(float(guest.type_payment_multiplier),1.0):
-		parts.append("金币倍率 ×%.1f" % float(guest.type_payment_multiplier))
+		parts.append(tr("金币倍率 ×%.1f") % float(guest.type_payment_multiplier))
 	if not is_equal_approx(float(guest.get("choose_time_multiplier",1)),1.0):
-		parts.append("选菜时间 ×%.1f" % float(guest.choose_time_multiplier))
+		parts.append(tr("选菜时间 ×%.1f") % float(guest.choose_time_multiplier))
 	if not is_equal_approx(float(guest.get("eat_time_multiplier",1)),1.0):
-		parts.append("用餐时间 ×%.1f" % float(guest.eat_time_multiplier))
+		parts.append(tr("用餐时间 ×%.1f") % float(guest.eat_time_multiplier))
 	if not is_equal_approx(float(guest.get("food_cycle_multiplier",1)),1.0):
-		parts.append("等餐扣分周期 ×%.1f" % float(guest.food_cycle_multiplier))
+		parts.append(tr("等餐扣分周期 ×%.1f") % float(guest.food_cycle_multiplier))
 	if guest.get("unlimited_food_wait", false):
-		parts.append("等餐耐心无限")
+		parts.append(tr("等餐耐心无限"))
 	elif not is_equal_approx(float(guest.get("food_max_multiplier",1)),1.0):
-		parts.append("等餐耐心 ×%.1f" % float(guest.food_max_multiplier))
-	parts.append("基础声望 %d" % int(guest.base_reputation))
+		parts.append(tr("等餐耐心 ×%.1f") % float(guest.food_max_multiplier))
+	parts.append(tr("基础声望 %d") % int(guest.base_reputation))
 	return " · ".join(parts)
 
 func _begin_move() -> void:
@@ -808,20 +900,20 @@ func _begin_move() -> void:
 	ui.info_panel.hide()
 	ui.slot_panel.hide()
 	_sync_build_tools()
-	var rotation_hint = " · %s 旋转" % keys.text("rotate") if Grid.can_rotate(Grid.find(sim.layout, world.selected_id)) else ""
-	_notice("点击空格放置" + rotation_hint + " · Esc 取消")
+	var rotation_hint = tr(" · %s 旋转") % keys.text("rotate") if Grid.can_rotate(Grid.find(sim.layout, world.selected_id)) else ""
+	_notice(tr("点击空格放置") + rotation_hint + tr(" · Esc 取消"))
 
 func _move_facility(id: String, cell: Vector2i) -> void:
 	if id.begins_with("preview_"):
 		var role = id.get_slice("_", 1)
 		var index = int(id.get_slice("_", 2))
-		if _command(sim.move_staff(role, index, cell), "员工开店站位已调整。"):
+		if _command(sim.move_staff(role, index, cell), tr("员工开店站位已调整。")):
 			world.cancel_placement()
 			_inspect("preview", id)
 		return
 	var result = sim.move_facility(id, cell, world.decor_preview_turns)
 	var merged_size = int(result.get("merged_size", 0))
-	var message = "已合成%s。" % Grid.table_label(merged_size) if merged_size > 0 else "设施位置已调整。"
+	var message = tr("已合成%s。") % tr(Grid.table_label(merged_size)) if merged_size > 0 else tr("设施位置已调整。")
 	if _command(result, message):
 		world.cancel_placement()
 		if id in ["cashier","slot"]:
@@ -837,27 +929,27 @@ func _selected_fixture() -> Dictionary:
 func _rotate_selection() -> void:
 	if sim.phase == "NIGHT" and world.placing_wall:
 		world.rotate_wall_brush()
-		_notice("墙体方向已调整 · 松开左键铺设")
+		_notice(tr("墙体方向已调整 · 松开左键铺设"))
 		return
 	var fixture = _selected_fixture()
 	if fixture.get("type") == "decoration" and world.editing:
 		var current = Grid.rotation(fixture) if world.decor_preview_turns < 0 else world.decor_preview_turns
 		world.decor_preview_turns = (current + 1) % 4
-		_notice("装饰朝向已调整")
+		_notice(tr("装饰朝向已调整"))
 	elif Grid.can_rotate(fixture):
-		_command(sim.rotate_facility(fixture.id), "设施朝向已调整。")
+		_command(sim.rotate_facility(fixture.id), tr("设施朝向已调整。"))
 
 func _split_selection() -> void:
 	var fixture = _selected_fixture()
 	if not Grid.can_split(fixture): return
 	var result = sim.split_facility(fixture.id)
-	var message = "已拆为两张%s。" % Grid.table_label(result.size) if result.ok else ""
+	var message = tr("已拆为两张%s。") % tr(Grid.table_label(result.size)) if result.ok else ""
 	if _command(result, message) and not world.editing: _inspect("facility", fixture.id)
 
 func _store_selection() -> void:
 	var fixture = _selected_fixture()
 	if not Grid.can_store(fixture): return
-	var message = "隔墙已收起。" if fixture.type == "wall" else "设施已收起，可从建造目录重新放置。"
+	var message = tr("隔墙已收起。") if fixture.type == "wall" else tr("设施已收起，可从建造目录重新放置。")
 	if _command(sim.store_facility(fixture.id), message):
 		world.cancel_placement()
 		_clear_inspector()
@@ -871,11 +963,11 @@ func _select_pending(id: String) -> void:
 	ui.info_panel.hide()
 	ui.slot_panel.hide()
 	_sync_build_tools()
-	var hint = " · %s 旋转" % keys.text("rotate") if Grid.can_rotate(facility) else ""
+	var hint = tr(" · %s 旋转") % keys.text("rotate") if Grid.can_rotate(facility) else ""
 	if facility.type == "trophy":
-		_notice("在展廊内亮起的格子放置 " + str(facility.name))
+		_notice(tr("在展廊内亮起的格子放置 ") + Style.facility_name(str(facility.name)))
 	else:
-		_notice("放置 %s · 点击空格%s" % [facility.name, hint])
+		_notice(tr("放置 %s · 点击空格%s") % [Style.facility_name(str(facility.name)), hint])
 
 func _start_wall_placement() -> void:
 	if sim.phase != "NIGHT": return
@@ -885,10 +977,10 @@ func _start_wall_placement() -> void:
 	ui.slot_panel.hide()
 	world.placing_wall = true
 	_sync_build_tools()
-	_notice("按住左键拖铺 · %s 转向 · Esc 退出" % keys.text("rotate"))
+	_notice(tr("按住左键拖铺 · %s 转向 · Esc 退出") % keys.text("rotate"))
 
 func _place_wall(cells: Array, turns: int) -> void:
-	_command(sim.place_wall_row(cells, turns), "已铺设 %d 格隔墙 · Esc 退出" % cells.size())
+	_command(sim.place_wall_row(cells, turns), tr("已铺设 %d 格隔墙 · Esc 退出") % cells.size())
 
 func _show_plot_confirmation(id: String) -> void:
 	if sim.phase != "NIGHT": return
@@ -902,27 +994,27 @@ func _show_plot_confirmation(id: String) -> void:
 	var conditions = HBoxContainer.new()
 	conditions.add_theme_constant_override("separation", 20)
 	box.add_child(conditions)
-	Style.readout(conditions, "clock", "第 %d 天开放" % int(plot.unlock_day), "开放日", Style.MUTED)
-	Style.readout(conditions, "star", str(int(plot.star_cost)), "费用 %d 闪星 · 持有 %d" % [int(plot.star_cost), sim.stars])
+	Style.readout(conditions, "clock", tr("第 %d 天开放") % int(plot.unlock_day), tr("开放日"), Style.MUTED)
+	Style.readout(conditions, "star", str(int(plot.star_cost)), tr("费用 %d 闪星 · 持有 %d") % [int(plot.star_cost), sim.stars])
 	var gifts = HBoxContainer.new()
 	gifts.add_theme_constant_override("separation", 16)
 	box.add_child(gifts)
 	if int(plot.grant_chefs) > 0:
-		Style.readout(gifts, "chef", "+%d" % int(plot.grant_chefs), "赠送厨师", Style.GREEN)
+		Style.readout(gifts, "chef", "+%d" % int(plot.grant_chefs), tr("赠送厨师"), Style.GREEN)
 	var counts := {}
 	for fixture in plot.fixtures:
 		if fixture.type == "trophy":
-			Style.readout(gifts, "trophy", str(fixture.name), "赠送奖杯", Style.GREEN)
+			Style.readout(gifts, "trophy", str(fixture.name), tr("赠送奖杯"), Style.GREEN)
 		elif fixture.type in ["slot", "trophy_shop", "decor_shop"]:
-			Style.readout(gifts, "coins", str(fixture.name), "解锁商店", Style.GREEN)
+			Style.readout(gifts, "coins", str(fixture.name), tr("解锁商店"), Style.GREEN)
 		else:
 			counts[fixture.type] = int(counts.get(fixture.type, 0)) + 1
 	for type in counts:
-		Style.readout(gifts, str(type), "+%d" % int(counts[type]), "赠送灶台" if type == "stove" else "赠送餐桌", Style.GREEN)
+		Style.readout(gifts, str(type), "+%d" % int(counts[type]), tr("赠送灶台") if type == "stove" else tr("赠送餐桌"), Style.GREEN)
 	if not status.ok and not waiting_for_date:
 		box.add_child(Style.text(str(status.error), 15, Style.MUTED, true))
 	guide.plot_note(box, id)
-	var confirm = Style.button("确认解锁", true)
+	var confirm = Style.button(tr("确认解锁"), true)
 	confirm.name = "ConfirmLandUnlock"
 	confirm.disabled = not status.ok
 	confirm.pressed.connect(_unlock_land.bind(id))
@@ -948,8 +1040,8 @@ func _sync_major_notice() -> void:
 	ui.major_event.scale = Vector2.ONE
 	ui.major_event.visible = not major_notice.is_empty()
 	if major_notice.is_empty(): return
-	ui.major_event.text = "！重大事件\n" + str(major_notice.name)
-	ui.major_event.tooltip_text = "查看公告与生效规则"
+	ui.major_event.text = tr("！重大事件\n") + tr(str(major_notice.name))
+	ui.major_event.tooltip_text = tr("查看公告与生效规则")
 	if fresh:
 		major_notice_pulse = ui.major_event.create_tween().set_loops().set_trans(Tween.TRANS_SINE)
 		major_notice_pulse.tween_property(ui.major_event, "scale", Vector2.ONE * 1.06, .43)
@@ -970,8 +1062,8 @@ func _show_major_event() -> void:
 		sim.major_event_views.append(event.id)
 		_save()
 	guide.event_opened()
-	var box = _new_modal("major_event", str(event.name), 916)
-	var notice = MajorEventPanel.new()
+	var box = _new_modal("major_event", tr(str(event.name)), 680)
+	var notice = EVENT_PANEL.instantiate()
 	box.add_child(notice)
 	notice.populate(event, sim.event_challenge(event), event.id in sim.major_event_claims, sim.guest_defs.get(event.get("special_guest", ""), {}))
 	notice.confirmed.connect(_confirm_major_event.bind(str(event.id)))
@@ -979,11 +1071,12 @@ func _show_major_event() -> void:
 func _confirm_major_event(id: String) -> void:
 	var result = sim.confirm_major_event(id)
 	var grant = result.get("grant", {})
-	var message = "已查看重大事件" if grant.is_empty() else "收到 " + MajorEventPanel.reward_text(grant)
+	var message = tr("已查看重大事件") if grant.is_empty() else tr("收到 ") + MajorEventPanel.reward_text(grant)
 	if _command(result, message): _close_modal(true, true)
 
 func _unlock_land(id: String) -> void:
-	if _command(sim.unlock_land_plot(id), "地块已解锁"):
+	if _command(sim.unlock_land_plot(id), tr("地块已解锁")):
+		world.play_construction(id)
 		_close_modal(true, true)
 		match id:
 			"purchase_annex": guide.show_new_shop("slot")
@@ -992,18 +1085,18 @@ func _unlock_land(id: String) -> void:
 
 func _show_cashier_front() -> void:
 	ui.info_panel.hide()
-	var box = _new_modal("cashier_front","收银台",550)
-	box.add_child(Style.text("升级同时花费声望与金币。",16,Style.MUTED,true))
-	var upgrades = Style.button("招聘与改造", true)
+	var box = _new_modal("cashier_front",tr("收银台"),550)
+	box.add_child(Style.text(tr("升级同时花费声望与金币。"),16,Style.MUTED,true))
+	var upgrades = Style.button(tr("招聘与改造"), true)
 	upgrades.pressed.connect(_show_cashier_page)
 	box.add_child(upgrades)
 
 func _upgrade(key: String) -> void:
 	var result = sim.upgrade(key)
 	var id = str(result.get("facility_id", ""))
-	var message = "已完成。"
+	var message = tr("已完成。")
 	if result.ok and key == "tables":
-		message = "新餐桌已摆好。" if Grid.placed(Grid.find(sim.layout, id)) else "没有合适空位，新餐桌已放入建造背包。"
+		message = tr("新餐桌已摆好。") if Grid.placed(Grid.find(sim.layout, id)) else tr("没有合适空位，新餐桌已放入建造背包。")
 	if _command(result, message):
 		if key == "chefs" and not id.is_empty():
 			_close_modal()
@@ -1014,19 +1107,19 @@ func _upgrade(key: String) -> void:
 
 func _rent_budget_text() -> String:
 	var rent = sim.next_rent()
-	if rent.is_empty(): return "本章房租已全部缴清"
+	if rent.is_empty(): return tr("本章房租已全部缴清")
 	var missing = maxi(0, int(rent.amount) - sim.gold)
-	var balance = "当前余额距房租还差 %d$" % missing if missing > 0 else "当前余额可覆盖房租"
-	return "第 %d 天房租 %d$ · %s" % [int(rent.day), int(rent.amount), balance]
+	var balance = tr("当前余额距房租还差 %d$") % missing if missing > 0 else tr("当前余额可覆盖房租")
+	return tr("第 %d 天房租 %d$ · %s") % [int(rent.day), int(rent.amount), balance]
 
 func _show_cashier_page() -> void:
 	ui.info_panel.hide()
 	ui.slot_panel.hide()
-	var box = _new_modal("cashier", "招聘与改造", 590)
-	box.add_child(Style.text("可用声望 %d  ·  金币 %d$  ·  本晚已花 %d$" % [sim.reputation, sim.gold, sim.night_spend], 17, Style.GREEN))
+	var box = _new_modal("cashier", tr("招聘与改造"), 590)
+	box.add_child(Style.text(tr("可用声望 %d  ·  金币 %d$  ·  本晚已花 %d$") % [sim.reputation, sim.gold, sim.night_spend], 17, Style.GREEN))
 	box.add_child(Style.text(_rent_budget_text(), 14, Style.MUTED, true))
-	var entries = {"waiters": ["服务员", "crowd"], "chefs": ["厨师与灶台", "chef"], "tables": ["桌位", "table"],
-		"menu_slots": ["菜单上架槽", "recipe"], "queue_capacity": ["排队容量", "door"], "relic_slots": ["奖杯展示位", "trophy"]}
+	var entries = {"waiters": [tr("服务员"), "crowd"], "chefs": [tr("厨师与灶台"), "chef"], "tables": [tr("桌位"), "table"],
+		"menu_slots": [tr("菜单上架槽"), "recipe"], "queue_capacity": [tr("排队容量"), "door"], "relic_slots": [tr("奖杯展示位"), "trophy"]}
 	var progression = sim.upgrade_progression()
 	for key in progression.unlocked:
 		var rule = sim.chapter.upgrade_rules[key]
@@ -1036,13 +1129,13 @@ func _show_cashier_page() -> void:
 		var gate = sim.upgrade_gate(key)
 		var status = sim.upgrade_status(key)
 		var card = Style.card()
-		card.add_theme_stylebox_override("panel", Style.box(Color("2d464a"), Color("59817a"), 9, 11))
+		card.add_theme_stylebox_override("panel", Style.inset(10,9))
 		box.add_child(card)
 		var header = HBoxContainer.new()
 		card.add_child(header)
 		var seal = Style.card()
 		seal.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		seal.add_theme_stylebox_override("panel", Style.box(Style.BG, Color("658683"), 8, 9))
+		seal.add_theme_stylebox_override("panel", Style.inset(4,3))
 		seal.add_child(Icon.make(entries[key][1], Style.GOLD, 30))
 		header.add_child(seal)
 		var details = VBoxContainer.new()
@@ -1062,33 +1155,34 @@ func _show_cashier_page() -> void:
 		capacity.value = count
 		details.add_child(capacity)
 		var increase = mini(int(rule.get("step", 1)), cap - count)
-		var price = "+%d  ·  %d 声望 + %d$" % [increase, sim.upgrade_cost(key), sim.upgrade_gold_cost(key)]
-		var caption = "已满" if capped else (str(gate.error) if not gate.ok else price)
+		var price = tr("+%d  ·  %d 声望 + %d$") % [increase, sim.upgrade_cost(key), sim.upgrade_gold_cost(key)]
+		var caption = tr("已满") if capped else (str(gate.error) if not gate.ok else price)
 		var button = Style.button(caption, status.ok)
 		button.disabled = not status.ok
-		button.tooltip_text = "立即招聘" if status.ok and key in ["chefs", "waiters"] else ("立即改造" if status.ok else str(status.error))
+		button.tooltip_text = tr("立即招聘") if status.ok and key in ["chefs", "waiters"] else (tr("立即改造") if status.ok else str(status.error))
 		button.pressed.connect(_upgrade.bind(key))
 		details.add_child(button)
 		if not status.ok and sim.phase == "NIGHT" and gate.ok and not capped:
 			details.add_child(Style.text(str(status.error), 13, Style.RED, true))
 	if not progression.next_key.is_empty():
-		var feature = "厨师" if progression.next_key == "chefs" else str(entries[progression.next_key][0])
+		var feature = tr("厨师") if progression.next_key == "chefs" else str(entries[progression.next_key][0])
 		var preview = HBoxContainer.new()
 		box.add_child(preview)
 		preview.add_child(Icon.make("lock", Style.MUTED, 18))
-		preview.add_child(Style.text("%s · 第 %d 天解锁" % [feature, progression.next_day], 15, Style.MUTED))
+		preview.add_child(Style.text(tr("%s · 第 %d 天解锁") % [feature, progression.next_day], 15, Style.MUTED))
 	var waiting = sim.stored_facilities().filter(func(f): return f.type in ["table", "stove"])
 	if sim.phase == "NIGHT" and not waiting.is_empty():
-		box.add_child(Style.text("待放置设施",16,Style.GOLD))
+		box.add_child(Style.text(tr("待放置设施"),16,Style.GOLD))
 		var row = HFlowContainer.new()
 		box.add_child(row)
 		for f in waiting:
-			var button = Style.button("放置 " + f.name)
+			var button = Style.button(tr("放置 ") + Style.facility_name(str(f.name)))
 			button.pressed.connect(_pick_pending.bind(str(f.id)))
 			row.add_child(button)
 
 func _show_build_page() -> void:
 	if sim.phase != "NIGHT": return
+	world.set_roof_view(false)
 	if ui.build_catalog.visible:
 		_close_build_page()
 		return
@@ -1131,13 +1225,13 @@ func _sync_build_tools() -> void:
 	ui.cancel_placement.visible = night and placing
 	if ui.build_catalog.visible:
 		var current = ""
-		var status = "选一件物件，再到地图上放置"
+		var status = tr("选一件物件，再到地图上放置")
 		if world.placing_wall:
 			current = "@wall"
-			status = "按住左键拖铺隔墙"
+			status = tr("按住左键拖铺隔墙")
 		elif world.editing:
 			current = world.selected_id
-			status = "点击空格放置 " + str(fixture.get("name", ""))
+			status = tr("点击空格放置 ") + str(fixture.get("name", ""))
 		ui.build_catalog.refresh(sim, current, status)
 
 func _cancel_placement() -> void:
@@ -1161,82 +1255,82 @@ func _trophy_glyph(id: String) -> String:
 func _show_trophy_shop() -> void:
 	if sim.phase != "NIGHT": return
 	if not sim.trophy_shop_unlocked():
-		_notice("解锁奖杯展廊后，奖杯商店才会开门。")
+		_notice(tr("解锁奖杯展廊后，奖杯商店才会开门。"))
 		return
 	ui.slot_panel.hide()
 	ui.info_panel.hide()
 	guide.trophy_shop_opened()
-	var box = _new_modal("trophy_shop","奖杯商店 · 永久遗物",720)
-	box.add_child(Style.text("★ %d 闪星  ·  每晚自动换货  ·  同款奖杯只可拥有一件" % sim.stars,16,Style.GOLD))
+	var box = _new_modal("trophy_shop",tr("奖杯商店 · 永久遗物"),720)
+	box.add_child(Style.text(tr("★ %d 闪星  ·  每晚自动换货  ·  同款奖杯只可拥有一件") % sim.stars,16,Style.GOLD))
 	for index in range(sim.trophy_shop.size()):
 		var offer = sim.trophy_shop[index]
 		var card = Style.card()
-		card.add_theme_stylebox_override("panel",Style.box(Color("2c4051"),Color("66869b"),8,9))
+		card.add_theme_stylebox_override("panel",Style.inset(9,8))
 		box.add_child(card)
 		var row = HBoxContainer.new()
 		card.add_child(row)
-		var description = "已售罄"
+		var description = tr("已售罄")
 		if not str(offer.id).is_empty():
 			var relic = sim.relic_defs[str(offer.id)]
-			description = "%s · %d★\n%s" % [relic.name, int(relic.star_cost), relic.description]
+			description = "%s · %d★\n%s" % [tr(str(relic.name)), int(relic.star_cost), tr(str(relic.description))]
 			var relic_badge = Style.text(_trophy_glyph(str(offer.id)),28,Color(str(relic.color)))
 			relic_badge.custom_minimum_size.x = 42
 			row.add_child(relic_badge)
 		var info = Style.text(description,15,Style.INK,true)
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(info)
-		var buy = Style.button("已购买" if offer.bought else "★ %d" % int(offer.price))
+		var buy = Style.button(tr("已购买") if offer.bought else "★ %d" % int(offer.price))
 		buy.disabled = str(offer.id).is_empty() or bool(offer.bought) or sim.stars < int(offer.price)
-		buy.tooltip_text = "已购入" if offer.bought else ("已售罄" if str(offer.id).is_empty() else ("还差 %d 闪星" % (int(offer.price) - sim.stars) if buy.disabled else "购买奖杯"))
+		buy.tooltip_text = tr("已购入") if offer.bought else (tr("已售罄") if str(offer.id).is_empty() else (tr("还差 %d 闪星") % (int(offer.price) - sim.stars) if buy.disabled else tr("购买奖杯")))
 		buy.pressed.connect(_buy_trophy.bind(index))
 		row.add_child(buy)
-	var refresh = Style.button("换一批奖杯 · 1 闪星")
+	var refresh = Style.button(tr("换一批奖杯 · 1 闪星"))
 	refresh.disabled = sim.stars < 1 or sim._available_trophy_count() <= 3
-	refresh.tooltip_text = "暂无其他奖杯可换" if sim._available_trophy_count() <= 3 else ("需要 1 闪星" if sim.stars < 1 else "换一批奖杯")
+	refresh.tooltip_text = tr("暂无其他奖杯可换") if sim._available_trophy_count() <= 3 else (tr("需要 1 闪星") if sim.stars < 1 else tr("换一批奖杯"))
 	refresh.pressed.connect(_refresh_trophy_shop)
 	box.add_child(refresh)
-	var bag = Style.button("奖杯背包（%d 件 / 展示 %d）" % [sim.owned_relics.size(),int(sim.attributes.relic_slots)])
+	var bag = Style.button(tr("奖杯背包（%d 件 / 展示 %d）") % [sim.owned_relics.size(),int(sim.attributes.relic_slots)])
 	bag.pressed.connect(_show_trophy_bag)
 	box.add_child(bag)
 
 func _buy_trophy(index: int) -> void:
-	if _command(sim.buy_trophy(index),"奖杯已加入背包；放在展示区才会生效。"):
+	if _command(sim.buy_trophy(index),tr("奖杯已加入背包；放在展示区才会生效。")):
 		_show_trophy_shop()
 
 func _refresh_trophy_shop() -> void:
-	if _command(sim.refresh_trophies(),"奖杯列表已刷新。"):
+	if _command(sim.refresh_trophies(),tr("奖杯列表已刷新。")):
 		_show_trophy_shop()
 
 func _show_trophy_bag() -> void:
 	if not sim.trophy_shop_unlocked():
-		_notice("解锁奖杯展廊后开放奖杯背包。")
+		_notice(tr("解锁奖杯展廊后开放奖杯背包。"))
 		return
-	var box = _new_modal("trophy_bag","奖杯背包",650)
-	box.add_child(Style.text("已展示 %d / %d 件 · 只能放在展廊的展示区" % [Grid.facilities(sim.layout,"trophy").size(),int(sim.attributes.relic_slots)],15,Style.GOLD))
-	if sim.owned_relics.is_empty(): box.add_child(Style.text("尚未拥有奖杯。解锁奖杯展廊后，可在旁边的奖杯商店购买。",15,Style.MUTED))
+	var box = _new_modal("trophy_bag",tr("奖杯背包"),650)
+	box.add_child(Style.text(tr("已展示 %d / %d 件 · 只能放在展廊的展示区") % [Grid.facilities(sim.layout,"trophy").size(),int(sim.attributes.relic_slots)],15,Style.GOLD))
+	if sim.owned_relics.is_empty(): box.add_child(Style.text(tr("尚未拥有奖杯。解锁奖杯展廊后，可在旁边的奖杯商店购买。"),15,Style.MUTED))
 	for id in sim.owned_relics:
 		var relic = sim.relic_defs[id]
 		var entity = Grid.find(sim.layout,"trophy_"+str(id))
 		var row = HBoxContainer.new()
 		box.add_child(row)
-		var info = Style.text("%s %s · %d★ · %s" % [_trophy_glyph(str(id)), relic.name, int(relic.star_cost), relic.description],15,Color(str(relic.color)),true)
+		var info = Style.text("%s %s · %d★ · %s" % [_trophy_glyph(str(id)), tr(str(relic.name)), int(relic.star_cost), tr(str(relic.description))],15,Color(str(relic.color)),true)
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(info)
-		var action = _icon_button("move", "移动奖杯" if Grid.placed(entity) else "摆放奖杯")
+		var action = _icon_button("move", tr("移动奖杯") if Grid.placed(entity) else tr("摆放奖杯"))
 		action.custom_minimum_size.x = 42
 		action.disabled = sim.phase != "NIGHT" or (not Grid.placed(entity) and Grid.facilities(sim.layout,"trophy").size()>=int(sim.attributes.relic_slots))
-		action.tooltip_text = "夜晚可布置" if sim.phase != "NIGHT" else ("展示位已满，请先收起一件" if action.disabled else action.tooltip_text)
+		action.tooltip_text = tr("夜晚可布置") if sim.phase != "NIGHT" else (tr("展示位已满，请先收起一件") if action.disabled else action.tooltip_text)
 		action.pressed.connect(_pick_pending.bind("trophy_"+str(id)))
 		row.add_child(action)
 		if Grid.placed(entity):
-			var store = _icon_button("store", "收起奖杯")
+			var store = _icon_button("store", tr("收起奖杯"))
 			store.custom_minimum_size.x = 42
 			store.disabled = sim.phase != "NIGHT"
 			store.pressed.connect(_store_trophy.bind("trophy_"+str(id)))
 			row.add_child(store)
 
 func _store_trophy(id: String) -> void:
-	if _command(sim.store_facility(id),"奖杯已收起，常驻效果停止生效。"):
+	if _command(sim.store_facility(id),tr("奖杯已收起，常驻效果停止生效。")):
 		_show_trophy_bag()
 
 func _show_decoration_shop() -> void:
@@ -1244,20 +1338,20 @@ func _show_decoration_shop() -> void:
 	ui.info_panel.hide()
 	ui.slot_panel.hide()
 	guide.shop_opened("decor_shop")
-	var box = _new_modal("decor_shop", "装饰商店", 908)
+	var box = _new_modal("decor_shop", tr("装饰商店"), 908)
 	var summary = HBoxContainer.new()
 	box.add_child(summary)
-	Style.readout(summary, "coins", "%d$" % sim.gold, "持有金币")
-	summary.add_child(Style.text("同类效果覆盖时取最高值", 14, Style.MUTED))
+	Style.readout(summary, "coins", "%d$" % sim.gold, tr("持有金币"))
+	summary.add_child(Style.text(tr("同类效果覆盖时取最高值"), 14, Style.MUTED))
 	var offers = GridContainer.new()
-	offers.columns = 2
+	offers.columns = 1
 	offers.add_theme_constant_override("h_separation", 8)
 	offers.add_theme_constant_override("v_separation", 8)
 	box.add_child(offers)
 	for definition in sim.decoration_defs.values():
 		var card = Style.card()
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.add_theme_stylebox_override("panel", Style.box(Style.BG, Color("4c6567"), 7, 9))
+		card.add_theme_stylebox_override("panel", Style.inset(9,7))
 		offers.add_child(card)
 		var row = HBoxContainer.new()
 		card.add_child(row)
@@ -1272,19 +1366,19 @@ func _show_decoration_shop() -> void:
 		row.add_child(details)
 		details.add_child(Style.text(definition.name, 16))
 		details.add_child(Style.text(Decor.description(definition), 13, Style.MUTED, true))
-		details.add_child(Style.text("%d×%d 格" % [definition.extent[0], definition.extent[1]], 12, Style.MUTED))
+		details.add_child(Style.text(tr("%d×%d 格") % [definition.extent[0], definition.extent[1]], 12, Style.MUTED))
 		var buy = Style.button("%d$" % int(definition.price))
 		buy.name = "Buy_" + str(definition.id)
 		buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		buy.disabled = sim.gold < int(definition.price)
 		buy.pressed.connect(_buy_decoration.bind(str(definition.id)))
 		row.add_child(buy)
-	var bag = Style.button("打开建造背包")
+	var bag = Style.button(tr("打开建造背包"))
 	bag.pressed.connect(_open_decoration_inventory)
 	box.add_child(bag)
 
 func _buy_decoration(id: String) -> void:
-	if _command(sim.buy_decoration(id), "装饰已放入建造背包。"):
+	if _command(sim.buy_decoration(id), tr("装饰已放入建造背包。")):
 		_show_decoration_shop()
 
 func _open_decoration_inventory() -> void:
@@ -1295,58 +1389,25 @@ func _open_decoration_inventory() -> void:
 func _show_purchase_page(index: int = 0) -> void:
 	if sim.phase != "NIGHT": return
 	if not sim.purchase_unlocked():
-		_notice("解锁采购小厅后可采购", true)
+		_notice(tr("解锁采购小厅后可采购"), true)
 		return
 	guide.shop_opened("slot")
 	selected_offer = clampi(index,0,2)
 	ui.slot_panel.hide()
-	var box = _new_modal("purchase","采购处 · 今晚商品",1090)
+	var box = _new_modal("purchase",tr("采购处 · 今晚商品"),720)
 	var balance = HBoxContainer.new()
 	box.add_child(balance)
-	Style.readout(balance, "coins", "可用 %d$" % sim.gold, "可用于采购的金币")
-	balance.add_child(Style.text("每日收摊后换货", 14, Style.MUTED))
+	Style.readout(balance, "coins", tr("可用 %d$") % sim.gold, tr("可用于采购的金币"))
+	balance.add_child(Style.text(tr("每日收摊后换货"), 14, Style.MUTED))
 	box.add_child(Style.text(_rent_budget_text(), 14, Style.MUTED, true))
-	var content = HBoxContainer.new()
-	content.add_theme_constant_override("separation",18)
-	box.add_child(content)
-	var portrait = Style.card()
-	portrait.custom_minimum_size = Vector2(265,445)
-	portrait.add_theme_stylebox_override("panel",Style.box(Color("415e4b"),Color("769877"),10,14))
-	content.add_child(portrait)
-	var hero_column = VBoxContainer.new()
-	portrait.add_child(hero_column)
-	hero_column.add_child(Style.text("本店厨师",16,Style.GOLD))
-	var staging = Control.new()
-	staging.custom_minimum_size.y = 294
-	hero_column.add_child(staging)
-	var chef = Actor.new()
-	staging.add_child(chef)
-	chef.position = Vector2(122,205)
-	chef.z_index = 2 # Child sprite is z=-1; keep the portrait above the card background.
-	chef.set_visual("chef")
-	chef.set_display_zoom(5.2)
-	chef.present("idle")
-	var lines = ["今天的菜要热乎乎地出锅。","看看晚上的新货吧！","多留点金币交房租哦。","好菜也要有人及时送到桌上。"]
-	var speech = Style.card()
-	speech.add_theme_stylebox_override("panel",Style.box(Color("f1e8d2"),Color("d8b885"),9,10))
-	hero_column.add_child(speech)
-	speech.add_child(Style.text(lines[randi_range(0,lines.size()-1)],14,Color("39483b"),true))
-	var products = VBoxContainer.new()
-	products.custom_minimum_size.x = 565
-	products.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_child(products)
-	var scroll = ScrollContainer.new()
-	scroll.custom_minimum_size.y = clampf(get_viewport_rect().size.y-340,330,490)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	products.add_child(scroll)
 	var list = VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list)
+	list.add_theme_constant_override("separation", 12)
+	box.add_child(list)
 	var mods = sim.effective_modifiers()
 	for slot in range(sim.shop.size()):
 		var offer = sim.shop[slot]
 		var card = Style.card()
-		card.add_theme_stylebox_override("panel",Style.box(Color("304b4d") if slot==selected_offer else Style.BG,Style.GOLD if slot==selected_offer else Color("516969"),9,12))
+		card.add_theme_stylebox_override("panel",Style.wash(.17,10,8) if slot==selected_offer else Style.inset(10,8))
 		list.add_child(card)
 		var product_row = HBoxContainer.new()
 		card.add_child(product_row)
@@ -1355,24 +1416,24 @@ func _show_purchase_page(index: int = 0) -> void:
 		column.add_theme_constant_override("separation",5)
 		product_row.add_child(column)
 		if offer.type in ["empty","empty_buff"]:
-			column.add_child(Style.text("%02d  ·  %s" % [slot+1,"本章菜谱已收集完" if slot==0 else "暂无可购买增益"],16,Style.MUTED))
+			column.add_child(Style.text(tr("本章菜谱已收集完") if slot==0 else tr("暂无可购买增益"),16,Style.MUTED,true))
 			continue
 		if offer.type == "recipe":
 			var recipe = sim.recipes[offer.id]
 			var quality = sim.preview_quality(offer.id)
 			var sample_price = sim.meal_price(str(offer.id), quality, mods)
-			column.add_child(Style.text("菜谱 · " + str(recipe.name),19,Style.INK))
+			column.add_child(Style.text(tr("菜谱 · ") + tr(str(recipe.name)),19,Style.INK))
 			column.add_child(Style.text(recipe.description,13,Style.MUTED,true))
-			column.add_child(Style.text("基础价值 %d$   ·   当前品质 %d%%   ·   普通客估价 %d$\n制作 %.1f 秒/锅   ·   每锅 %d 份" % [recipe.base_value,int(quality*100),sample_price,float(recipe.cook_seconds)/(1.0+float(mods.cook)),recipe.batch_yield],14,Style.GOLD,true))
+			column.add_child(Style.text(tr("基础价值 %d$   ·   当前品质 %d%%   ·   普通客估价 %d$\n制作 %.1f 秒/锅   ·   每锅 %d 份") % [recipe.base_value,int(quality*100),sample_price,float(recipe.cook_seconds)/(1.0+float(mods.cook)),recipe.batch_yield],14,Style.GOLD,true))
 		else:
 			var buff = sim.buff_defs[offer.id]
 			var active = sim.buff_states.get(offer.id,{"stack_count":0,"remaining_days":0})
-			column.add_child(Style.text("%s · %d★" % [buff.name, int(buff.level)],19,Style.INK))
+			column.add_child(Style.text("%s · %d★" % [tr(str(buff.name)), int(buff.level)],19,Style.INK))
 			column.add_child(Style.text(buff.description,14,Style.MUTED,true))
-			column.add_child(Style.text("生效 %d 个营业日   ·   购买后 %d / %d 层   ·   累计剩余 %d 天" % [buff.duration_days,int(active.stack_count)+1,buff.max_stacks,int(active.remaining_days)+int(buff.duration_days)],13,Style.GOLD,true))
-		var buy = Style.button("已买入" if offer.bought else "购买  %d$" % offer.price,true)
+			column.add_child(Style.text(tr("生效 %d 个营业日   ·   购买后 %d / %d 层   ·   累计剩余 %d 天") % [buff.duration_days,int(active.stack_count)+1,buff.max_stacks,int(active.remaining_days)+int(buff.duration_days)],13,Style.GOLD,true))
+		var buy = Style.button(tr("已买入") if offer.bought else tr("购买  %d$") % offer.price,true)
 		buy.disabled = offer.bought or sim.gold < int(offer.price)
-		buy.tooltip_text = "本晚已购买" if offer.bought else ("还差 %d 金币" % (int(offer.price)-sim.gold) if sim.gold < int(offer.price) else "购买并确认")
+		buy.tooltip_text = tr("本晚已购买") if offer.bought else (tr("还差 %d 金币") % (int(offer.price)-sim.gold) if sim.gold < int(offer.price) else tr("购买并确认"))
 		buy.pressed.connect(_buy.bind(slot))
 		var action = VBoxContainer.new()
 		action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1380,60 +1441,60 @@ func _show_purchase_page(index: int = 0) -> void:
 		action.add_child(buy)
 		if buy.disabled and not offer.bought:
 			action.add_child(Style.text(buy.tooltip_text, 13, Style.RED))
-	var menu = Style.button("管理已拥有菜谱")
+	var menu = Style.button(tr("管理已拥有菜谱"))
 	menu.pressed.connect(_show_menu_page)
-	products.add_child(menu)
+	box.add_child(menu)
 
 func _buy(index: int) -> void:
 	var offer = sim.shop[index]
 	if offer.type == "buff":
-		if _command(sim.buy_offer(index),"增益已购买，下一场营业生效。"):
+		if _command(sim.buy_offer(index),tr("增益已购买，下一场营业生效。")):
 			_show_purchase_page(index)
 		return
 	if offer.type != "recipe": return
 	var recipe = sim.recipes[offer.id]
-	var box = _new_modal("buy","确认解锁 · " + recipe.name,620)
-	box.add_child(Style.text("%d 金币  ·  %d 基础价值  ·  %.0f 秒/锅  ·  每锅%d份\n旧菜会留在收藏，取消不会扣款。" % [offer.price,recipe.base_value,recipe.cook_seconds,recipe.batch_yield],15,Style.MUTED,true))
+	var box = _new_modal("buy",tr("确认解锁 · ") + tr(str(recipe.name)),620)
+	box.add_child(Style.text(tr("%d 金币  ·  %d 基础价值  ·  %.0f 秒/锅  ·  每锅%d份\n旧菜会留在收藏，取消不会扣款。") % [offer.price,recipe.base_value,recipe.cook_seconds,recipe.batch_yield],15,Style.MUTED,true))
 	if sim.menu.size()>=int(sim.attributes.menu_slots):
-		guide.inline_note(box, "menu_full", "菜单已满。选一道在售菜替换，旧菜谱会留在收藏，之后可从「菜谱」换回。")
-		box.add_child(Style.text("菜单已满，选一道替换：",16,Style.GOLD))
+		guide.inline_note(box, "menu_full", tr("菜单已满。选一道在售菜替换，旧菜谱会留在收藏，之后可从「菜谱」换回。"))
+		box.add_child(Style.text(tr("菜单已满，选一道替换："),16,Style.GOLD))
 		for i in range(sim.menu.size()):
-			var replace = Style.button("替换 " + sim.recipes[sim.menu[i]].name,true)
+			var replace = Style.button(tr("替换 ") + tr(str(sim.recipes[sim.menu[i]].name)),true)
 			replace.pressed.connect(_commit_purchase.bind(index,i))
 			box.add_child(replace)
 	else:
-		var confirm = Style.button("确认购买并上架",true)
+		var confirm = Style.button(tr("确认购买并上架"),true)
 		confirm.pressed.connect(_commit_purchase.bind(index,-1))
 		box.add_child(confirm)
-	var back = Style.button("返回采购页")
+	var back = Style.button(tr("返回采购页"))
 	back.pressed.connect(_show_purchase_page.bind(index))
 	box.add_child(back)
 
 func _commit_purchase(index: int, slot: int) -> void:
-	if _command(sim.buy_offer(index,slot),"新菜已上架，旧菜仍可在菜单中换回。"):
+	if _command(sim.buy_offer(index,slot),tr("新菜已上架，旧菜仍可在菜单中换回。")):
 		_show_purchase_page(index)
 
 func _show_menu_page() -> void:
 	if sim.phase != "NIGHT": return
-	var box = _new_modal("menu","当前菜单",780)
-	box.add_child(Style.text("已上架 %d / %d 道菜。点击槽位换菜，新菜谱可在采购处购买。" % [sim.menu.size(),sim.attributes.menu_slots],15,Style.MUTED,true))
+	var box = _new_modal("menu",tr("当前菜单"),780)
+	box.add_child(Style.text(tr("已上架 %d / %d 道菜。点击槽位换菜，新菜谱可在采购处购买。") % [sim.menu.size(),sim.attributes.menu_slots],15,Style.MUTED,true))
 	for slot in range(int(sim.attributes.menu_slots)):
 		var row = HBoxContainer.new()
 		box.add_child(row)
-		var name = sim.recipes[sim.menu[slot]].name if slot<sim.menu.size() else "空槽"
-		var button = Style.button("%d  ·  %s    →  选择" % [slot+1,name])
+		var name = tr(str(sim.recipes[sim.menu[slot]].name)) if slot<sim.menu.size() else tr("空槽")
+		var button = Style.button(tr("%d  ·  %s    →  选择") % [slot+1,name])
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_show_collection.bind(slot))
 		row.add_child(button)
 		if slot<sim.menu.size() and sim.menu.size()>1:
-			var remove = Style.button("下架")
+			var remove = Style.button(tr("下架"))
 			remove.pressed.connect(_remove_menu.bind(slot))
 			row.add_child(remove)
 
 func _show_collection(slot: int) -> void:
 	if sim.phase != "NIGHT": return
-	var box = _new_modal("collection","菜单槽 %d · 选择菜谱" % (slot+1),790)
-	box.add_child(Style.text("更换已解锁菜谱免费。菜单多样性会影响客人的随机选菜。",14,Style.MUTED,true))
+	var box = _new_modal("collection",tr("菜单槽 %d · 选择菜谱") % (slot+1),790)
+	box.add_child(Style.text(tr("更换已解锁菜谱免费。菜单多样性会影响客人的随机选菜。"),14,Style.MUTED,true))
 	var scroll = ScrollContainer.new()
 	scroll.custom_minimum_size.y = minf(420,get_viewport_rect().size.y-360)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -1445,87 +1506,101 @@ func _show_collection(slot: int) -> void:
 		var r = sim.recipes[id]
 		var row = HBoxContainer.new()
 		list.add_child(row)
-		var label = Style.text("%s\n%d 基础金币 · %.0f 秒 / 锅 · %d 份" % [r.name,r.base_value,r.cook_seconds,r.batch_yield],14,Style.INK,true)
+		var label = Style.text(tr("%s\n%d 基础金币 · %.0f 秒 / 锅 · %d 份") % [tr(str(r.name)),r.base_value,r.cook_seconds,r.batch_yield],14,Style.INK,true)
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(label)
-		var button = Style.button("已上架" if id in sim.menu else "换入",id not in sim.menu)
+		var button = Style.button(tr("已上架") if id in sim.menu else tr("换入"),id not in sim.menu)
 		button.disabled = id in sim.menu
 		button.pressed.connect(_commit_menu.bind(slot,id))
 		row.add_child(button)
-	var back = Style.button("返回菜单")
+	var back = Style.button(tr("返回菜单"))
 	back.pressed.connect(_show_menu_page)
 	box.add_child(back)
 
 func _commit_menu(slot: int, id: String) -> void:
-	if _command(sim.change_menu(slot,id),"菜单已更新。"):
+	if _command(sim.change_menu(slot,id),tr("菜单已更新。")):
 		_show_menu_page()
 
 func _remove_menu(slot: int) -> void:
-	if _command(sim.remove_menu(slot),"这道菜已下架，仍在收藏中。"):
+	if _command(sim.remove_menu(slot),tr("这道菜已下架，仍在收藏中。")):
 		_show_menu_page()
 
 func _show_settings() -> void:
-	var box = _new_modal("settings","设置",530)
-	box.add_child(Style.text("%s  ·  第 %d 天" % [sim.chapter.title, sim.day], 17, Style.INK))
-	box.add_child(Style.text("本章进度仅在夜晚与结算点存档", 15, Style.MUTED))
-	if sim.phase == "DAY":
-		var pause = Style.button("继续营业" if sim.paused else "暂停营业")
-		pause.pressed.connect(func(): _toggle_pause(); _show_settings())
-		box.add_child(pause)
-	var focus = Style.button("复位视野 [%s]" % keys.text("focus"))
+	var during_service = sim.phase == "DAY"
+	var box = _new_modal("settings", tr("营业已暂停") if during_service else tr("设置"), 560)
+	var menu := PAUSE_MENU.instantiate()
+	box.add_child(menu)
+	menu.get_node("%Chapter").text = tr("%s  ·  第 %d 天") % [tr(str(sim.chapter.title)), sim.day]
+	var resume := menu.get_node("%Resume") as Button
+	resume.text = tr("继续营业") if during_service else tr("返回餐厅")
+	Style.accent_button(resume)
+	resume.pressed.connect(func():
+		if during_service: sim.paused = false
+		_dismiss_modal()
+	)
+	var focus := menu.get_node("%ResetCamera") as Button
+	focus.text = tr("复位视野 [%s]") % keys.text("focus")
 	focus.pressed.connect(func(): world.focus_restaurant(); _dismiss_modal())
-	box.add_child(focus)
-	var keyboard = Style.button("按键设置")
-	keyboard.name = "OpenKeySettings"
-	keyboard.pressed.connect(_show_key_settings)
-	box.add_child(keyboard)
-	var handbook = Style.button("玩法指南")
-	handbook.pressed.connect(_show_handbook)
-	box.add_child(handbook)
-	var replay = Style.button("再听阿禾讲一遍")
-	replay.pressed.connect(func(): _close_modal(); guide.replay())
-	box.add_child(replay)
-	if guide.mode != "off":
-		var disable = Style.button("关闭阿禾引导")
-		disable.pressed.connect(func(): guide.skip(); _dismiss_modal())
-		box.add_child(disable)
-	var restart = Style.button("重新开始本章")
-	restart.pressed.connect(_confirm_restart)
-	box.add_child(restart)
-	var leave = Style.button("返回主界面")
-	leave.pressed.connect(_return_to_title)
-	box.add_child(leave)
-	var done = Style.button("返回餐厅", true)
-	done.pressed.connect(_dismiss_modal)
-	box.add_child(done)
+	var save_run := menu.get_node("%SaveRun") as Button
+	save_run.disabled = sim.phase not in ["NIGHT","REPORT"]
+	save_run.text = tr("打烊后自动存档") if save_run.disabled else tr("保存进度")
+	save_run.pressed.connect(func():
+		if _save(): save_run.text = tr("进度已保存")
+	)
+	menu.get_node("%OpenKeySettings").pressed.connect(_show_key_settings)
+	menu.get_node("%Handbook").pressed.connect(_show_handbook)
+	var music := menu.get_node("%Music") as Button
+	music.text = tr("音乐已关闭") if soundtrack.muted else tr("音乐已开启")
+	music.pressed.connect(func():
+		soundtrack.set_muted(not soundtrack.muted)
+		music.text = tr("音乐已关闭") if soundtrack.muted else tr("音乐已开启")
+	)
+	menu.get_node("%ReplayGuide").pressed.connect(func(): _close_modal(); guide.replay())
+	var disable := menu.get_node("%DisableGuide") as Button
+	disable.visible = guide.mode != "off"
+	disable.pressed.connect(func(): guide.skip(); _dismiss_modal())
+	menu.get_node("%Restart").pressed.connect(_confirm_restart)
+	menu.get_node("%TitleMenu").pressed.connect(_return_to_title)
+	if sim.phase == "NIGHT":
+		var staff_button := Style.button(tr("今日排班"))
+		menu.add_child(staff_button)
+		staff_button.pressed.connect(_show_shift_roster)
+	if not sim.reports.is_empty():
+		var history_button := Style.button(tr("历史日报"))
+		menu.add_child(history_button)
+		history_button.pressed.connect(_show_report_history)
+	resume.grab_focus()
 
 func _show_handbook() -> void:
-	var box = _new_modal("handbook", "阿禾的玩法指南", 680)
+	var box = _new_modal("handbook", tr("阿禾的玩法指南"), 680)
 	guide.populate_handbook(box)
 	var actions = HFlowContainer.new()
 	box.add_child(actions)
 	if sim.phase == "NIGHT":
-		var practice = Style.button("练习合桌", true)
+		var practice = Style.button(tr("练习合桌"), true)
 		practice.pressed.connect(func(): _close_modal(); guide.teach_tables())
 		actions.add_child(practice)
 		if not major_notice.is_empty():
-			var event = Style.button("查看重大事件")
+			var event = Style.button(tr("查看重大事件"))
 			event.pressed.connect(_show_major_event)
 			actions.add_child(event)
-	var back = Style.button("返回设置")
+	var back = Style.button(tr("返回设置"))
 	back.pressed.connect(_show_settings)
 	actions.add_child(back)
 
 func _show_key_settings() -> void:
-	var box = _new_modal("key_settings", "按键设置", 720)
-	box.add_child(Style.text("点按右侧键位，再按一个键。Esc 取消改键。", 15, Style.MUTED))
+	var box = _new_modal("key_settings", tr("按键设置"), 720)
+	box.add_child(Style.text(tr("点按右侧键位，再按一个键。Esc 取消改键。"), 15, Style.MUTED))
+	box.add_child(Style.text(tr("键盘：Shift＋方向键移动地图指针，Enter 点按或长按，Tab 返回界面。"), 15, Style.MUTED, true))
+	box.add_child(Style.text(tr("手柄：方向键切换焦点，A／✕ 确认，B／○ 返回。左摇杆移镜头，右摇杆移指针，肩键缩放。"), 15, Style.MUTED, true))
+	box.add_child(Style.text(tr("触屏：点按选择，长按拖动设施。拖动空地平移，双指移动或捏合可平移、缩放。"), 15, Style.MUTED, true))
 	var columns = HBoxContainer.new()
 	box.add_child(columns)
 	var grids = []
-	for title in ["营业与布置", "打开页面"]:
+	for title in [tr("营业与布置"), tr("打开页面")]:
 		var card = Style.card()
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.add_theme_stylebox_override("panel", Style.box(Style.BG, Color("547071"), 8, 12))
+		card.add_theme_stylebox_override("panel", Style.inset(10,7))
 		columns.add_child(card)
 		var content = VBoxContainer.new()
 		card.add_child(content)
@@ -1538,7 +1613,7 @@ func _show_key_settings() -> void:
 		grids.append(grid)
 	for action in KeyBindings.ACTIONS:
 		var rows = grids[1] if action in ["build", "menu", "upgrades", "trophy_bag", "trophy_shop", "purchase"] else grids[0]
-		var label = Style.text(KeyBindings.ACTIONS[action][0], 15)
+		var label = Style.text(tr(KeyBindings.ACTIONS[action][0]), 15)
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rows.add_child(label)
 		var button = Style.button(keys.text(action))
@@ -1549,18 +1624,18 @@ func _show_key_settings() -> void:
 		binding_buttons[action] = button
 	var footer = HBoxContainer.new()
 	box.add_child(footer)
-	var reset = Style.button("恢复默认")
+	var reset = Style.button(tr("恢复默认"))
 	reset.name = "ResetKeyBindings"
 	reset.pressed.connect(_reset_key_bindings)
 	footer.add_child(reset)
-	var back = Style.button("返回设置")
+	var back = Style.button(tr("返回设置"))
 	back.pressed.connect(_show_settings)
 	footer.add_child(back)
 
 func _begin_key_binding(action: String) -> void:
 	_end_key_binding()
 	binding_action = action
-	binding_buttons[action].text = "请按键"
+	binding_buttons[action].text = tr("请按键")
 
 func _end_key_binding() -> void:
 	if binding_buttons.has(binding_action): binding_buttons[binding_action].text = keys.text(binding_action)
@@ -1588,28 +1663,95 @@ func _new_modal(kind: String, title: String, width: int = 780) -> VBoxContainer:
 	var opener = modal_opener if modal_layer != null else get_viewport().gui_get_focus_owner()
 	var previous_layer = modal_layer if modal_layer != null else fading_modal
 	var backdrop_opacity = float(previous_layer.get_child(0).modulate.a) if previous_layer != null else 0.0
-	_close_modal(false)
+	var feature = _modal_feature(kind)
+	_close_modal(false, false, feature != null)
 	_discard_fading_modal()
 	modal_opener = opener
 	modal_kind = kind
 	if world != null:
+		world.cancel_touch()
+		if gamepad != null: gamepad.release_pointer()
 		world.camera_input_enabled = false
+		if feature != null: world.enter_feature(feature, .58 if not landmark_context.is_empty() or (kind == "major_event" and major_notice.get("id") == "river_lantern_run") else (1.84 if kind == "major_event" else 2.08))
 		world.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_DISABLED
 		ui.overlay.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_DISABLED
 	modal_layer = CanvasLayer.new()
 	modal_layer.layer = 20
 	add_child(modal_layer)
 	var dark = ColorRect.new()
-	dark.color = Color("142532", 0.70)
+	dark.color = Color("101820", .26 if feature != null else .68)
 	modal_layer.add_child(dark)
 	_fill(dark)
-	modal_frame = ModalFrame.new()
+	modal_frame = MODAL_FRAME.instantiate()
 	modal_frame.theme = theme
 	modal_layer.add_child(modal_frame)
 	_fill(modal_frame)
+	if feature != null:
+		modal_frame.anchor_left = .38
+		modal_frame.offset_right = -14
 	modal_frame.build(kind, title, width, _dismiss_modal)
 	modal_frame.animate_in(dark, backdrop_opacity)
 	return modal_frame.body
+
+func _visit_landmark(id: String) -> void:
+	if modal_layer != null: return
+	if id == "tavern":
+		world.visit_threshold()
+		return
+	landmark_context = id
+	match id:
+		"freight":
+			if sim.phase == "NIGHT": _show_shift_roster()
+			else: _show_settings()
+		"supply", "gallery", "workshop":
+			var required := str({"supply":"purchase_annex","gallery":"trophy_gallery","workshop":"decor_studio"}[id])
+			if sim.phase == "NIGHT" and required in sim.layout.unlocked_plots:
+				match id:
+					"supply": _show_purchase_page()
+					"gallery": _show_trophy_shop()
+					"workshop": _show_decoration_shop()
+			else:
+				var detail := _new_modal("landmark", tr(Plan.LABELS[id]), 480)
+				var plot_info := {}
+				for plot in sim.layout.plots:
+					if plot.id == required: plot_info = plot
+				var hint := tr("仅在夜晚采购；白天请观察经营。") if required in sim.layout.unlocked_plots else tr("第 %d 天开放") % int(plot_info.get("open_day",plot_info.get("unlock_day",1)))
+				detail.add_child(Style.text(hint,17,Style.INK,true))
+				if sim.phase == "NIGHT" and sim.next_land_plot().get("id","") == required:
+					var expand := Style.button(tr("确认解锁"))
+					detail.add_child(expand)
+					expand.pressed.connect(_show_plot_confirmation.bind(required))
+		"dock":
+			if not sim.reports.is_empty(): _show_report_history()
+			else:
+				var notice := _new_modal("landmark",tr("下游河埠"),480)
+				notice.add_child(Style.text(tr("来客从东岸出发，过木桥，经前场进入餐厅。"),17,Style.INK,true))
+				var forecast = _peak_forecast(sim.day)
+				if not forecast.is_empty(): notice.add_child(Style.text(forecast,18,Style.GOLD,true))
+
+func _modal_feature(kind: String) -> Variant:
+	if not landmark_context.is_empty(): return Plan.landmark(landmark_context)
+	if world == null or sim == null: return null
+	var fixture_id := ""
+	match kind:
+		"purchase", "buy": fixture_id = "slot"
+		"decor_shop": fixture_id = "decor_shop"
+		"cashier_front", "cashier": fixture_id = "cashier"
+		"trophy_shop": return Vector2(sim.trophy_shop_cell())
+		"major_event":
+			match str(major_notice.get("id", "")):
+				"food_inspection": fixture_id = "pass"
+				"group_booking":
+					for table in Grid.facilities(sim.layout, "table"):
+						if Grid.placed(table) and Grid.table_size(table) == 4:
+							return Grid.vec(table.pos)
+					fixture_id = "table_3"
+				"bad_weather": return Grid.vec(sim.layout.entrance) + Vector2(-5, -2)
+				"river_lantern_run": return Plan.landmark("wood_bridge") + Vector2(4,8)
+				_: return Grid.vec(sim.layout.entrance) + Vector2(-.8, .65)
+	if fixture_id.is_empty(): return null
+	var fixture := Grid.find(sim.layout, fixture_id)
+	return Grid.vec(fixture.pos) if not fixture.is_empty() else null
 
 func _discard_fading_modal() -> void:
 	if fading_modal == null: return
@@ -1617,7 +1759,7 @@ func _discard_fading_modal() -> void:
 	fading_modal.queue_free()
 	fading_modal = null
 
-func _close_modal(restore_focus := true, animate := false) -> void:
+func _close_modal(restore_focus := true, animate := false, preserve_feature := false) -> void:
 	if modal_layer != null:
 		binding_action = ""
 		binding_buttons.clear()
@@ -1637,9 +1779,14 @@ func _close_modal(restore_focus := true, animate := false) -> void:
 			modal_opener.grab_focus()
 		modal_opener = null
 	modal_kind = ""
-	if world != null: world.camera_input_enabled = true
+	if world != null:
+		world.camera_input_enabled = true
+		if not preserve_feature:
+			landmark_context = ""
+			world.end_feature()
 
 func _dismiss_modal() -> void:
+	landmark_context = ""
 	_close_modal(true, sim.phase != "REPORT")
 	if sim.phase == "REPORT": _show_report()
 
@@ -1650,7 +1797,7 @@ func _peak_forecast(for_day: int, compact := false) -> String:
 		var period = MajorEventPanel.peak_time(peak)
 		var share = roundi(float(peak.share) * 100)
 		if compact: return "%s · %d%%" % [period, share]
-		return "%s\n%s 集中约 %d%%" % [event.name, period, share]
+		return tr("%s\n%s 集中约 %d%%") % [tr(str(event.name)), period, share]
 	return ""
 
 func _show_diagnostic_on_map(r: Dictionary) -> void:
@@ -1659,8 +1806,8 @@ func _show_diagnostic_on_map(r: Dictionary) -> void:
 	var description = ReportPanel.DIAGNOSTIC_TEXT[key]
 	var facilities = description.facilities + r.diagnosis.stages[key].tables
 	world.set_diagnostic_targets(facilities, key == "queue", true)
-	ui.diagnostic_label.text = str(description.label)
-	ui.diagnostic_button.text = "返回日报"
+	ui.diagnostic_label.text = tr(str(description.label))
+	ui.diagnostic_button.text = tr("返回日报")
 	ui.diagnostic_card.show()
 
 func _preview_report_diagnosis() -> void:
@@ -1688,9 +1835,9 @@ func _show_report(reveal_rewards := false) -> void:
 	var report = sim.last_report.merged({
 		"gold_after": sim.gold, "reputation_after": sim.reputation, "stars_after": sim.stars, "day": sim.day,
 	}, true)
-	var outcome = "营业复盘" if report.result == "CONTINUE" else ("章节胜利" if report.result == "WIN" else "房租不足")
-	var box = _new_modal("report","第 %d 天 · %s" % [sim.day,outcome],920)
-	var panel = ReportPanel.new()
+	var outcome = tr("营业复盘") if report.result == "CONTINUE" else (tr("章节胜利") if report.result == "WIN" else tr("房租不足"))
+	var box = _new_modal("report",tr("第 %d 天 · %s") % [sim.day,outcome],1060)
+	var panel = REPORT_PANEL.instantiate()
 	box.add_child(panel)
 	panel.locate_requested.connect(_preview_report_diagnosis)
 	panel.continue_requested.connect(_continue_night)
@@ -1705,20 +1852,20 @@ func _show_report(reveal_rewards := false) -> void:
 		notices.append(peak.replace("\n", "  "))
 	if report.result == "CONTINUE":
 		for event in sim.major_events_for(next_day):
-			if int(event.from_day) == next_day and not peak.begins_with(str(event.name) + "\n"):
-				notices.append(str(event.name))
+			if int(event.from_day) == next_day and not peak.begins_with(tr(str(event.name)) + "\n"):
+				notices.append(tr(str(event.name)))
 	panel.populate(report, previous, sim.catalog, notices, guide.report_text(report, peak))
 	if reveal_rewards: panel.reveal_earned_goals()
 
 func _show_report_history() -> void:
 	if sim.reports.is_empty(): return
-	var box = _new_modal("report_history", "历史日报", 970)
+	var box = _new_modal("report_history", tr("历史日报"), 970)
 	var panel = ReportHistory.new()
 	box.add_child(panel)
 	panel.populate(sim.reports, sim.catalog)
 
 func _continue_night() -> void:
-	if _command(sim.continue_night(), "夜晚准备"):
+	if _command(sim.continue_night(), tr("夜晚准备")):
 		_close_modal(true, true)
 		report_shown_day = -1
 		accumulator = 0
@@ -1729,19 +1876,50 @@ func _continue_night() -> void:
 		guide.night()
 
 func _confirm_restart() -> void:
-	var box = _new_modal("restart","重新开始本章？",570)
-	box.add_child(Style.text("会替换当前检查点。旧版本档案在首次覆盖前会留作备份。",15,Style.MUTED,true))
+	var box = _new_modal("restart",tr("重新开始本章？"),570)
+	box.add_child(Style.text(tr("会替换当前检查点。旧版本档案在首次覆盖前会留作备份。"),15,Style.MUTED,true))
 	var seed_input = LineEdit.new()
-	seed_input.placeholder_text = "可选：输入整数种子复现同一局"
+	seed_input.placeholder_text = tr("可选：输入整数种子复现同一局")
 	box.add_child(seed_input)
-	var confirm = Style.button("确认重新开局")
+	var confirm = Style.button(tr("确认重新开局"))
 	confirm.add_theme_stylebox_override("normal", Style.box(Color("643f3e"), Style.RED.darkened(.28), 7, 10))
 	confirm.add_theme_color_override("font_color", Color("ffe1cf"))
-	confirm.pressed.connect(func(): _restart_run(int(seed_input.text) if seed_input.text.is_valid_int() else int(Time.get_ticks_usec()%1000000000)))
+	confirm.pressed.connect(func(): _choose_restart_crew(int(seed_input.text) if seed_input.text.is_valid_int() else int(Time.get_ticks_usec()%1000000000)))
 	box.add_child(confirm)
-	var cancel = Style.button("取消", true)
+	var cancel = Style.button(tr("取消"), true)
 	cancel.pressed.connect(_dismiss_modal)
 	box.add_child(cancel)
+
+func _show_shift_roster() -> void:
+	if sim.phase != "NIGHT": return
+	var body := _new_modal("crew_setup", tr("今日排班"), 810)
+	var chooser := CREW_SELECT.instantiate()
+	chooser.initial_lineup = sim.crew_lineup
+	chooser.shift_only = true
+	chooser.helper_staff = sim.helper_staff.duplicate(true)
+	chooser.capacity = {"chef":sim.attributes.chefs,"waiter":sim.attributes.waiters}
+	body.add_child(chooser)
+	chooser.cancelled.connect(_dismiss_modal)
+	chooser.accepted.connect(func(lineup):
+		if not lineup.is_empty() and not sim.set_crew(lineup): return
+		sim.helper_staff=chooser.helper_staff.duplicate(true)
+		_save()
+		_refresh_all()
+		_dismiss_modal()
+	)
+
+func _choose_restart_crew(new_seed: int) -> void:
+	_new_modal("crew_setup",tr("选择本局英雄"),810)
+	modal_frame.hide()
+	var chooser := preload("res://scenes/ui/opening_draft.tscn").instantiate()
+	chooser.chapter_caption = tr(str(sim.chapter.title))
+	modal_layer.add_child(chooser)
+	chooser.cancelled.connect(_dismiss_modal)
+	chooser.accepted.connect(func(lineup):
+		if sim.set_crew(lineup):
+			sim.helper_staff=chooser.helper_staff.duplicate(true)
+			_restart_run(new_seed)
+	)
 
 func _restart_run(new_seed: int) -> void:
 	_close_modal()
@@ -1762,9 +1940,11 @@ func _restart_run(new_seed: int) -> void:
 	_save()
 	_refresh_all()
 	guide.start_visit()
-	if guide.stage.is_empty(): _notice("新开局")
+	if guide.stage.is_empty(): _notice(tr("新开局"))
 
 func _input(event: InputEvent) -> void:
+	if world != null and world.entering_canyon: return
+	if gamepad != null: gamepad.handle(event, self)
 	if world != null and (event.is_pressed() or event is InputEventGesture):
 		world.stop_follow()
 	if sim == null or keys == null or not event is InputEventKey or not event.pressed or event.echo: return
@@ -1780,7 +1960,7 @@ func _input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 	var error = ""
 	if key != KEY_ESCAPE:
-		error = "请直接按一个键。" if modified else keys.bind(binding_action, key)
+		error = tr("请直接按一个键。") if modified else keys.bind(binding_action, key)
 	if not error.is_empty():
 		modal_frame.show_error(error)
 		return
@@ -1790,10 +1970,38 @@ func _input(event: InputEvent) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if sim == null or not event is InputEventKey or not event.pressed or event.echo: return
 	var key = event.physical_keycode if event.physical_keycode != KEY_NONE else event.keycode
+	if key == KEY_TAB and _focus_controls():
+		get_viewport().set_input_as_handled()
+		return
 	if key != KEY_ESCAPE: return
+	_go_back()
+
+func _focus_controls() -> bool:
+	if get_viewport().gui_get_focus_owner() != null or sim == null: return false
+	var target: Control = null
+	if world.signs.is_visible_in_tree() and modal_frame == null:
+		world.signs.focus_tavern()
+		return true
+	if modal_frame != null:
+		modal_frame._focus_first()
+		return get_viewport().gui_get_focus_owner() != null
+	if is_instance_valid(guide) and is_instance_valid(guide.bubble):
+		for child in guide.bubble.actions.get_children():
+			if child is Button and child.is_visible_in_tree() and not child.disabled:
+				target = child
+				break
+	if target == null:
+		target = ui.open if ui.open.is_visible_in_tree() and not ui.open.disabled else ui.gear
+	target.grab_focus()
+	return true
+
+func _go_back() -> void:
 	if modal_layer != null:
-		if modal_kind in ["key_settings", "handbook"]: _show_settings()
+		if not binding_action.is_empty(): _end_key_binding()
+		elif modal_kind in ["key_settings", "handbook"]: _show_settings()
 		elif modal_kind not in ["report", "restore_error", "config_error"]: _dismiss_modal()
+	elif world.overview:
+		world.focus_restaurant()
 	elif world.editing or world.placing_wall or world.drag_active:
 		_cancel_placement()
 	elif ui.build_catalog.visible:
@@ -1801,9 +2009,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	elif ui.diagnostic_card.visible:
 		_dismiss_diagnostic()
 	else:
+		var had_inspector: bool = ui.info_panel.visible or ui.slot_panel.visible or not inspected.is_empty()
 		world.cancel_placement()
 		_clear_inspector()
 		ui.slot_panel.hide()
+		if not had_inspector: _show_settings()
 
 func _activate_shortcut(action: String) -> void:
 	match action:

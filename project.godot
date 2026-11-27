@@ -1,25 +1,44 @@
-; Extreme Restaurant — PC-first prototype, renderer kept portable.
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
 
 [application]
+
 config/name="街角食堂 · 极限餐厅"
 run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [display]
+
 window/size/viewport_width=1440
 window/size/viewport_height=900
 window/size/window_width_override=1440
 window/size/window_height_override=900
-window/size/resizable=true
-window/stretch/mode="disabled"
+window/stretch/mode.mobile="canvas_items"
+window/stretch/aspect.mobile="expand"
+
+[input]
+
+ui_accept={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"keycode":4194309),Object(InputEventKey,"keycode":4194310),Object(InputEventKey,"keycode":32),Object(InputEventJoypadButton,"device":-1,"button_index":0)]
+}
+
+[internationalization]
+
+locale/test="zh_CN"
+locale/fallback="zh_CN"
+locale/translations=PackedStringArray("res://localization/en.po")
 
 [rendering]
+
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/default_filters/use_nearest_mipmap_filter=false
-textures/canvas_textures/default_texture_filter=0
-
-[gui]
-theme/default_font_multichannel_signed_distance_field=false

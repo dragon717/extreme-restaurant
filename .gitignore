@@ -6,3 +6,9 @@
 .local/
 # Export output
 build/
+
+# Local generator cache and operating system metadata
+/generated_images/
+.DS_Store
+__pycache__/
+*.pyc

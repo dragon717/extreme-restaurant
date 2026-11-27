@@ -5,6 +5,12 @@ const Lighting = preload("res://scripts/visuals/restaurant_lighting.gd")
 const Style = preload("res://scripts/ui/style.gd")
 var sprite = AnimatedSprite2D.new()
 var visual_key = ""
+var uses_world_sprite := false
+var specialty_staff := false
+const PLATE_ART = preload("res://assets/interface/crew-plate.webp")
+const NAMEPLATE = preload("res://scenes/ui/crew_nameplate.tscn")
+var overhead: PanelContainer
+var overhead_copy: Array = []
 var current_action = "idle"
 var animation_map: Dictionary = {}
 var indicator = ""
@@ -19,6 +25,7 @@ var rare_name = ""
 var label_font: Font
 var art_scale := 1.0
 var faces_left := false
+var gait := preload("res://scripts/visuals/staff_stride.gd").new()
 var sprite_base_scale = 1.55
 var sprite_base_offset = Vector2(0, -6)
 var display_zoom = 1.0
@@ -49,22 +56,24 @@ func _apply_sprite_geometry() -> void:
 	sprite.position = sprite_base_offset * display_zoom
 
 func place_in_world(cell: Vector2, point: Vector2, magnification: float) -> void:
-	if world_cell.is_finite() and absf(cell.x - world_cell.x) > .01:
+	if not uses_world_sprite and world_cell.is_finite() and absf(cell.x - world_cell.x) > .01:
 		sprite.flip_h = (cell.x < world_cell.x) != faces_left
 	world_cell = cell
 	position = point
-	z_index = int(point.y)
+	z_index = clampi(int(point.y),RenderingServer.CANVAS_ITEM_Z_MIN,RenderingServer.CANVAS_ITEM_Z_MAX)
 	set_display_zoom(magnification)
 
 func set_display_zoom(value: float) -> void:
 	if is_equal_approx(value, display_zoom): return
 	display_zoom = value
 	_apply_sprite_geometry()
+	_position_overhead()
 	queue_redraw()
 
 func set_visual(kind: String) -> void:
 	if visual_key == kind: return
 	visual_key = kind
+	gait.reset()
 	animation_dirty = true
 	if manifest == null:
 		var data = JSON.parse_string(FileAccess.get_file_as_string("res://assets/skins.json"))
@@ -138,39 +147,99 @@ func set_sunlight(minutes: float) -> void:
 	sprite.modulate = Color.WHITE.lerp(Color("c5c7dd"), shared_evening * .72)
 	queue_redraw()
 
+func set_overhead(caption: String, role: String, state: String, fraction: float, accent: Color) -> void:
+	if caption.is_empty():
+		if overhead != null and overhead.visible:
+			overhead.hide()
+			queue_redraw()
+		return
+	if overhead == null:
+		overhead = NAMEPLATE.instantiate()
+		overhead.theme = Style.theme()
+		var backing := StyleBoxTexture.new()
+		backing.texture = PLATE_ART
+		backing.modulate_color = Color(1,1,1,.88)
+		for side in [SIDE_LEFT,SIDE_RIGHT]:
+			backing.set_texture_margin(side,6)
+			backing.set_content_margin(side,4)
+		backing.set_content_margin(SIDE_TOP,0)
+		backing.set_content_margin(SIDE_BOTTOM,1)
+		overhead.add_theme_stylebox_override("panel",backing)
+		overhead.minimum_size_changed.connect(_position_overhead)
+		add_child(overhead)
+		overhead.z_index = 1
+	var was_visible := overhead.visible
+	overhead.show()
+	var copy := [caption, role, state, accent, fraction >= 0.0]
+	var meter := overhead.get_node("%Progress") as ProgressBar
+	if copy != overhead_copy:
+		overhead.get_node("%Name").text = caption
+		var role_label := overhead.get_node("%Role") as Label
+		role_label.text = role
+		role_label.visible = not role.is_empty()
+		role_label.add_theme_color_override("font_color", accent)
+		var detail := overhead.get_node("%State") as Label
+		detail.text = state
+		detail.visible = not state.is_empty()
+		meter.visible = fraction >= 0.0
+		meter.add_theme_stylebox_override("fill", Style.frame(accent, accent, 0))
+		overhead_copy = copy
+		_position_overhead()
+		queue_redraw()
+	elif not was_visible:
+		_position_overhead()
+		queue_redraw()
+	if meter.visible and absf(meter.value - fraction) >= .007:
+		meter.value = clampf(fraction, 0, 1)
+
+func _position_overhead() -> void:
+	if overhead == null or not overhead.visible: return
+	overhead.reset_size()
+	overhead.position = Vector2(-overhead.size.x * .5, _sprite_top() - overhead.size.y - 5.0)
+
+func _frame_extent() -> Vector2:
+	if sprite.sprite_frames != null and sprite.sprite_frames.has_animation(sprite.animation):
+		var frame: Texture2D = sprite.sprite_frames.get_frame_texture(sprite.animation,sprite.frame)
+		if frame != null: return frame.get_size()*sprite.scale
+	return Vector2(16,24)*sprite_base_scale*display_zoom
+
 func _sprite_top() -> float:
-	return sprite.position.y - 12.0 * sprite_base_scale * display_zoom
+	return sprite.position.y - .5*_frame_extent().y
 
 func _sprite_bottom() -> float:
-	return sprite.position.y + 12.0 * sprite_base_scale * display_zoom
+	return maxf(2.5, sprite.position.y + .5*_frame_extent().y)
 
 func click_rect() -> Rect2:
-	var width = 16.0 * sprite_base_scale * display_zoom
-	var top = _sprite_top()
+	var width := maxf(17.*display_zoom,_frame_extent().x*.85)
+	var top := _sprite_top()
 	if not indicator.is_empty():
 		top = minf(top, _sprite_top() - 39.0)
-		var tag = 38.0 if indicator == "等餐" else label_font.get_string_size(indicator, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 12
+		var tag = 38.0 if indicator == "等餐" else label_font.get_string_size(tr(indicator), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 12
 		width = maxf(width, tag)
 	var bottom = _sprite_bottom()
 	if not rare_name.is_empty():
-		width = maxf(width, label_font.get_string_size(rare_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 12.0)
-		bottom = maxf(bottom, _sprite_bottom() + 26.0)
-	return Rect2(Vector2(-width * 0.5, top), Vector2(width, bottom - top))
+		width = maxf(width, label_font.get_string_size(tr(rare_name), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 12.0)
+		bottom = maxf(bottom, _sprite_bottom() + 30.0)
+	var area := Rect2(Vector2(-width*.5,top),Vector2(width,bottom-top))
+	if overhead != null and overhead.visible: area = area.merge(Rect2(overhead.position,overhead.size))
+	return area
 
 func _draw() -> void:
 	var bottom = _sprite_bottom()
-	var footprint = maxf(display_zoom, .5)
-	var feet = Vector2(0, bottom - footprint)
-	var cast = shadow_direction * Vector2(12, 8) * footprint
-	draw_set_transform(feet + cast * .65, 0, Vector2(footprint * (1 + absf(shadow_direction.x) * .42), footprint * .33))
-	draw_circle(Vector2.ZERO, 13, Color("37435c", shadow_opacity * .50), true, -1, true)
-	draw_circle(Vector2.ZERO, 10, Color("37435c", shadow_opacity * .72), true, -1, true)
-	draw_set_transform(feet, 0, Vector2(footprint, footprint * .3))
-	draw_circle(Vector2.ZERO, 8, Color("393746", .24), true, -1, true)
-	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	if not uses_world_sprite:
+		var footprint = maxf(display_zoom, .5)
+		var feet = Vector2(0, bottom - footprint)
+		var cast = shadow_direction * Vector2(12, 8) * footprint
+		draw_set_transform(feet + cast * .65, 0, Vector2(footprint * (1 + absf(shadow_direction.x) * .42), footprint * .33))
+		draw_circle(Vector2.ZERO, 13, Color("37435c", shadow_opacity * .50), true, -1, true)
+		draw_circle(Vector2.ZERO, 10, Color("37435c", shadow_opacity * .72), true, -1, true)
+		draw_set_transform(feet, 0, Vector2(footprint, footprint * .3))
+		draw_circle(Vector2.ZERO, 8, Color("393746", .24), true, -1, true)
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	if has_food:
 		draw_rect(Rect2(9, -8, 13, 5), Color("efead6"))
 		draw_rect(Rect2(11, -11, 9, 4), Color("edaa56"))
+	if overhead != null and overhead.visible: return
 	var chip_top = _sprite_top() - 29.0
 	if indicator == "等餐":
 		var center = Vector2(0, chip_top + 10)
@@ -179,21 +248,21 @@ func _draw() -> void:
 		draw_arc(center, 12, -PI / 2, -PI / 2 + TAU * clampf(progress, 0, 1), 32, Color("f0bb63"), 3)
 		if patience_ratio >= 0:
 			draw_arc(center, 19, -PI / 2, -PI / 2 + TAU * clampf(patience_ratio, 0, 1), 32, Color("ef917b") if patience_ratio < 0.3 else Color("8ec6a0"), 2)
-		draw_string(label_font, center + Vector2(-7, 5), "餐", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Style.INK)
+		draw_string(label_font, center + Vector2(-7, 5), tr("餐"), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Style.INK)
 	elif not indicator.is_empty():
-		var text_width = label_font.get_string_size(indicator, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		var text_width = label_font.get_string_size(tr(indicator), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		var chip_width = text_width + 12
 		draw_style_box(chip_skin, Rect2(-chip_width * 0.5, chip_top, chip_width, 21))
-		draw_string(label_font, Vector2(-text_width * 0.5, chip_top + 16), indicator, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("f6e5be"))
+		draw_string(label_font, Vector2(-text_width * 0.5, chip_top + 16), tr(indicator), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("f6e5be"))
 		if progress >= 0:
 			draw_rect(Rect2(-chip_width * 0.5, chip_top - 4, chip_width * clampf(progress, 0, 1), 3), Color("ebbb62"))
 	if not rare_name.is_empty():
-		var text_width = label_font.get_string_size(rare_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		var text_width = label_font.get_string_size(tr(rare_name), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		var tag_width = text_width + 12
 		var tag_top = bottom + 5
 		var special = visual_key == "thug"
 		draw_style_box(special_skin if special else rare_skin, Rect2(-tag_width * 0.5, tag_top, tag_width, 21))
-		draw_string(label_font, Vector2(-text_width * 0.5, tag_top + 16), rare_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ef917b") if special else Color("f0bb63"))
+		draw_string(label_font, Vector2(-text_width * 0.5, tag_top + 16), tr(rare_name), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ef917b") if special else Color("f0bb63"))
 
 static func _rect(image: Image, rectangle: Rect2i, color: Color) -> void:
 	image.fill_rect(rectangle, color)
@@ -203,11 +272,11 @@ static func _make_frames(kind: String) -> SpriteFrames:
 	frames.remove_animation("default")
 	var clothes = {"chef": "70866c", "waiter": "c47750", "normal": "5d88a1", "commuter": "526887", "student": "6e9a86", "shopkeeper": "9471a4", "market_visitor": "c78262", "blogger": "b07798", "big_eater": "b79056", "freeloader": "768476", "elder": "737e9b", "thug": "825568"}
 	var shirt = Color(clothes.get(kind, "5d88a1"))
-	var actions = ["idle", "walk", "cook", "order", "carry", "eat"]
+	var actions = ["idle", "walk","walk_side","walk_away", "cook", "order", "carry", "eat"]
 	if kind == "waiter": actions.append("wave")
 	for action in actions:
 		frames.add_animation(action)
-		var walking = action in ["walk", "carry"]
+		var walking = action in ["walk","walk_side","walk_away","carry"]
 		frames.set_animation_speed(action, 12.0 if walking else (6.0 if action != "idle" else 2.5))
 		for i in range(8 if walking else 4):
 			var img = Image.create(16, 24, false, Image.FORMAT_RGBA8)
@@ -238,5 +307,15 @@ static func _make_frames(kind: String) -> SpriteFrames:
 				_rect(img, Rect2i(3, 14, 4, 3), Color("323c39"))
 			if action == "cook" or action == "eat":
 				_rect(img, Rect2i(11, 9 + i % 2, 4, 2), skin)
-			frames.add_frame(action, ImageTexture.create_from_image(img))
+			if action=="walk_away":
+				_rect(img,Rect2i(4,2+bob,8,7),Color("4a3b33"))
+				_rect(img,Rect2i(5,10+bob,7,7),shirt.darkened(.10))
+			elif action=="walk_side":
+				_rect(img,Rect2i(3,11+bob,2,6),Color.TRANSPARENT)
+				_rect(img,Rect2i(11,6+bob,2,2),skin)
+				_rect(img,Rect2i(11,5+bob,1,1),Color("25312a"))
+			var texture := ImageTexture.create_from_image(img)
+			var feet := img.get_used_rect()
+			texture.set_meta("sole",Vector2(.59,float(feet.end.y)/img.get_height()))
+			frames.add_frame(action, texture)
 	return frames

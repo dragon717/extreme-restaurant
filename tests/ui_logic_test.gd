@@ -63,7 +63,10 @@ func execute() -> void:
 	expect(scene.ui.rent_label.text == "$%d" % int(counted.next_rent().amount) and scene.ui.rent_days.text == "6天" and scene.ui.rent_card.tooltip_text.contains("房租"), "房租与剩余天数分栏，详情通过悬浮查看")
 	expect(scene.ui.clock.text == "09:00" and scene.ui.rep_label.get_parent().get_parent().get_child(0).glyph == "reputation" and scene.ui.rep_label.tooltip_text == "声望", "营业时钟和声望使用图标与数字")
 	expect(scene.world.sun_light.shadow_enabled and scene.world.shadow_geometry.get_child_count()>10,"LIGHT: 灯光和墙/家具真实遮挡体已创建")
-	expect(scene.world.city_geometry.get_child_count()>0,"CITY: 外围建筑带有可投影的遮挡体")
+	var geography = preload("res://scenes/canyon/geography.tscn").instantiate()
+	var walls = geography.get_node("workshop").find_children("*", "MeshInstance3D",true,false)
+	expect(not walls.is_empty() and walls.all(func(piece): return piece.mesh != null and piece.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF),"工坊有独立的三维屋顶和墙体")
+	geography.free()
 	var street = scene.world.street
 	var parked = street.vehicle_position(0)
 	var walker = street.pedestrian_position(0)
@@ -165,10 +168,11 @@ func execute() -> void:
 	scene._open_day()
 	scene.sim._spawn_customer({"id":5000,"type":"normal"})
 	scene.world._sync_actors()
-	expect(scene.world.actor_cells["g_5000"].x < scene.world.street.bounds.position.x, "新客人从街区固定的步道断面步入")
+	var queue_point: Vector2=scene.world.actor_cells["g_5000"]
+	expect(queue_point.distance_to(Grid.vec(scene.sim.layout.entrance))<2.0,"临时来客在门外步道排队")
 	scene.sim._assign_seats()
 	scene.world._sync_actors()
-	expect(scene.world.actor_cells["g_5000"].x < scene.world.street.bounds.position.x, "立即获得座位的客人仍从街道步入")
+	expect(scene.world.actor_cells["g_5000"].distance_to(queue_point)<.12,"获得座位后从当前队列位置连续进门")
 	scene._inspect("customer","5000")
 	expect(scene.ui.guest_profile.dish.text == "尚未选菜" and scene.ui.guest_profile.trait_label.text.contains("(+25%)") and scene.ui.guest_profile.trait_label.text.contains("5 星服务"),"客人详情显示菜名与耐心增益")
 	scene.ui.info_panel.hide()
@@ -228,11 +232,13 @@ func execute() -> void:
 	root.add_child(title)
 	await process_frame
 	expect(title.menu.visible and title.chapter_buttons.size() == 2, "TITLE: 主界面提供两个章节")
+	await _open_entry(title)
 	title.chapter_buttons.market_lane.button.pressed.emit()
 	title.start_button.pressed.emit()
 	expect(title.game == null and title.start_button.disabled and title.chapter_buttons.market_lane.status.glyph == "lock", "TITLE: 首次打开时第二章显示锁定，无法从开始入口进入")
 	title.chapter_buttons.street_corner.button.pressed.emit()
 	title.start_button.pressed.emit()
+	await _resume_game(title)
 	var first = title.game
 	first.sim.day = int(first.sim.chapter.chapter_days)
 	first.sim.gold = 0
@@ -243,7 +249,9 @@ func execute() -> void:
 	first._return_to_title()
 	for i in range(2): await process_frame
 	expect(title._chapter_locked("market_lane"), "TITLE: 第一章失败无法解锁下一章")
+	await _open_entry(title)
 	title.start_button.pressed.emit()
+	await _resume_game(title)
 	first = title.game
 	first._restart_run(123456)
 	first.sim.day = int(first.sim.chapter.chapter_days)
@@ -258,7 +266,17 @@ func execute() -> void:
 	else: first._return_to_title()
 	for i in range(2): await process_frame
 	expect(title.selected_chapter == "market_lane" and not title.start_button.disabled and title.chapter_buttons.street_corner.status.glyph == "check", "TITLE: 返回主界面默认选中刚解锁的下一章")
+	await _open_entry(title)
+	var new_market: bool = title.selected_save.is_empty()
 	title.start_button.pressed.emit()
+	expect((title.crew_layer != null and title.game == null) == new_market, "TITLE: 新章先选将，已有存档直接续玩")
+	if title.crew_layer != null:
+		var chooser = title.crew_layer.find_child("OpeningDraft", true, false)
+		for id in chooser.cards:
+			chooser.cards[id].pick.pressed.emit()
+			chooser.get_node("%Pick").pressed.emit()
+		chooser.get_node("%Confirm").pressed.emit()
+	await _resume_game(title)
 	expect(title.game.sim.chapter.id == "market_lane" and title.game.sim.menu == ["batch_snacks"], "TITLE: 选择第二章会载入第二章的配置和菜谱")
 	title.game._restart_run(123456)
 	title.game.sim.gold = 761
@@ -266,12 +284,16 @@ func execute() -> void:
 	title.game._return_to_title()
 	for i in range(2): await process_frame
 	expect(title.menu.visible and title.start_button.text.begins_with("继续经营"), "TITLE: 设置返回主界面后显示本章节继续入口")
+	await _open_entry(title)
 	title.start_button.pressed.emit()
+	await _resume_game(title)
 	expect(title.game.sim.gold == 761, "TITLE: 继续第二章恢复独立进度")
 	title.game._return_to_title()
 	for i in range(2): await process_frame
+	await _open_entry(title)
 	title.chapter_buttons.street_corner.button.pressed.emit()
 	title.start_button.pressed.emit()
+	await _resume_game(title)
 	expect(title.game.sim.chapter.id == "street_corner" and title.game.save_path != market_save and title.game.sim.gold != 761, "TITLE: 切回第一章使用另一份存档")
 	title.game._restart_run(123456)
 	title.game._return_to_title()
@@ -282,4 +304,14 @@ func execute() -> void:
 	file.store_string(JSON.stringify(data,"\t"))
 	file.close()
 	print("UI LOGIC RESULT: ",passed," passed / ",failed," failed")
+	title.queue_free()
+	await create_timer(.6).timeout
 	quit(1 if failed>0 else 0)
+
+func _open_entry(title) -> void:
+	title._select_place("tavern")
+	await title.get_node("Menu/CanyonHub").at_door
+
+func _resume_game(title) -> void:
+	if title.game == null: await title.get_node("Menu/CanyonHub").door_crossed
+	if title.game.world.entering_canyon: await title.game.world.entry_finished

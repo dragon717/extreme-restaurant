@@ -1,0 +1,203 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/canyon_world/hemlock.webp" id="hemlock"]
+
+[ext_resource type="Texture2D" path="res://assets/canyon_world/spruce.webp" id="spruce"]
+
+[ext_resource type="Texture2D" path="res://assets/canyon_world/moss-rocks.webp" id="moss-rocks"]
+
+[ext_resource type="Texture2D" path="res://assets/canyon_world/ferns.webp" id="ferns"]
+
+[node name="GateGarden" type="Node3D"]
+
+[node name="Plant0" type="Sprite3D" parent="."]
+position = Vector3(-5.400000,-0.38,2.043146)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.012500
+texture = ExtResource("hemlock")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant1" type="Sprite3D" parent="."]
+position = Vector3(-7.800000,-0.38,4.567032)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.011111
+texture = ExtResource("spruce")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant2" type="Sprite3D" parent="."]
+position = Vector3(-5.800000,-0.38,5.528512)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,125.000000)
+pixel_size = 0.007000
+texture = ExtResource("moss-rocks")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant3" type="Sprite3D" parent="."]
+position = Vector3(-5.000000,-0.38,7.090917)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,130.500000)
+pixel_size = 0.003372
+texture = ExtResource("ferns")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant4" type="Sprite3D" parent="."]
+position = Vector3(2.100000,-0.38,-4.206476)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.009722
+texture = ExtResource("spruce")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant5" type="Sprite3D" parent="."]
+position = Vector3(6.000000,-0.38,-5.648697)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.012269
+texture = ExtResource("hemlock")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant6" type="Sprite3D" parent="."]
+position = Vector3(8.700000,-0.38,-4.567032)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,130.500000)
+pixel_size = 0.004406
+texture = ExtResource("ferns")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant7" type="Sprite3D" parent="."]
+position = Vector3(9.700000,-0.38,-3.966106)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,125.000000)
+pixel_size = 0.006200
+texture = ExtResource("moss-rocks")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant8" type="Sprite3D" parent="."]
+position = Vector3(-6.000000,-0.38,22.594788)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.009954
+texture = ExtResource("spruce")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant9" type="Sprite3D" parent="."]
+position = Vector3(-3.700000,-0.38,22.234232)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,130.500000)
+pixel_size = 0.004981
+texture = ExtResource("ferns")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant10" type="Sprite3D" parent="."]
+position = Vector3(-2.700000,-0.38,26.560894)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,125.000000)
+pixel_size = 0.005920
+texture = ExtResource("moss-rocks")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant11" type="Sprite3D" parent="."]
+position = Vector3(-6.200000,-0.38,27.282004)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.010880
+texture = ExtResource("hemlock")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant12" type="Sprite3D" parent="."]
+position = Vector3(15.600000,-0.38,-3.004626)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,125.000000)
+pixel_size = 0.004680
+texture = ExtResource("moss-rocks")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant13" type="Sprite3D" parent="."]
+position = Vector3(16.800000,-0.38,-3.365181)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,130.500000)
+pixel_size = 0.004674
+texture = ExtResource("ferns")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant14" type="Sprite3D" parent="."]
+position = Vector3(35.500000,-0.38,7.812028)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.013194
+texture = ExtResource("hemlock")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1
+
+[node name="Plant15" type="Sprite3D" parent="."]
+position = Vector3(36.300000,-0.38,10.335913)
+rotation = Vector3(-0.982794,0,0)
+offset = Vector2(0,216.000000)
+pixel_size = 0.009954
+texture = ExtResource("spruce")
+alpha_cut = 1
+texture_filter = 3
+shaded = false
+double_sided = false
+cast_shadow = 1

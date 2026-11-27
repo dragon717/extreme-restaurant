@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/canyon/rush.webp" id="1"]
-[ext_resource type="Texture2D" path="res://assets/canyon/blaze.webp" id="2"]
+[ext_resource type="Texture2D" path="res://assets/crew/Sivir-R.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/crew/Brand-R.png" id="2"]
+
+[ext_resource type="Texture2D" path="res://assets/crew/Brand-passive.png" id="passive"]
 
 [node name="ServiceSkills" type="HBoxContainer"]
 alignment = 1
@@ -16,6 +18,15 @@ icon = ExtResource("1")
 theme_override_constants/icon_max_width = 30
 mouse_default_cursor_shape = 2
 
+[node name="LinkedFire" type="Button" parent="."]
+visible = false
+custom_minimum_size = Vector2(158, 48)
+tooltip_text = "点燃附近已备锅的灶，最多并行三锅。"
+text = "连灶飞火"
+icon = ExtResource("2")
+theme_override_constants/icon_max_width = 30
+mouse_default_cursor_shape = 2
+
 [node name="Heat" type="PanelContainer" parent="."]
 tooltip_text = "被动 · 每位厨师每做完两锅，下一锅烹饪用时减半。"
 mouse_filter = 0
@@ -24,7 +35,7 @@ mouse_filter = 0
 mouse_filter = 2
 
 [node name="HeatIcon" type="TextureRect" parent="Heat/Content"]
-texture = ExtResource("2")
+texture = ExtResource("passive")
 custom_minimum_size = Vector2(30, 30)
 expand_mode = 1
 stretch_mode = 5

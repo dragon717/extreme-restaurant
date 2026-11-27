@@ -117,6 +117,22 @@ static func locked_plot_at(layout: Dictionary, cell: Vector2i) -> Dictionary:
 	var plot = plot_at(layout, cell)
 	return plot if not plot.is_empty() and str(plot.id) not in layout.get("unlocked_plots",[]) else {}
 
+# Buildable floor occupies the interior of the simulation grid. The outer ring
+# remains a navigation boundary; the visible eaves follow the occupied rooms.
+static func has_room(layout: Dictionary, cell: Vector2i) -> bool:
+	var interior := Rect2i(1, 1, int(layout.width) - 2, int(layout.height) - 2)
+	return interior.has_point(cell) and locked_plot_at(layout, cell).is_empty()
+
+static func occupied_bounds(layout: Dictionary) -> Rect2i:
+	var result := Rect2i()
+	for y in range(1, int(layout.height) - 1):
+		for x in range(1, int(layout.width) - 1):
+			var cell := Vector2i(x, y)
+			if has_room(layout, cell):
+				var tile := Rect2i(cell, Vector2i.ONE)
+				result = result.merge(tile) if result.has_area() else tile
+	return result
+
 static func kitchen_bounds(layout: Dictionary) -> Dictionary:
 	@warning_ignore("integer_division")
 	var bounds = layout.get("kitchen_bounds", {"left":1, "top":1, "right":int(layout.width)/2, "bottom":5}).duplicate()
@@ -263,34 +279,34 @@ static func errors(layout: Dictionary, obstacles: Dictionary = {}) -> Array:
 	var ids = {}
 	var accessible = walkable_region(layout, obstacles)
 	for f in layout.facilities:
-		if ids.has(f.id): result.append("设施 ID 重复")
+		if ids.has(f.id): result.append(TranslationServer.translate("设施 ID 重复"))
 		ids[f.id] = true
 		var capacity = f.get("capacity", 1)
 		if f.type == "table" and (not (capacity is int or capacity is float) or float(capacity) != floorf(float(capacity)) or int(capacity) not in [1, 2, 4]):
-			result.append(f.name + " 的座位数无效")
+			result.append(TranslationServer.translate(str(f.name)) + TranslationServer.translate(" 的座位数无效"))
 			continue
 		var facing = f.get("rotation", 0)
 		if can_rotate(f) and (not (facing is int or facing is float) or float(facing) != floorf(float(facing)) or float(facing) < 0 or float(facing) >= FACING.size()):
-			result.append(f.name + " 的朝向无效")
+			result.append(TranslationServer.translate(str(f.name)) + TranslationServer.translate(" 的朝向无效"))
 			continue
 		if not placed(f): continue
 		for cell in footprint_cells(f):
-			if cells.has(cell): result.append(f.name + " 与其他设施重叠")
+			if cells.has(cell): result.append(TranslationServer.translate(str(f.name)) + TranslationServer.translate(" 与其他设施重叠"))
 			cells[cell] = true
-			if structural_blocked(layout,cell): result.append(f.name + " 放在不可用的墙体或边界")
-		if not interaction_accessible(f, accessible): result.append(f.name + " 的交互位置不可达")
+			if structural_blocked(layout,cell): result.append(TranslationServer.translate(str(f.name)) + TranslationServer.translate(" 放在不可用的墙体或边界"))
+		if not interaction_accessible(f, accessible): result.append(TranslationServer.translate(str(f.name)) + TranslationServer.translate(" 的交互位置不可达"))
 		if f.type == "table":
 			for cell in interaction_cells(f):
 				var prior_size = int(chair_sizes.get(cell, 0))
-				if prior_size > 0 and (prior_size > 1 or int(capacity) > 1): result.append(f.name + " 的座位与其他餐桌重叠")
+				if prior_size > 0 and (prior_size > 1 or int(capacity) > 1): result.append(TranslationServer.translate(str(f.name)) + TranslationServer.translate(" 的座位与其他餐桌重叠"))
 				chair_sizes[cell] = maxi(prior_size, int(capacity))
 	for key in ["waiter_spawn","chef_spawn","exit"]:
-		if not accessible.has(Vector2i(vec(layout[key]))): result.append("出生点 / 出口被阻挡：" + key)
+		if not accessible.has(Vector2i(vec(layout[key]))): result.append(TranslationServer.translate("出生点 / 出口被阻挡：") + key)
 	var starts = {Vector2i(vec(layout.entrance)): true, Vector2i(vec(layout.exit)): true}
 	for key in ["waiter_starts","chef_starts"]:
 		for position in layout.get(key,[]):
 			var cell = Vector2i(vec(position))
-			if not accessible.has(cell): result.append("员工初始站位被阻挡：" + key)
-			if starts.has(cell): result.append("员工初始站位重叠或占用出入口")
+			if not accessible.has(cell): result.append(TranslationServer.translate("员工初始站位被阻挡：") + key)
+			if starts.has(cell): result.append(TranslationServer.translate("员工初始站位重叠或占用出入口"))
 			starts[cell] = true
 	return result

@@ -38,15 +38,15 @@ func action_for(key: int) -> String:
 
 func text(action: String) -> String:
 	var key = int(bindings[action])
-	if key == KEY_SPACE: return "空格"
+	if key == KEY_SPACE: return tr("空格")
 	if key == KEY_BACKSPACE: return "Backspace"
 	return OS.get_keycode_string(key)
 
 func bind(action: String, key: int) -> String:
-	if not ACTIONS.has(action): return "找不到这项操作"
-	if not _assignable(key): return "此键用于镜头、返回或界面导航，请选其他键。"
+	if not ACTIONS.has(action): return tr("找不到这项操作")
+	if not _assignable(key): return tr("此键用于镜头、返回或界面导航，请选其他键。")
 	var used = action_for(key)
-	if not used.is_empty() and used != action: return "这个键已用于「%s」。" % ACTIONS[used][0]
+	if not used.is_empty() and used != action: return tr("这个键已用于「%s」。") % tr(ACTIONS[used][0])
 	var updated = bindings.duplicate()
 	updated[action] = key
 	return _commit(updated)

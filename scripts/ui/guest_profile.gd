@@ -102,17 +102,17 @@ func _ready() -> void:
 func present(sim, customer: Dictionary, traits: String, reveal := false) -> void:
 	var id = int(customer.id)
 	var state = str(customer.state)
-	var info = PHASES.get(state, [0, "在餐厅"])
+	var info = PHASES.get(state, [0, tr("在餐厅")])
 	var changed = id != guest_id or state != last_state
 	var def = sim.guest_defs[customer.type]
 	var accent = Style.RED if def.rarity == "special" else (Style.GOLD if def.rarity == "rare" else Style.GREEN)
 	if changed or reveal:
 		hero.add_theme_stylebox_override("panel", Style.box(Color("192f34"), accent.darkened(.5), 10, 8))
-		phase_label.text = info[1]
+		phase_label.text = tr(str(info[1]))
 		phase_label.add_theme_color_override("font_color", accent)
-		var caption = {"normal": "日常客人", "rare": "稀有客人", "special": "特殊来客"}[def.rarity]
+		var caption = {"normal": tr("日常客人"), "rare": tr("稀有客人"), "special": tr("特殊来客")}[def.rarity]
 		if int(customer.party_size) > 1:
-			caption += " · %d 人同行" % int(customer.party_size)
+			caption += tr(" · %d 人同行") % int(customer.party_size)
 		category.text = caption
 		avatar.set_visual(str(customer.type))
 		var pose = "eat" if state == "EATING" else ("walk" if int(info[0]) == 0 or int(info[0]) == 4 else "idle")
@@ -124,7 +124,7 @@ func present(sim, customer: Dictionary, traits: String, reveal := false) -> void
 		phase_animation.tween_property(phase_label, "modulate:a", 1.0, .26)
 	guest_id = id
 	last_state = state
-	dish.text = "尚未选菜" if str(customer.recipe).is_empty() else "所点菜 · " + str(sim.recipes[customer.recipe].name)
+	dish.text = tr("尚未选菜") if str(customer.recipe).is_empty() else tr("所点菜 · ") + tr(str(sim.recipes[customer.recipe].name))
 	trait_label.text = traits
 	trait_label.visible = not traits.is_empty()
 	_update_meter(sim, customer, changed or reveal)
@@ -148,13 +148,13 @@ func _update_meter(sim, customer: Dictionary, reset: bool) -> void:
 	var tint = Style.GREEN
 	match str(customer.state):
 		"QUEUE":
-			meter_title.text = "已排队"
-			meter_value.text = "%.1f 秒" % (float(sim.tick - int(customer.arrival_tick)) * seconds)
+			meter_title.text = tr("已排队")
+			meter_value.text = tr("%.1f 秒") % (float(sim.tick - int(customer.arrival_tick)) * seconds)
 		"FOOD":
 			var unlimited = bool(sim.guest_defs[customer.type].get("unlimited_food_wait", false))
 			var end = int(customer.next_penalty if unlimited else customer.food_max)
-			meter_title.text = "距下次扣声望" if unlimited else "剩余等餐耐心"
-			meter_value.text = "%.1f 秒" % (maxi(0, end - sim.tick) * seconds)
+			meter_title.text = tr("距下次扣声望") if unlimited else tr("剩余等餐耐心")
+			meter_value.text = tr("%.1f 秒") % (maxi(0, end - sim.tick) * seconds)
 			var duration = sim._guest_seconds(customer, "cycle" if unlimited else "food_max")
 			progress = clampf(float(end - sim.tick) * seconds / maxf(seconds, duration), 0, 1)
 			tint = Style.RED if progress < .28 or unlimited else Style.GOLD
@@ -162,11 +162,11 @@ func _update_meter(sim, customer: Dictionary, reset: bool) -> void:
 			var duration = sim._guest_seconds(customer, "eat")
 			var remaining = maxi(0, int(customer.deadline) - sim.tick) * seconds
 			progress = clampf(1.0 - remaining / maxf(seconds, duration), 0, 1)
-			meter_title.text = "用餐进度"
-			meter_value.text = "剩 %.1f 秒" % remaining
+			meter_title.text = tr("用餐进度")
+			meter_value.text = tr("剩 %.1f 秒") % remaining
 		"STAYING":
-			meter_title.text = "已完成用餐"
-			meter_value.text = "等同桌客人"
+			meter_title.text = tr("已完成用餐")
+			meter_value.text = tr("等同桌客人")
 			progress = 1.0
 	meter_panel.visible = progress >= 0.0 or customer.state == "QUEUE"
 	meter.visible = progress >= 0.0

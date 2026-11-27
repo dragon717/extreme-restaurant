@@ -25,7 +25,18 @@
 
 ## 素材对照
 
-封面、九宫格底板、图标、信使与厨师行走帧、水流和灶火均使用本次生成的图像。封面、技能栏见 scenes/title.tscn 与 scenes/service_skills.tscn。原作顾客与街景沿用原绘制系统。音乐入口是标题场景的 Soundtrack 节点，绑定有游戏使用授权的 AudioStream 可贯穿营业过程。
+峡谷首页、顶栏和场景招牌采用原型画稿与生图素材。六位特色员工使用重新绘制的岗位动作，选将与技能栏的原图标接自 PC 版资源。建筑、桥梁及室内岗位共用固定机位的三维场景。[素材与版本依据](原型/设计依据.md)
+
+两章各有 28 个营业日，第 1、8、15、22 天起分别播放春、夏、秋、冬的配乐。标题场景的 Soundtrack 会按所选章节的存档选曲，进入餐厅、开店和看日报时沿用同一播放位置。四首游戏版录音在 `assets/music/`，各为 144 拍，速度统一为每分钟 84 拍。每首在乐句内循环，换季从下一拍起用两拍交叉淡化。
+
+场景和音乐读取同一份章节日历。春季庭院飘花，夏季草木转绿，秋季河岸转金，落叶沿石径和进店路散布。近处的客人和行人会把脚旁几片叶子拨开，叶子停在新的位置。冬天地面积雪，交替脚印留在行走路线上，落脚时扬起的雪粉和细冰粒各自落下。营业天气继续取当天预报。切换屋顶、进出菜单及开店均保留配乐进度，设置页可单独开关音乐。
+
+配乐以《召唤师峡谷》的管弦地图音乐为参考，使用 Suno 生成。此次使用 Free 账户的试用下载额度，适用于个人非商业项目。[Riot 地图配乐说明](https://www.leagueoflegends.com/en-sg/news/game-updates/patch-14-1-notes/) · [Suno 下载授权说明](https://suno.com/blog/suno-updates-tos)
+
+- 春 · 石桥初晴，长笛短句与双簧管应答。[Suno 原曲](https://suno.com/song/bd0ff4c4-687a-48f8-8ee0-e187e2e78d5c)
+- 夏 · 河港晚市，拨弦和木管写夜市来客的脚步。[Suno 原曲](https://suno.com/song/3d8b728f-9909-4363-83df-f1226d4a3865)
+- 秋 · 琥珀渡口，中提琴与大管铺开较长的乐句。[Suno 原曲](https://suno.com/song/56e24fa9-8595-4316-8bec-318b199350da)
+- 冬 · 炉火守夜，低音木管和大提琴留出停顿。[Suno 原曲](https://suno.com/song/e9155e3b-e594-4cca-8c22-92d17bb921c6)
 
 - [GitHub 英雄技能图标目录](https://github.com/TheePepS/League_Of_Legends_Assets/tree/master/Champions_Spells_Assets)
 - [希维尔 R 图标](https://github.com/TheePepS/League_Of_Legends_Assets/blob/master/Champions_Spells_Assets/Sivir_On_The_Hunt.png)
@@ -33,6 +44,22 @@
 - [GitHub 英雄头像目录](https://github.com/TheePepS/League_Of_Legends_Assets/tree/master/Champions_assets)
 - [CommunityDragon 的 scuttle.png 图标索引](https://raw.communitydragon.org/16.11/plugins/rcp-fe-lol-champ-select/global/default/images/subteams/)
 - [GitHub 上按英雄整理的语音与音效](https://github.com/VaultSoft/sound-vault)
-- [GitHub 音乐播放列表，含 Awaken、RISE、Phoenix 和 Legends Never Die](https://github.com/Dev-Pedrosv/lol-media-player/tree/master/src/assets/audio/mp3)。这些是检索到的原曲，项目目前未收录背景音乐。
+- [原版音乐调研，含 Awaken、RISE、Phoenix 和 Legends Never Die](https://github.com/Dev-Pedrosv/lol-media-player/tree/master/src/assets/audio/mp3)。
 - [CommunityDragon 的客户端资源路径说明](https://github.com/CommunityDragon/Docs/blob/master/assets.md)
 - [Riot 对游戏使用素材的规则，第 3 条](https://www.riotgames.com/en/legal)
+
+## 首班员工进店
+
+新局确认五位特色员工后，当班阵容与补位小兵在门外集合。员工单列走上门廊，穿过打开的门扇，按当晚可通行方格前往各自站位。最后一人越过门槛后镜头抬起。右下角可以切换三倍速或跳过本次入场；读档直接恢复原来岗位。脚步相位取自实际行程，侧行和背行使用独立画帧，支撑脚在换重心前固定在地面。炮车以车轮接地。
+
+### 小兵岗位专长
+
+补位兵种可在「选择本局英雄」的「补位小兵」或夜间的「今日排班」逐个调整，随本局存档保存。首次补位与缺少兵种字段的旧存档默认使用近战小兵。小兵占厨师或服务员的实际名额。
+
+| 兵种 | 厨师 | 服务员 |
+| --- | --- | --- |
+| 近战小兵 | 前往灶位时移速提高 6% | 前往客桌接单时移速提高 6% |
+| 法师小兵 | 烹饪用时减少 4% | 桌边点单用时减少 10% |
+| 炮车兵 | 搬运成菜到出餐口时移速提高 8% | 持菜送往客桌时移速提高 8% |
+
+三种小兵的外形参考 PC 客户端对应单位，侧面与背面动作按本项目角色图重绘。[近战小兵](https://raw.communitydragon.org/16.23/game/assets/characters/sru_orderminionmelee/hud/bluemelee_square.png) · [法师小兵](https://raw.communitydragon.org/16.23/game/assets/characters/sru_orderminionranged/hud/bluerange_square.png) · [炮车兵](https://raw.communitydragon.org/16.23/game/assets/characters/sru_orderminionsiege/hud/bluemechcannon_square.png)

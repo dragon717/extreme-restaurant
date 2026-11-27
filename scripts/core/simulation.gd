@@ -10,6 +10,7 @@ const ServiceRoutes = preload("res://scripts/core/service_routes.gd")
 const Rules = preload("res://scripts/core/rules.gd")
 const Decor = preload("res://scripts/core/decoration_effects.gd")
 const ReportStats = preload("res://scripts/core/report_stats.gd")
+const Crew = preload("res://scripts/core/crew_roster.gd")
 const UPGRADE_ORDER = ["tables", "waiters", "chefs", "menu_slots", "relic_slots", "queue_capacity"]
 const PARTY_SIZES = [1, 2, 4]
 
@@ -54,9 +55,78 @@ var tick_ms = 50
 var current_until := 0
 var current_ready := 0
 var current_cell := Vector2.ZERO
+const Minions = preload("res://scripts/core/minion_staff.gd")
+var helper_staff := {}
+var crew_lineup: Array = []
+var linked_fire_ready := 0
+var linked_fire_until := 0
+var linked_fire_origin := Vector2.ZERO
+var linked_fire_stoves: Array = []
+const LINKED_FIRE_RANGE := 4.5
+const LINKED_FIRE_PREP_SECONDS := 1.65
+const LINKED_FIRE_COOLDOWN := 26.0
+
+func set_crew(lineup: Array) -> bool:
+	if not Crew.valid(lineup): return false
+	crew_lineup = lineup.duplicate(true)
+	revision += 1
+	return true
+
+func helper_at(role: String,slot: int) -> String:
+	var index := slot-Crew.by_role(crew_lineup,role).size()
+	return Minions.at(helper_staff,role,index) if index>=0 else ""
+
+func staff_skin(role: String,slot: int) -> String:
+	var id := crew_at(role,slot)
+	return id if not id.is_empty() else "minion_"+helper_at(role,slot)
+
+func crew_at(role: String, slot: int) -> String:
+	var members := Crew.by_role(crew_lineup, role)
+	return str(members[slot]) if slot >= 0 and slot < members.size() else ""
+
+func crew_on_duty(id: String, role: String) -> bool:
+	return crew_lineup.any(func(entry): return entry.id == id and entry.role == role)
+
+func linked_fire_targets() -> Array:
+	if phase != "DAY" or not crew_on_duty("kilnkeeper", "chef"): return []
+	var lead = staff.filter(func(member): return member.get("crew_id", "") == "kilnkeeper")
+	if lead.is_empty(): return []
+	var origin: Vector2 = lead[0].pos
+	var targets: Array = []
+	for chef in staff:
+		var pot: Dictionary = chef.task
+		if pot.get("kind") != "COOK" or pot.stage != "PREP": continue
+		var stove := Grid.find(layout, str(pot.stove_id))
+		if stove.is_empty(): continue
+		var distance := Grid.vec(stove.pos).distance_to(origin)
+		if distance > LINKED_FIRE_RANGE or tick < int(pot.prep_ready_tick): continue
+		if not pot.order_ids.any(func(id): return _order_active(int(id)) and orders[int(id)].supply == "COOKING" and int(orders[int(id)].supply_owner) == int(chef.id)): continue
+		targets.append({"chef": chef, "stove": stove, "distance": distance})
+	targets.sort_custom(func(a, b): return a.distance < b.distance)
+	return targets.slice(0, 3)
+
+func call_linked_fire() -> bool:
+	if phase != "DAY" or paused or tick < linked_fire_ready: return false
+	var targets := linked_fire_targets()
+	if targets.is_empty(): return false
+	var lead = staff.filter(func(member): return member.get("crew_id", "") == "kilnkeeper")[0]
+	linked_fire_origin = lead.pos
+	linked_fire_stoves.clear()
+	for target in targets:
+		var pot: Dictionary = target.chef.task
+		pot.stage = "ACTION"
+		pot.linked = true
+		var remaining := maxi(1, int(pot.done_tick) - tick)
+		pot.started_tick = tick
+		pot.done_tick = tick + maxi(1, roundi(remaining * .55))
+		linked_fire_stoves.append(Grid.vec(target.stove.pos))
+	linked_fire_ready = tick + Rules.ticks(LINKED_FIRE_COOLDOWN, tick_ms)
+	linked_fire_until = tick + Rules.ticks(.80, tick_ms)
+	return true
 
 func call_current() -> bool:
 	if phase != "DAY" or paused or tick < current_ready: return false
+	if not crew_lineup.is_empty() and not crew_on_duty("ferrier", "waiter"): return false
 	current_cell = Grid.vec(Grid.find(layout, "pass").pos)
 	current_until = tick + Rules.ticks(8.0, tick_ms)
 	current_ready = tick + Rules.ticks(28.0, tick_ms)
@@ -200,7 +270,7 @@ func major_events_for(for_day: int = -1) -> Array:
 	return events_for(for_day).filter(func(event): return event.has("notice"))
 
 func confirm_major_event(id: String) -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":"请在夜晚确认重大事件"}
+	if phase != "NIGHT": return {"ok":false,"error":tr("请在夜晚确认重大事件")}
 	for event in major_events_for():
 		if event.id != id: continue
 		if id in major_event_claims: return {"ok":true,"grant":{}}
@@ -209,7 +279,7 @@ func confirm_major_event(id: String) -> Dictionary:
 		major_event_claims.append(id)
 		revision += 1
 		return {"ok":true,"grant":grant}
-	return {"ok":false,"error":"这个重大事件已结束或尚未开始"}
+	return {"ok":false,"error":tr("这个重大事件已结束或尚未开始")}
 
 func _credit_event(grant: Dictionary) -> void:
 	gold += int(grant.get("gold", 0))
@@ -256,15 +326,15 @@ func next_land_plot() -> Dictionary:
 func land_plot_status(id: String) -> Dictionary:
 	for plot in chapter.land_plots:
 		if str(plot.id)!=id: continue
-		if id in layout.unlocked_plots: return {"ok":false,"error":"该地块已经解锁"}
-		if str(next_land_plot().get("id",""))!=id: return {"ok":false,"error":"需按顺序先解锁前面的地块"}
-		if day < int(plot.unlock_day): return {"ok":false,"error":"第 %d 天解锁" % int(plot.unlock_day)}
-		if stars < int(plot.star_cost): return {"ok":false,"error":"闪星不足，还差 %d" % (int(plot.star_cost)-stars)}
+		if id in layout.unlocked_plots: return {"ok":false,"error":tr("该地块已经解锁")}
+		if str(next_land_plot().get("id",""))!=id: return {"ok":false,"error":tr("需按顺序先解锁前面的地块")}
+		if day < int(plot.unlock_day): return {"ok":false,"error":tr("第 %d 天解锁") % int(plot.unlock_day)}
+		if stars < int(plot.star_cost): return {"ok":false,"error":tr("闪星不足，还差 %d") % (int(plot.star_cost)-stars)}
 		return {"ok":true,"error":""}
-	return {"ok":false,"error":"地块不存在"}
+	return {"ok":false,"error":tr("地块不存在")}
 
 func unlock_land_plot(id: String) -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":"只能在夜晚解锁地块"}
+	if phase != "NIGHT": return {"ok":false,"error":tr("只能在夜晚解锁地块")}
 	var status = land_plot_status(id)
 	if not status.ok: return status
 	var plot = next_land_plot()
@@ -277,10 +347,10 @@ func unlock_land_plot(id: String) -> Dictionary:
 		if fixture.type == "table": added_tables += Grid.table_size(fixture)
 		if fixture.type == "trophy": awarded.append(str(fixture.relic_id))
 	if int(attributes.chefs)+int(plot.grant_chefs)>int(chapter.attribute_caps.chefs) or int(attributes.tables)+added_tables>int(chapter.attribute_caps.tables):
-		return {"ok":false,"error":"赠送家具超过本章容量，请检查配置"}
-	if Grid.facilities(updated,"trophy").size()>int(attributes.relic_slots): return {"ok":false,"error":"奖杯展示位不足"}
+		return {"ok":false,"error":tr("赠送家具超过本章容量，请检查配置")}
+	if Grid.facilities(updated,"trophy").size()>int(attributes.relic_slots): return {"ok":false,"error":tr("奖杯展示位不足")}
 	var route_errors = Grid.errors(updated)
-	if not route_errors.is_empty(): return {"ok":false,"error":"地块通路冲突："+str(route_errors[0])}
+	if not route_errors.is_empty(): return {"ok":false,"error":tr("地块通路冲突：")+str(route_errors[0])}
 	stars -= int(plot.star_cost)
 	layout = updated
 	attributes.chefs += int(plot.grant_chefs)
@@ -294,7 +364,7 @@ func upgrade_gate(key: String) -> Dictionary:
 	var gate = chapter.upgrade_unlocks[key]
 	var unlock = int(gate.unlock_day)
 	if unlock > 0 and day < unlock:
-		return {"ok":false,"error":"第 %d 天解锁" % unlock}
+		return {"ok":false,"error":tr("第 %d 天解锁") % unlock}
 	var cap = 0
 	var next_day = 0
 	for entry in gate.purchase_caps:
@@ -302,9 +372,9 @@ func upgrade_gate(key: String) -> Dictionary:
 		elif next_day == 0: next_day = int(entry.day)
 	var purchased = int(upgrade_purchases.get(key,0))
 	if int(attributes[key]) >= int(chapter.attribute_caps[key]) - _reserved_plot_gifts(key):
-		return {"ok":false,"error":"预留地块赠送容量，请先解锁场地"}
+		return {"ok":false,"error":tr("预留地块赠送容量，请先解锁场地")}
 	if cap > 0 and purchased >= cap:
-		return {"ok":false,"error":"本阶段已达上限" + (" · 第 %d 天开放更多" % next_day if next_day > 0 else "")}
+		return {"ok":false,"error":tr("本阶段已达上限") + (tr(" · 第 %d 天开放更多") % next_day if next_day > 0 else "")}
 	return {"ok":true,"error":""}
 
 func upgrade_progression() -> Dictionary:
@@ -330,17 +400,17 @@ func upgrade_gold_cost(key: String) -> int:
 
 func upgrade_status(key: String) -> Dictionary:
 	if phase != "NIGHT" or not attributes.has(key):
-		return {"ok": false, "error": "仅能在夜晚扩容"}
+		return {"ok": false, "error": tr("仅能在夜晚扩容")}
 	if attributes[key] >= chapter.attribute_caps[key]:
-		return {"ok": false, "error": "已达到本章上限"}
+		return {"ok": false, "error": tr("已达到本章上限")}
 	var gate = upgrade_gate(key)
 	if not gate.ok: return gate
 	var missing: Array[String] = []
 	var rep_cost = upgrade_cost(key)
 	var gold_cost = upgrade_gold_cost(key)
-	if reputation < rep_cost: missing.append("%d 声望" % (rep_cost - reputation))
-	if gold < gold_cost: missing.append("%d 金币" % (gold_cost - gold))
-	if not missing.is_empty(): return {"ok": false, "error": "还差 " + "和".join(missing)}
+	if reputation < rep_cost: missing.append(tr("%d 声望") % (rep_cost - reputation))
+	if gold < gold_cost: missing.append(tr("%d 金币") % (gold_cost - gold))
+	if not missing.is_empty(): return {"ok": false, "error": tr("还差 ") + tr("和").join(missing)}
 	return {"ok": true, "error": ""}
 
 func upgrade(key: String) -> Dictionary:
@@ -384,13 +454,13 @@ func decoration_shop_unlocked() -> bool:
 
 func buy_decoration(id: String) -> Dictionary:
 	if phase != "NIGHT" or not decoration_shop_unlocked():
-		return {"ok": false, "error": "装饰商店尚未开放"}
+		return {"ok": false, "error": tr("装饰商店尚未开放")}
 	if not decoration_defs.has(id):
-		return {"ok": false, "error": "该装饰不存在"}
+		return {"ok": false, "error": tr("该装饰不存在")}
 	var definition = decoration_defs[id]
 	var price = int(definition.price)
 	if gold < price:
-		return {"ok": false, "error": "金币不足，还差 %d" % (price - gold)}
+		return {"ok": false, "error": tr("金币不足，还差 %d") % (price - gold)}
 	var facility_id = _next_fixture_id(layout, "decoration")
 	layout.facilities.append({
 		"id": facility_id, "type": "decoration", "name": definition.name,
@@ -413,30 +483,30 @@ func decoration_can_place(preview: Dictionary) -> bool:
 
 func move_facility(id: String, cell: Vector2i, decoration_turns := -1) -> Dictionary:
 	if phase != "NIGHT":
-		return {"ok": false, "error": "营业中不能移动设施"}
+		return {"ok": false, "error": tr("营业中不能移动设施")}
 	var target = Grid.find(layout, id)
 	if target.is_empty():
-		return {"ok": false, "error": "未找到设施"}
+		return {"ok": false, "error": tr("未找到设施")}
 	if target.type in ["slot", "trophy_shop", "decor_shop"]:
-		return {"ok": false, "error": "商店的位置固定"}
-	if not Grid.locked_plot_at(layout,cell).is_empty(): return {"ok":false,"error":"该地块尚未解锁"}
+		return {"ok": false, "error": tr("商店的位置固定")}
+	if not Grid.locked_plot_at(layout,cell).is_empty(): return {"ok":false,"error":tr("该地块尚未解锁")}
 	if Grid.structural_blocked(layout,cell):
-		return {"ok": false, "error": "不能放在墙体或地图边界"}
+		return {"ok": false, "error": tr("不能放在墙体或地图边界")}
 	if target.type == "trophy":
 		var zone = chapter.trophy_zone
 		if cell.x < int(zone.left) or cell.x > int(zone.right) or cell.y < int(zone.top) or cell.y > int(zone.bottom):
-			return {"ok":false,"error":"奖杯仅能放在展廊展示区"}
+			return {"ok":false,"error":tr("奖杯仅能放在展廊展示区")}
 		if not Grid.placed(target) and Grid.facilities(layout,"trophy").size() >= int(attributes.relic_slots):
-			return {"ok":false,"error":"奖杯展示位已满，请升级容量或收起奖杯"}
+			return {"ok":false,"error":tr("奖杯展示位已满，请升级容量或收起奖杯")}
 	var occupant = Grid.facility_at(layout, cell)
 	if not occupant.is_empty() and occupant.id != id:
 		if target.type == "table" and occupant.type == "table": return _merge_tables(target, occupant)
-		return {"ok": false, "error": "这个格子已有设施"}
+		return {"ok": false, "error": tr("这个格子已有设施")}
 	var prior_turns = Grid.rotation(target)
 	if target.type == "decoration" and decoration_turns >= 0: target.rotation = posmod(decoration_turns, 4)
 	if not _place_fixture(layout, target, cell):
 		if target.type == "decoration": target.rotation = prior_turns
-		return {"ok":false,"error":"此处没有足够空间，或会阻断通路和设施交互"}
+		return {"ok":false,"error":tr("此处没有足够空间，或会阻断通路和设施交互")}
 	revision += 1
 	return {"ok": true}
 
@@ -473,20 +543,20 @@ func trophy_placement_cells(id: String) -> Dictionary:
 func preview_table_merge(source: Dictionary, target: Dictionary) -> Dictionary:
 	var size = Grid.table_size(source)
 	if size == 4 or size != Grid.table_size(target):
-		return {"ok":false,"error":"两张单人桌或两张双人桌才能合成"}
+		return {"ok":false,"error":tr("两张单人桌或两张双人桌才能合成")}
 	var updated = layout.duplicate(true)
 	updated.facilities.erase(Grid.find(updated, str(source.id)))
 	var merged = Grid.find(updated, str(target.id))
 	merged.capacity = size * 2
 	merged.name = Grid.table_label(merged.capacity)
 	if not _place_fixture(updated, merged, Vector2i(Grid.vec(merged.pos))):
-		return {"ok":false,"error":"空间不足，放不下%s。请留出桌面和座位的通路。" % merged.name}
+		return {"ok":false,"error":tr("空间不足，放不下%s。请留出桌面和座位的通路。") % merged.name}
 	return {"ok":true,"facility_id":str(merged.id),"merged_size":int(merged.capacity),"layout":updated}
 
 func split_facility(id: String) -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":"仅能在夜晚拆分餐桌"}
+	if phase != "NIGHT": return {"ok":false,"error":tr("仅能在夜晚拆分餐桌")}
 	var table = Grid.find(layout, id)
-	if not Grid.can_split(table): return {"ok":false,"error":"请选择双人桌或四人桌"}
+	if not Grid.can_split(table): return {"ok":false,"error":tr("请选择双人桌或四人桌")}
 	var updated = layout.duplicate(true)
 	var first = Grid.find(updated, id)
 	var size = Grid.table_size(first)
@@ -509,7 +579,7 @@ func split_facility(id: String) -> Dictionary:
 			else: second.rotation = opposite
 		second.pos = [cell.x, cell.y]
 	updated.facilities.append(second)
-	if not Grid.errors(updated).is_empty(): return {"ok":false,"error":"拆分后的桌位无法通行"}
+	if not Grid.errors(updated).is_empty(): return {"ok":false,"error":tr("拆分后的桌位无法通行")}
 	layout = updated
 	revision += 1
 	return {"ok":true,"facility_id":id,"second_id":str(second.id),"size":half}
@@ -528,16 +598,16 @@ func wall_placement_status(cell: Vector2i) -> Dictionary:
 	return wall_row_status([cell])
 
 func wall_row_status(cells: Array) -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":"仅能在夜晚建造墙体"}
-	if cells.is_empty(): return {"ok":false,"error":"请在餐厅内选定墙体位置"}
+	if phase != "NIGHT": return {"ok":false,"error":tr("仅能在夜晚建造墙体")}
+	if cells.is_empty(): return {"ok":false,"error":tr("请在餐厅内选定墙体位置")}
 	var interior = Rect2i(1, 1, int(layout.width) - 2, int(layout.height) - 2)
 	var obstacles = Grid.solid_cells(layout)
 	for cell in cells:
-		if not cell is Vector2i or not interior.has_point(cell): return {"ok":false,"error":"墙体需要放在室内空格"}
-		if not Grid.locked_plot_at(layout, cell).is_empty(): return {"ok":false,"error":"该地块尚未解锁"}
-		if obstacles.has(cell): return {"ok":false,"error":"墙体需要放在室内空格"}
+		if not cell is Vector2i or not interior.has_point(cell): return {"ok":false,"error":tr("墙体需要放在室内空格")}
+		if not Grid.locked_plot_at(layout, cell).is_empty(): return {"ok":false,"error":tr("该地块尚未解锁")}
+		if obstacles.has(cell): return {"ok":false,"error":tr("墙体需要放在室内空格")}
 		obstacles[cell] = true
-	if not Grid.errors(layout, obstacles).is_empty(): return {"ok":false,"error":"墙体会阻断通路、座位或员工站位"}
+	if not Grid.errors(layout, obstacles).is_empty(): return {"ok":false,"error":tr("墙体会阻断通路、座位或员工站位")}
 	return {"ok":true}
 
 func place_wall(cell: Vector2i) -> Dictionary:
@@ -574,29 +644,29 @@ func _place_fixture(board: Dictionary, fixture: Dictionary, cell: Vector2i, rota
 	return false
 
 func rotate_facility(id: String) -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":"仅能在夜晚旋转设施"}
+	if phase != "NIGHT": return {"ok":false,"error":tr("仅能在夜晚旋转设施")}
 	var facility = Grid.find(layout, id)
-	if not Grid.can_rotate(facility): return {"ok":false,"error":"这件设施不可旋转"}
+	if not Grid.can_rotate(facility): return {"ok":false,"error":tr("这件设施不可旋转")}
 	if Grid.placed(facility):
 		if not _place_fixture(layout, facility, Vector2i(Grid.vec(facility.pos)), true):
-			return {"ok":false,"error":"其他朝向没有足够空间或无法通行"}
+			return {"ok":false,"error":tr("其他朝向没有足够空间或无法通行")}
 	else:
 		facility.rotation = (Grid.rotation(facility) + 1) % Grid.FACING.size()
 	revision += 1
 	return {"ok":true}
 
 func move_staff(role: String, index: int, cell: Vector2i) -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":"仅能在夜晚调整员工站位"}
+	if phase != "NIGHT": return {"ok":false,"error":tr("仅能在夜晚调整员工站位")}
 	if role not in ["chef", "waiter"] or index < 0 or index >= int(attributes[role + "s"]):
-		return {"ok":false,"error":"未找到员工"}
+		return {"ok":false,"error":tr("未找到员工")}
 	var region = Grid.walkable_region(layout)
 	if not region.has(cell) or cell in [Vector2i(Grid.vec(layout.entrance)), Vector2i(Grid.vec(layout.exit))]:
-		return {"ok":false,"error":"请选择可通行的室内空格"}
+		return {"ok":false,"error":tr("请选择可通行的室内空格")}
 	var positions = Grid.staff_positions(layout, attributes, region)
 	for other_role in positions:
 		var other_index = positions[other_role].find(cell)
 		if other_index >= 0 and (other_role != role or other_index != index):
-			return {"ok":false,"error":"这个格子已有员工"}
+			return {"ok":false,"error":tr("这个格子已有员工")}
 	var previous = positions[role][index]
 	if previous == cell: return {"ok":true}
 	positions[role][index] = cell
@@ -614,7 +684,7 @@ func move_staff(role: String, index: int, cell: Vector2i) -> Dictionary:
 func store_facility(id: String) -> Dictionary:
 	var target = Grid.find(layout, id)
 	if phase != "NIGHT" or not Grid.can_store(target):
-		return {"ok": false, "error": "仅能在夜晚收起餐桌、灶台、奖杯或自建墙体"}
+		return {"ok": false, "error": tr("仅能在夜晚收起餐桌、灶台、奖杯或自建墙体")}
 	if target.type == "wall": layout.facilities.erase(target)
 	else: target.pos = [-1, -1]
 	revision += 1
@@ -623,29 +693,29 @@ func store_facility(id: String) -> Dictionary:
 func opening_errors() -> Array:
 	var errors = Grid.errors(layout)
 	if menu.is_empty() or menu.size() > int(attributes.menu_slots):
-		errors.append("至少上架一道菜，且不能超出菜单容量")
+		errors.append(tr("至少上架一道菜，且不能超出菜单容量"))
 	if Grid.facilities(layout, "table").is_empty():
-		errors.append("至少放置一张餐桌")
+		errors.append(tr("至少放置一张餐桌"))
 	if Grid.facilities(layout, "stove").size() < int(attributes.chefs):
-		errors.append("每位厨师需要一个已放置的灶台")
+		errors.append(tr("每位厨师需要一个已放置的灶台"))
 	if Grid.facilities(layout,"trophy").size() > int(attributes.relic_slots):
-		errors.append("展示的奖杯超过当前遗物上限")
+		errors.append(tr("展示的奖杯超过当前遗物上限"))
 	for relic in Grid.facilities(layout,"trophy"):
 		var cell = Vector2i(Grid.vec(relic.pos))
 		var zone = chapter.trophy_zone
 		if cell.x < int(zone.left) or cell.x > int(zone.right) or cell.y < int(zone.top) or cell.y > int(zone.bottom):
-			errors.append("奖杯超出右上展示区")
+			errors.append(tr("奖杯超出右上展示区"))
 	if Grid.facilities(layout, "pass").size() != 1 or Grid.facilities(layout, "order").size() != 1:
-		errors.append("需要一个订单口与一个出餐口")
+		errors.append(tr("需要一个订单口与一个出餐口"))
 	return errors
 
 func change_menu(slot: int, recipe_id: String) -> Dictionary:
 	if phase != "NIGHT" or recipe_id not in owned_recipes:
-		return {"ok": false, "error": "仅可在夜晚更换已拥有菜谱"}
+		return {"ok": false, "error": tr("仅可在夜晚更换已拥有菜谱")}
 	if recipe_id in menu:
-		return {"ok": false, "error": "这道菜已上架"}
+		return {"ok": false, "error": tr("这道菜已上架")}
 	if slot < 0 or slot > menu.size() or slot >= int(attributes.menu_slots):
-		return {"ok": false, "error": "无可用菜单槽位"}
+		return {"ok": false, "error": tr("无可用菜单槽位")}
 	if slot == menu.size():
 		menu.append(recipe_id)
 	else:
@@ -655,7 +725,7 @@ func change_menu(slot: int, recipe_id: String) -> Dictionary:
 
 func remove_menu(slot: int) -> Dictionary:
 	if phase != "NIGHT" or menu.size() <= 1 or slot < 0 or slot >= menu.size():
-		return {"ok": false, "error": "至少保留一道上架菜"}
+		return {"ok": false, "error": tr("至少保留一道上架菜")}
 	menu.remove_at(slot)
 	revision += 1
 	return {"ok": true}
@@ -737,21 +807,21 @@ func _weighted_shop_items(candidates: Array, definitions: Dictionary, field: Str
 
 func buy_offer(index: int, replacement: int = -1) -> Dictionary:
 	if not purchase_unlocked():
-		return {"ok": false, "error": "先解锁采购小厅"}
+		return {"ok": false, "error": tr("先解锁采购小厅")}
 	if phase != "NIGHT" or index < 0 or index >= shop.size():
-		return {"ok": false, "error": "仅在夜晚购买"}
+		return {"ok": false, "error": tr("仅在夜晚购买")}
 	var offer = shop[index]
 	if offer.bought or offer.type in ["empty", "empty_buff"]:
-		return {"ok": false, "error": "此格没有可购买商品"}
+		return {"ok": false, "error": tr("此格没有可购买商品")}
 	if gold < int(offer.price):
-		return {"ok": false, "error": "金币不足，还差 %d" % (int(offer.price) - gold)}
+		return {"ok": false, "error": tr("金币不足，还差 %d") % (int(offer.price) - gold)}
 	if offer.type == "recipe":
 		if offer.id in owned_recipes:
-			return {"ok": false, "error": "已拥有该菜谱"}
+			return {"ok": false, "error": tr("已拥有该菜谱")}
 		if menu.size() >= int(attributes.menu_slots) and replacement < 0:
-			return {"ok": false, "needs_replacement": true, "error": "选择要替换的菜品，确认后才扣款"}
+			return {"ok": false, "needs_replacement": true, "error": tr("选择要替换的菜品，确认后才扣款")}
 		if replacement >= menu.size():
-			return {"ok": false, "error": "替换槽位无效"}
+			return {"ok": false, "error": tr("替换槽位无效")}
 		gold -= int(offer.price)
 		owned_recipes.append(offer.id)
 		if menu.size() < int(attributes.menu_slots):
@@ -770,10 +840,10 @@ func buy_offer(index: int, replacement: int = -1) -> Dictionary:
 
 func grant_buff(id: String, days: int) -> Dictionary:
 	if not buff_defs.has(id) or days < 1 or phase != "NIGHT":
-		return {"ok": false, "error": "Buff 授予参数 / 阶段无效"}
+		return {"ok": false, "error": tr("Buff 授予参数 / 阶段无效")}
 	var old = buff_states.get(id, {"stack_count": 0, "remaining_days": 0})
 	if int(old.stack_count) >= int(buff_defs[id].max_stacks):
-		return {"ok": false, "error": "该 Buff 已达层数上限"}
+		return {"ok": false, "error": tr("该 Buff 已达层数上限")}
 	buff_states[id] = {"stack_count": int(old.stack_count) + 1, "remaining_days": int(old.remaining_days) + days}
 	return {"ok": true}
 
@@ -811,13 +881,16 @@ func meal_price(recipe_id: String, quality: float, pricing: Dictionary, guest: D
 
 func start_day() -> Dictionary:
 	if phase != "NIGHT":
-		return {"ok": false, "error": "已经开店"}
+		return {"ok": false, "error": tr("已经开店")}
 	var errors = opening_errors()
 	if not errors.is_empty():
 		return {"ok": false, "error": "\n".join(errors)}
 	phase = "DAY"
 	current_until = 0
 	current_ready = 0
+	linked_fire_ready = 0
+	linked_fire_until = 0
+	linked_fire_stoves.clear()
 	paused = false
 	tick = 0
 	customers = {}
@@ -860,8 +933,11 @@ func start_day() -> Dictionary:
 	_prepare_idle_walks()
 	var positions = Grid.staff_positions(layout, attributes)
 	for role in positions:
-		for cell in positions[role]:
-			staff.append({"id": staff.size() + 1, "role": role, "pos": Vector2(cell), "task": {}, "path": [], "carry_order": 0, "carry_food": [], "reason": "暂无任务", "time": {"move": 0, "cook": 0, "interact": 0, "idle": 0, "blocked": 0}})
+		var members := Crew.by_role(crew_lineup, role)
+		for slot in range(positions[role].size()):
+			var cell = positions[role][slot]
+			var crew_id := str(members[slot]) if slot < members.size() else ""
+			staff.append({"id": staff.size() + 1, "role": role, "crew_id": crew_id, "minion":helper_at(role,slot), "pos": Vector2(cell), "task": {}, "path": [], "carry_order": 0, "carry_food": [], "reason": "暂无任务", "time": {"move": 0, "cook": 0, "interact": 0, "idle": 0, "blocked": 0}})
 			if role == "waiter":
 				staff.back().idle_walk_after = _idle_walk_delay(2.6, 5.8)
 	_build_arrivals()
@@ -903,10 +979,10 @@ func trophy_shop_cell() -> Vector2i:
 	return Vector2i(Grid.vec(fixture.pos)) if not fixture.is_empty() else Vector2i(-1, -1)
 
 func refresh_trophies() -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":"只有夜晚可以刷新奖杯"}
-	if not trophy_shop_unlocked(): return {"ok":false,"error":"请先解锁奖杯展廊"}
-	if stars < 1: return {"ok":false,"error":"闪星不足，刷新需要 1 闪星"}
-	if _available_trophy_count() <= 3: return {"ok":false,"error":"可购买种类不足，刷新无法产生新奖杯"}
+	if phase != "NIGHT": return {"ok":false,"error":tr("只有夜晚可以刷新奖杯")}
+	if not trophy_shop_unlocked(): return {"ok":false,"error":tr("请先解锁奖杯展廊")}
+	if stars < 1: return {"ok":false,"error":tr("闪星不足，刷新需要 1 闪星")}
+	if _available_trophy_count() <= 3: return {"ok":false,"error":tr("可购买种类不足，刷新无法产生新奖杯")}
 	var candidates = _trophy_candidates()
 	var previous = trophy_shop.filter(func(offer): return offer.id in candidates)
 	var excluded = str(previous[trophy_rng.randi_range(0,previous.size()-1)].id) if not previous.is_empty() else ""
@@ -917,12 +993,12 @@ func refresh_trophies() -> Dictionary:
 	return {"ok":true}
 
 func buy_trophy(index: int) -> Dictionary:
-	if phase != "NIGHT" or index < 0 or index >= trophy_shop.size(): return {"ok":false,"error":"只有夜晚可购买奖杯"}
-	if not trophy_shop_unlocked(): return {"ok":false,"error":"请先解锁奖杯展廊"}
+	if phase != "NIGHT" or index < 0 or index >= trophy_shop.size(): return {"ok":false,"error":tr("只有夜晚可购买奖杯")}
+	if not trophy_shop_unlocked(): return {"ok":false,"error":tr("请先解锁奖杯展廊")}
 	var offer = trophy_shop[index]
 	var id = str(offer.id)
-	if id.is_empty() or bool(offer.bought) or id in owned_relics or not relic_defs.has(id): return {"ok":false,"error":"该奖杯已售出或不可购买"}
-	if stars < int(offer.price): return {"ok":false,"error":"闪星不足，还差 %d" % (int(offer.price)-stars)}
+	if id.is_empty() or bool(offer.bought) or id in owned_relics or not relic_defs.has(id): return {"ok":false,"error":tr("该奖杯已售出或不可购买")}
+	if stars < int(offer.price): return {"ok":false,"error":tr("闪星不足，还差 %d") % (int(offer.price)-stars)}
 	stars -= int(offer.price)
 	owned_relics.append(id)
 	layout.facilities.append({"id":"trophy_"+id,"type":"trophy","relic_id":id,"name":relic_defs[id].name,"pos":[-1,-1]})
@@ -1191,6 +1267,7 @@ func _move(entity: Dictionary, speed: float) -> bool:
 	if not entity.path.is_empty():
 		entity.previous_pos = entity.pos
 		entity.position_tick = tick
+		entity.turns_this_tick = []
 	var budget = speed * float(tick_ms) / 1000.0
 	while not entity.path.is_empty() and budget > 0:
 		var target = entity.path[0]
@@ -1199,6 +1276,7 @@ func _move(entity: Dictionary, speed: float) -> bool:
 			entity.pos = target
 			entity.path.pop_front()
 			budget -= distance
+			if not entity.path.is_empty() and budget>.00001: entity.turns_this_tick.append(target)
 		else:
 			entity.pos = entity.pos.move_toward(target, budget)
 			budget = 0
@@ -1420,11 +1498,16 @@ func _advance_staff(s: Dictionary) -> void:
 			var local_speed = float(local_effects.waiter_cells.get(Vector2i(s.pos.round()), 0.0))
 			speed = float(chapter.movement.waiter_speed) * (1.0 + modifiers.speed + local_speed)
 			if tick < current_until and Vector2(s.pos).distance_squared_to(current_cell) <= 4.0:
-				s.haste_until = tick + Rules.ticks(3.0, tick_ms)
+				var linger := 4.0 if s.get("crew_id") == "riverclaw" and crew_on_duty("ferrier", "waiter") else 3.0
+				s.haste_until = tick + Rules.ticks(linger, tick_ms)
 			if tick < int(s.get("haste_until", 0)):
 				speed *= 1.5
+		speed *= Minions.movement(str(s.get("minion","")),s.role,t.kind)
 		if _move(s, speed):
 			_arrive_task(s)
+	elif t.stage == "PREP":
+		s.time.cook += 1
+		if tick >= int(t.prep_until): t.stage = "ACTION"
 	else:
 		s.time["cook" if t.kind == "COOK" else "interact"] += 1
 		if tick >= int(t.done_tick):
@@ -1437,12 +1520,26 @@ func _arrive_task(s: Dictionary) -> void:
 			customers[int(t.customer_id)].state = "TAKING"
 		t.stage = "ACTION"
 		var seconds = float(chapter.movement.interaction_seconds)
+		if t.kind == "ORDER" and s.get("crew_id") == "mosskeeper": seconds *= .84
 		if t.kind == "COOK":
 			seconds = float(recipes[t.recipe].cook_seconds) / (1.0 + modifiers.cook + fixture_bonus(str(t.stove_id), "stove_speed"))
 			t.flare = int(s.get("finished_pots", 0)) % 3 == 2
 			if t.flare: seconds *= 0.5
+			if s.get("crew_id") == "ovenhand" and t.recipe == "starter_rice": seconds *= .88
+		seconds *= Minions.duration(str(s.get("minion","")),s.role,t.kind)
 		t.started_tick = tick
 		t.done_tick = tick + Rules.ticks(seconds, tick_ms)
+		if t.kind == "COOK" and crew_on_duty("kilnkeeper", "chef"):
+			var preparation := mini(maxi(0, int(t.done_tick) - tick - 1), Rules.ticks(LINKED_FIRE_PREP_SECONDS, tick_ms))
+			if preparation > 0:
+				t.stage = "PREP"
+				t.prep_until = tick + preparation
+				t.prep_ready_tick = tick + mini(preparation - 1, Rules.ticks(.28, tick_ms))
+				if s.get("crew_id") == "hearthling":
+					for member in staff:
+						if member.get("crew_id") == "kilnkeeper" and Vector2(member.pos).distance_to(s.pos) <= 2.0:
+							t.prep_ready_tick = tick
+							break
 		return
 	if t.kind == "COLLECT":
 		for id in t.food_ids:
@@ -1965,7 +2062,7 @@ func _award_service_stars() -> void:
 
 func continue_night() -> Dictionary:
 	if phase != "REPORT" or last_report.get("result", "") != "CONTINUE":
-		return {"ok": false, "error": "本章已经结束或尚未结算"}
+		return {"ok": false, "error": tr("本章已经结束或尚未结算")}
 	day += 1
 	phase = "NIGHT"
 	night_spend = 0
@@ -2005,7 +2102,7 @@ func live_metrics() -> Dictionary:
 func invariant_errors() -> Array:
 	var errors = []
 	if gold < 0 or reputation < 0:
-		errors.append("资源为负")
+		errors.append(tr("资源为负"))
 	var physical = 0
 	var consumed = 0
 	var discarded = 0
@@ -2014,135 +2111,140 @@ func invariant_errors() -> Array:
 		elif f.location == "DISCARDED": discarded += 1
 		else: physical += 1
 		if int(f.bound_order) != 0 and not _order_active(int(f.bound_order)):
-			errors.append("食品绑定了无效订单")
+			errors.append(tr("食品绑定了无效订单"))
 	if not stats.is_empty() and int(stats.produced) != physical + consumed + discarded:
-		errors.append("食品不守恒")
+		errors.append(tr("食品不守恒"))
 	if _active_foods("PASS").size() > int(chapter.movement.pass_capacity):
-		errors.append("出餐口溢出")
+		errors.append(tr("出餐口溢出"))
 	for id in stoves:
 		if _active_foods("SHELF", id).size() + int(stoves[id].output_reserved) > int(chapter.movement.stove_capacity):
-			errors.append("厨房容量溢出")
+			errors.append(tr("厨房容量溢出"))
 	var bound = {}
 	for f in foods.values():
 		if int(f.bound_order) != 0:
 			if bound.has(int(f.bound_order)):
-				errors.append("订单重复食品绑定")
+				errors.append(tr("订单重复食品绑定"))
 			bound[int(f.bound_order)] = true
 	for id in seats:
 		var occupier = customers.get(int(seats[id]), {})
 		if int(seats[id]) != 0 and (occupier.is_empty() or (not occupier.terminal.is_empty() and occupier.state != "STAYING")):
-			errors.append("座位预留未释放")
+			errors.append(tr("座位预留未释放"))
 	if phase == "REPORT":
 		var count = 0
 		for value in stats.funnel.values(): count += int(value)
 		if count != int(stats.arrived) or int(stats.arrived) != int(stats.get("planned",arrival_plan.size())):
-			errors.append("客人漏斗不守恒")
+			errors.append(tr("客人漏斗不守恒"))
 		if physical != 0:
-			errors.append("闭店后存在食品")
+			errors.append(tr("闭店后存在食品"))
 	return errors
 
 func export_state() -> Dictionary:
 	# DAY is intentionally saved only as its already-committed pre-opening checkpoint.
-	return {"save_version": chapter.save_version, "config_version": chapter.config_version, "chapter_id": chapter.id, "phase": phase, "day": day, "seed": seed_value, "gold": gold, "reputation": reputation, "total_reputation": total_reputation, "stars": stars, "owned_relics": owned_relics.duplicate(), "trophy_shop": trophy_shop.duplicate(true), "trophy_rng_state": str(trophy_rng.state), "trophy_refreshes": trophy_refreshes, "attributes": attributes.duplicate(true), "upgrade_purchases": upgrade_purchases.duplicate(true), "owned_recipes": owned_recipes.duplicate(), "menu": menu.duplicate(), "layout": layout.duplicate(true), "buff_states": buff_states.duplicate(true), "shop": shop.duplicate(true), "buff_bag": buff_bag.duplicate(), "shop_rng_state": str(shop_rng.state), "night_spend": night_spend, "reports": reports.duplicate(true), "last_report": last_report.duplicate(true), "major_event_claims": major_event_claims.duplicate(), "major_event_views": major_event_views.duplicate()}
+	return {"save_version": chapter.save_version, "config_version": chapter.config_version, "chapter_id": chapter.id, "phase": phase, "day": day, "seed": seed_value, "gold": gold, "reputation": reputation, "total_reputation": total_reputation, "stars": stars, "owned_relics": owned_relics.duplicate(), "trophy_shop": trophy_shop.duplicate(true), "trophy_rng_state": str(trophy_rng.state), "trophy_refreshes": trophy_refreshes, "attributes": attributes.duplicate(true), "upgrade_purchases": upgrade_purchases.duplicate(true), "owned_recipes": owned_recipes.duplicate(), "menu": menu.duplicate(), "layout": layout.duplicate(true), "buff_states": buff_states.duplicate(true), "shop": shop.duplicate(true), "buff_bag": buff_bag.duplicate(), "shop_rng_state": str(shop_rng.state), "night_spend": night_spend, "reports": reports.duplicate(true), "last_report": last_report.duplicate(true), "major_event_claims": major_event_claims.duplicate(), "major_event_views": major_event_views.duplicate(), "crew_lineup": crew_lineup.duplicate(true), "helper_staff":helper_staff.duplicate(true)}
 
 func restore_state(saved: Dictionary) -> Dictionary:
 	if saved.get("config_version", "") != str(chapter.config_version) or int(saved.get("save_version", -1)) != int(chapter.save_version) or saved.get("chapter_id", "") != chapter.id:
-		return {"ok": false, "error": "存档版本不兼容，请重新开始本章"}
+		return {"ok": false, "error": tr("存档版本不兼容，请重新开始本章")}
 	if saved.get("phase", "") not in ["NIGHT", "REPORT"] or int(saved.get("day", 0)) < 1 or int(saved.get("day", 0)) > int(chapter.chapter_days):
-		return {"ok": false, "error": "存档阶段无效"}
+		return {"ok": false, "error": tr("存档阶段无效")}
 	for key in ["seed", "gold", "reputation", "attributes", "upgrade_purchases", "owned_recipes", "menu", "layout", "buff_states", "shop", "reports", "last_report", "shop_rng_state", "stars", "owned_relics", "trophy_shop", "trophy_rng_state"]:
 		if not saved.has(key):
-			return {"ok": false, "error": "存档缺少字段：" + key}
+			return {"ok": false, "error": tr("存档缺少字段：") + key}
 	for key in ["attributes","upgrade_purchases","layout","buff_states","last_report"]:
-		if not saved[key] is Dictionary: return {"ok":false,"error":"存档对象类型无效："+key}
+		if not saved[key] is Dictionary: return {"ok":false,"error":tr("存档对象类型无效：")+key}
 	for key in ["owned_recipes","menu","shop","reports","owned_relics","trophy_shop"]:
-		if not saved[key] is Array: return {"ok":false,"error":"存档列表类型无效："+key}
+		if not saved[key] is Array: return {"ok":false,"error":tr("存档列表类型无效：")+key}
+	var saved_helpers = saved.get("helper_staff",{})
+	if not Minions.valid(saved_helpers): return {"ok":false,"error":tr("小兵排班无效")}
+	var saved_crew = saved.get("crew_lineup", [])
+	if not saved_crew is Array or (not saved_crew.is_empty() and not Crew.valid(saved_crew)):
+		return {"ok":false,"error":tr("存档阵容无效")}
 	var claims = saved.get("major_event_claims", [])
-	if not claims is Array: return {"ok":false,"error":"重大事件领取记录格式错误"}
+	if not claims is Array: return {"ok":false,"error":tr("重大事件领取记录格式错误")}
 	var views = saved.get("major_event_views", [])
 	if not views is Array or views.any(func(id): return not id is String or not chapter.events.get(id, {}).has("notice")):
-		return {"ok": false, "error": "重大事件查看记录无效"}
+		return {"ok": false, "error": tr("重大事件查看记录无效")}
 	var unique_claims = {}
 	for id in claims:
 		if not id is String or unique_claims.has(id) or not chapter.events.get(id, {}).has("notice"):
-			return {"ok":false,"error":"重大事件领取记录无效"}
+			return {"ok":false,"error":tr("重大事件领取记录无效")}
 		unique_claims[id] = true
 	for key in ["width","height","entrance","exit","waiter_spawn","chef_spawn","facilities","plots","unlocked_plots"]:
-		if not saved.layout.has(key): return {"ok":false,"error":"存档布局缺字段："+key}
+		if not saved.layout.has(key): return {"ok":false,"error":tr("存档布局缺字段：")+key}
 	if saved.layout.plots != chapter.land_plots or not saved.layout.unlocked_plots is Array or saved.layout.unlocked_plots.size() > chapter.land_plots.size():
-		return {"ok":false,"error":"存档地块配置无效"}
+		return {"ok":false,"error":tr("存档地块配置无效")}
 	for i in range(saved.layout.unlocked_plots.size()):
 		if str(saved.layout.unlocked_plots[i])!=str(chapter.land_plots[i].id):
-			return {"ok":false,"error":"存档地块解锁顺序无效"}
+			return {"ok":false,"error":tr("存档地块解锁顺序无效")}
 	for key in chapter.initial_attributes:
 		if not saved.upgrade_purchases.has(key) or int(saved.upgrade_purchases[key])<0:
-			return {"ok":false,"error":"存档升级次数无效"}
+			return {"ok":false,"error":tr("存档升级次数无效")}
 	if not saved.layout.facilities is Array:
-		return {"ok": false, "error": "存档设施列表无效"}
+		return {"ok": false, "error": tr("存档设施列表无效")}
 	for f in saved.layout.facilities:
 		if not f is Dictionary or not f.has_all(["id", "type", "name", "pos"]):
-			return {"ok": false, "error": "存档设施无效"}
+			return {"ok": false, "error": tr("存档设施无效")}
 		if f.type == "decoration":
 			var def = decoration_defs.get(f.get("decoration_id", ""), {})
 			if def.is_empty() or f.get("extent", []) != def.extent or "decor_studio" not in saved.layout.unlocked_plots:
-				return {"ok": false, "error": "存档装饰无效"}
-	if not Grid.errors(saved.layout).is_empty(): return {"ok":false,"error":"存档地块或设施位置无效"}
+				return {"ok": false, "error": tr("存档装饰无效")}
+	if not Grid.errors(saved.layout).is_empty(): return {"ok":false,"error":tr("存档地块或设施位置无效")}
 	for offer in saved.shop:
-		if not offer is Dictionary or not offer.has_all(["type","id","price","bought"]): return {"ok":false,"error":"存档商品结构无效"}
-		if int(offer.price)<0 or offer.type not in ["recipe","buff","empty","empty_buff"]: return {"ok":false,"error":"存档商品价格 / 类型无效"}
+		if not offer is Dictionary or not offer.has_all(["type","id","price","bought"]): return {"ok":false,"error":tr("存档商品结构无效")}
+		if int(offer.price)<0 or offer.type not in ["recipe","buff","empty","empty_buff"]: return {"ok":false,"error":tr("存档商品价格 / 类型无效")}
 		if (offer.type=="recipe" and not recipes.has(offer.id)) or (offer.type=="buff" and not buff_defs.has(offer.id)):
-			return {"ok":false,"error":"存档商品引用无效"}
+			return {"ok":false,"error":tr("存档商品引用无效")}
 	if saved.trophy_shop.size()!=3 or int(saved.stars)<0:
-		return {"ok":false,"error":"存档奖杯商店或闪星无效"}
+		return {"ok":false,"error":tr("存档奖杯商店或闪星无效")}
 	for offer in saved.trophy_shop:
-		if not offer is Dictionary or not offer.has_all(["id","price","bought"]): return {"ok":false,"error":"存档奖杯报价无效"}
+		if not offer is Dictionary or not offer.has_all(["id","price","bought"]): return {"ok":false,"error":tr("存档奖杯报价无效")}
 		if not str(offer.id).is_empty() and (not relic_defs.has(str(offer.id)) or int(offer.price)!=int(relic_defs[str(offer.id)].star_cost)):
-			return {"ok":false,"error":"存档奖杯引用无效"}
+			return {"ok":false,"error":tr("存档奖杯引用无效")}
 	var unique_relics = {}
 	for id in saved.owned_relics:
-		if not relic_defs.has(id) or unique_relics.has(id): return {"ok":false,"error":"存档奖杯重复或不存在"}
+		if not relic_defs.has(id) or unique_relics.has(id): return {"ok":false,"error":tr("存档奖杯重复或不存在")}
 		unique_relics[id] = true
 	var placed_relics = 0
 	var entity_ids = {}
 	for f in saved.layout.facilities:
 		if f.get("type","") != "trophy": continue
 		if not unique_relics.has(f.get("relic_id","")) or str(f.get("id","")) != "trophy_"+str(f.get("relic_id","")):
-			return {"ok":false,"error":"奖杯实体与背包不一致"}
-		if entity_ids.has(f.relic_id): return {"ok":false,"error":"奖杯实体重复"}
+			return {"ok":false,"error":tr("奖杯实体与背包不一致")}
+		if entity_ids.has(f.relic_id): return {"ok":false,"error":tr("奖杯实体重复")}
 		entity_ids[f.relic_id] = true
 		if Grid.placed(f):
 			placed_relics += 1
 			var cell = Vector2i(Grid.vec(f.pos))
 			var zone = chapter.trophy_zone
-			if cell.x < int(zone.left) or cell.x > int(zone.right) or cell.y < int(zone.top) or cell.y > int(zone.bottom): return {"ok":false,"error":"奖杯位置超出展示区"}
-	if entity_ids.size()!=unique_relics.size(): return {"ok":false,"error":"奖杯背包缺少实体"}
+			if cell.x < int(zone.left) or cell.x > int(zone.right) or cell.y < int(zone.top) or cell.y > int(zone.bottom): return {"ok":false,"error":tr("奖杯位置超出展示区")}
+	if entity_ids.size()!=unique_relics.size(): return {"ok":false,"error":tr("奖杯背包缺少实体")}
 	if placed_relics > int(saved.attributes.get("relic_slots",0)):
-		return {"ok":false,"error":"奖杯超过当前展示上限"}
+		return {"ok":false,"error":tr("奖杯超过当前展示上限")}
 	if saved.phase=="REPORT":
 		for key in ["result","income","completed","planned","arrived","funnel","seat_utilization","stove_utilization","queue_wait_summary","food_wait_summary","order_wait_summary","staff_times","income_guests","produced","consumed","discarded","tips","diagnosis","income_recipes","rep_base","rep_buff","wait_penalty_raw","wait_penalty_actual","quality_penalty_raw","quality_penalty_actual","night_spend","payer_count","rent_amount","rent_ok","completion_target","completion_required","star_goals","stars_earned","stars_after"]:
-			if not saved.last_report.has(key): return {"ok":false,"error":"存档报告缺字段："+key}
+			if not saved.last_report.has(key): return {"ok":false,"error":tr("存档报告缺字段：")+key}
 	if saved.phase=="REPORT" and (not saved.last_report.get("star_goals",[]) is Array or saved.last_report.star_goals.size()!=3 or int(saved.last_report.get("stars_after",-1))!=int(saved.stars)):
-		return {"ok":false,"error":"存档三星记录无效"}
+		return {"ok":false,"error":tr("存档三星记录无效")}
 	if saved.phase=="REPORT" and saved.last_report.get("result","") not in ["CONTINUE","WIN","LOSE"]:
-		return {"ok":false,"error":"存档报告结果无效"}
+		return {"ok":false,"error":tr("存档报告结果无效")}
 	if int(saved.gold) < 0 or int(saved.reputation) < 0 or saved.menu.is_empty() or saved.shop.size() != 3:
-		return {"ok": false, "error": "存档资源 / 菜单无效"}
+		return {"ok": false, "error": tr("存档资源 / 菜单无效")}
 	if saved.menu.size()>int(saved.attributes.get("menu_slots",0)):
-		return {"ok":false,"error":"存档菜单超过容量"}
+		return {"ok":false,"error":tr("存档菜单超过容量")}
 	for id in saved.owned_recipes:
-		if not recipes.has(id): return {"ok": false, "error": "存档菜谱无效"}
+		if not recipes.has(id): return {"ok": false, "error": tr("存档菜谱无效")}
 	for id in saved.menu:
-		if id not in saved.owned_recipes: return {"ok": false, "error": "存档菜单未解锁"}
+		if id not in saved.owned_recipes: return {"ok": false, "error": tr("存档菜单未解锁")}
 	for key in chapter.initial_attributes:
 		if not saved.attributes.has(key) or int(saved.attributes[key]) < 1 or int(saved.attributes[key]) > int(chapter.attribute_caps[key]):
-			return {"ok": false, "error": "存档容量无效"}
+			return {"ok": false, "error": tr("存档容量无效")}
 	for id in saved.buff_states:
 		if not saved.buff_states[id] is Dictionary or not saved.buff_states[id].has_all(["stack_count","remaining_days"]):
-			return {"ok":false,"error":"存档Buff结构无效"}
+			return {"ok":false,"error":tr("存档Buff结构无效")}
 		if not buff_defs.has(id) or int(saved.buff_states[id].stack_count) < 1 or int(saved.buff_states[id].stack_count) > int(buff_defs[id].max_stacks) or int(saved.buff_states[id].remaining_days) < 1:
-			return {"ok": false, "error": "存档 Buff 无效"}
+			return {"ok": false, "error": tr("存档 Buff 无效")}
 	if saved.layout.get("facilities", []).is_empty():
-		return {"ok": false, "error": "存档布局为空"}
+		return {"ok": false, "error": tr("存档布局为空")}
 	phase = saved.phase
 	day = int(saved.day)
 	seed_value = int(saved.seed)
@@ -2177,6 +2279,8 @@ func restore_state(saved: Dictionary) -> Dictionary:
 	last_report = saved.last_report.duplicate(true)
 	major_event_claims = claims.duplicate()
 	major_event_views = views.duplicate()
+	crew_lineup = saved_crew.duplicate(true)
+	helper_staff = saved_helpers.duplicate(true)
 	stats = last_report.duplicate(true) if phase == "REPORT" else {}
 	_reset_seating()
 	tick = day_ticks if phase == "REPORT" else 0

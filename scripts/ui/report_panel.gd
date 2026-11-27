@@ -23,63 +23,59 @@ const NO_SAMPLE = "—"
 var earned_goals: Array[Control] = []
 
 func populate(report: Dictionary, previous: Dictionary, catalog: Dictionary, notices: Array[String], guide_line := "", archive := false) -> void:
-	add_theme_constant_override("separation", 10)
-	var totals = HBoxContainer.new()
-	totals.add_theme_constant_override("separation", 8)
-	add_child(totals)
-	_total(totals, "coins", "收摊金币" if archive else "持有金币", "%d$" % int(report.gold_after), "+%d$" % int(report.income), "今日营收", Style.GOLD)
+	var totals: HBoxContainer = %Totals
+	_total(totals, "coins", tr("收摊金币") if archive else tr("持有金币"), "%d$" % int(report.gold_after), "+%d$" % int(report.income), tr("今日营收"), Style.GOLD)
 	var daily_rep = int(report.get("reputation_change", int(report.rep_base) + int(report.rep_buff) - int(report.wait_penalty_actual) - int(report.quality_penalty_actual)))
-	_total(totals, "reputation", "收摊声望" if archive else "当前声望", str(int(report.reputation_after)), "%+d" % daily_rep, "今日声望变化", Style.GREEN)
-	_total(totals, "star", "闪星余额", str(int(report.stars_after)), "+%d" % int(report.stars_earned), "今日获得闪星", Style.GOLD)
-	var goals = HBoxContainer.new()
-	add_child(goals)
-	_add_goal(goals, "零拒客", "所有计划到店者均进入餐厅", report.star_goals[0])
-	_add_goal(goals, "无等餐扣分", "没有等餐扣分或超时", report.star_goals[1])
-	_add_goal(goals, "午夜前完餐 %d/%d · ≥%d%%" % [report.get("completed_before_midnight", report.completed), report.planned, report.completion_target],
-		"午夜前至少 %d 人完餐" % int(report.completion_required), report.star_goals[2])
+	_total(totals, "reputation", tr("收摊声望") if archive else tr("当前声望"), str(int(report.reputation_after)), "%+d" % daily_rep, tr("今日声望变化"), Style.GREEN)
+	_total(totals, "star", tr("闪星余额"), str(int(report.stars_after)), "+%d" % int(report.stars_earned), tr("今日获得闪星"), Style.GOLD)
+	var goals: HBoxContainer = %Goals
+	_add_goal(goals, tr("零拒客"), tr("所有计划到店者均进入餐厅"), report.star_goals[0])
+	_add_goal(goals, tr("无等餐扣分"), tr("没有等餐扣分或超时"), report.star_goals[1])
+	_add_goal(goals, tr("午夜前完餐 %d/%d · ≥%d%%") % [report.get("completed_before_midnight", report.completed), report.planned, report.completion_target],
+		tr("午夜前至少 %d 人完餐") % int(report.completion_required), report.star_goals[2])
 	for goal in report.get("major_event_goals", []):
-		var progress = "%s挑战 · %d/%d 天达成" % [goal.name, int(goal.passed), goal.days.size()]
+		var progress = tr("%s挑战 · %d/%d 天达成") % [tr(str(goal.name)), int(goal.passed), goal.days.size()]
 		if goal.finished:
-			progress += " · 获得 " + MajorEventPanel.reward_text(goal.reward) if goal.success else " · 已结束"
-		Style.readout(self, "star" if goal.success else "star_outline", progress, "重大事件限时任务", Style.GOLD, 15)
+			progress += tr(" · 获得 ") + MajorEventPanel.reward_text(goal.reward) if goal.success else tr(" · 已结束")
+		Style.readout(%Announcements, "star" if goal.success else "star_outline", progress, tr("重大事件限时任务"), Style.GOLD, 15)
 	if report.has("quality_inspection"):
 		var result = report.quality_inspection
-		var result_text = "品质 %.0f%% · 声望 %+d" % [float(result.quality) * 100, int(result.change)]
+		var result_text = tr("品质 %.0f%% · 声望 %+d") % [float(result.quality) * 100, int(result.change)]
 		if int(result.served) < int(result.expected):
-			result_text = "上餐 %d/%d · 声望 %+d" % [int(result.served), int(result.expected), int(result.change)]
+			result_text = tr("上餐 %d/%d · 声望 %+d") % [int(result.served), int(result.expected), int(result.change)]
 		if int(result.change) != int(result.assessed):
-			result_text += "（评定 %+d）" % int(result.assessed)
+			result_text += tr("（评定 %+d）") % int(result.assessed)
 		var color = Style.RED if int(result.assessed) < 0 else (Style.GREEN if int(result.assessed) > 0 else Style.MUTED)
-		var inspection_line = Style.readout(self, "alert", "食品安全检查 · " + result_text, "评定声望 %+d" % int(result.assessed), color, 15)
+		var inspection_line = Style.readout(%Announcements, "alert", tr("食品安全检查 · ") + result_text, tr("评定声望 %+d") % int(result.assessed), color, 15)
 		inspection_line.mouse_filter = Control.MOUSE_FILTER_PASS
 	_add_report_views(report, previous, catalog, notices, guide_line, archive)
 	if int(report.rent_amount) > 0:
 		var shortfall = int(report.rent_amount) - int(report.gold_after)
-		var status = "已缴清" if report.rent_ok else "还差 %d$，章节结束" % shortfall
-		add_child(Style.text("周租 %d$ · %s" % [report.rent_amount, status], 15, Style.MUTED if report.rent_ok else Style.RED, true))
+		var status = tr("已缴清") if report.rent_ok else tr("还差 %d$，章节结束") % shortfall
+		%Rent.text = tr("周租 %d$ · %s") % [report.rent_amount, status]
+		%Rent.add_theme_color_override("font_color", Style.MUTED if report.rent_ok else Style.RED)
+		%Rent.show()
+	%Announcements.visible = %Announcements.get_child_count() > 0
+	%Actions.visible = not archive
 	if archive: return
-	var actions = HBoxContainer.new()
-	add_child(actions)
-	var history = Style.button("历史日报")
-	history.pressed.connect(history_requested.emit)
-	actions.add_child(history)
-	var button = Style.button("进入第 %d 天夜晚" % (report.day + 1) if report.result == "CONTINUE" else ("返回章节" if report.result == "WIN" else "重新挑战本章"), true)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.y = 46
+	%History.pressed.connect(history_requested.emit)
+	var button: Button = %Primary
+	button.text = tr("进入第 %d 天夜晚") % (report.day + 1) if report.result == "CONTINUE" else (tr("返回章节") if report.result == "WIN" else tr("重新挑战本章"))
+	Style.accent_button(button)
 	if report.result == "CONTINUE":
 		button.pressed.connect(continue_requested.emit)
 	else:
 		button.pressed.connect(return_requested.emit if report.result == "WIN" else restart_requested.emit)
-		var secondary = Style.button("重新挑战" if report.result == "WIN" else "返回章节")
+		var secondary: Button = %Secondary
+		secondary.text = tr("重新挑战") if report.result == "WIN" else tr("返回章节")
 		secondary.pressed.connect(restart_requested.emit if report.result == "WIN" else return_requested.emit)
-		actions.add_child(secondary)
-	actions.add_child(button)
+		secondary.show()
 	button.grab_focus()
 
 func _total(row: HBoxContainer, glyph: String, caption: String, value: String, delta: String, detail: String, tint: Color) -> void:
 	var card = Style.card()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", Style.box(Style.BG, CARD_BORDER, 7, 8))
+	card.add_theme_stylebox_override("panel", Style.inset(12,8))
 	row.add_child(card)
 	var stack = VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 2)
@@ -87,7 +83,7 @@ func _total(row: HBoxContainer, glyph: String, caption: String, value: String, d
 	stack.add_child(Style.text(caption, 13, Style.MUTED))
 	var amounts = HBoxContainer.new()
 	stack.add_child(amounts)
-	var balance = Style.readout(amounts, glyph, value, caption, tint, 19)
+	var balance = Style.readout(amounts, glyph, value, caption, tint, 27)
 	balance.name = glyph + "_balance"
 	var change_tint = Style.MUTED
 	if delta.to_int() != 0:
@@ -100,10 +96,13 @@ func _total(row: HBoxContainer, glyph: String, caption: String, value: String, d
 
 func _add_goal(row: HBoxContainer, caption: String, description: String, earned: bool) -> void:
 	var chip = Style.card()
-	chip.add_theme_stylebox_override("panel", Style.box(Color("3e3a2b") if earned else Color("283c34"), Color("a17a45") if earned else Color("496050"), 7, 6))
+	chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chip.add_theme_stylebox_override("panel", Style.inset(8,5))
 	chip.tooltip_text = description
 	row.add_child(chip)
-	Style.readout(chip, "star" if earned else "star_outline", caption, description, Style.GOLD if earned else Style.MUTED, 15)
+	var label := Style.readout(chip, "star" if earned else "star_outline", caption, description, Style.GOLD if earned else Style.MUTED, 14)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if earned: earned_goals.append(chip)
 
 func reveal_earned_goals() -> void:
@@ -112,14 +111,20 @@ func reveal_earned_goals() -> void:
 		chip.modulate.a = .64
 		var glow = chip.create_tween()
 		glow.tween_interval(.21 + .10 * i)
+		glow.tween_callback(_animate_goal.bind(chip))
 		glow.tween_property(chip, "modulate", Color(1.13, 1.09, .88), .12).set_ease(Tween.EASE_OUT)
 		glow.tween_property(chip, "modulate", Color.WHITE, .22)
 
+func _animate_goal(chip: Control) -> void:
+	if DisplayServer.get_name() == "headless": return
+	var burst := Style.REVEAL.instantiate() as Node2D
+	chip.add_child(burst)
+	burst.position = Vector2(19, chip.size.y * .5)
+	burst.scale = Vector2.ONE * .64
+
 func _add_report_views(report: Dictionary, previous: Dictionary, catalog: Dictionary, notices: Array[String], guide_line: String, archive: bool) -> void:
-	var views = TabContainer.new()
-	views.name = "ReportViews"
-	views.use_hidden_tabs_for_min_size = false
-	views.add_theme_stylebox_override("panel", Style.box(Style.PANEL, CARD_BORDER, 9, 12))
+	var views: TabContainer = %ReportViews
+	views.add_theme_stylebox_override("panel", Style.inset(10,8))
 	var tab_colors = {
 		"tab_selected": [Style.PANEL, Style.GOLD],
 		"tab_unselected": [Style.BG, CARD_BORDER],
@@ -133,15 +138,15 @@ func _add_report_views(report: Dictionary, previous: Dictionary, catalog: Dictio
 		views.add_theme_stylebox_override(state, tab_style)
 	views.add_theme_color_override("font_selected_color", Style.GOLD)
 	views.add_theme_color_override("font_unselected_color", Style.MUTED)
-	add_child(views)
 
 	var overview = VBoxContainer.new()
 	overview.name = "总览"
 	views.add_child(overview)
+	views.set_tab_title(0, tr(overview.name))
 	var columns = HBoxContainer.new()
 	overview.add_child(columns)
 	var outcomes = _data_card(columns)
-	_add_heading(outcomes, "到店结果")
+	_add_heading(outcomes, tr("到店结果"))
 	_add_guest_outcomes(outcomes, report)
 	var metrics = _data_card(columns)
 	_add_key_metrics(metrics, report, previous)
@@ -150,7 +155,7 @@ func _add_report_views(report: Dictionary, previous: Dictionary, catalog: Dictio
 		var forecast = _data_card(overview)
 		var row = HBoxContainer.new()
 		forecast.add_child(row)
-		row.add_child(Style.text("明日预告", 15, Style.GOLD))
+		row.add_child(Style.text(tr("明日预告"), 15, Style.GOLD))
 		var items = Style.text("    ·    ".join(notices), 14, Style.INK, true)
 		items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(items)
@@ -160,6 +165,7 @@ func _add_report_views(report: Dictionary, previous: Dictionary, catalog: Dictio
 	scroller.custom_minimum_size.y = maxf(300, overview.get_combined_minimum_size().y)
 	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	views.add_child(scroller)
+	views.set_tab_title(1, tr(scroller.name))
 	var details = VBoxContainer.new()
 	details.name = "ReportDetails"
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -169,15 +175,16 @@ func _add_report_views(report: Dictionary, previous: Dictionary, catalog: Dictio
 		var guide = VBoxContainer.new()
 		guide.name = "阿禾手记"
 		views.add_child(guide)
+		views.set_tab_title(2, tr(guide.name))
 		var note = Bubble.new()
 		note.name = "ReportGuide"
 		guide.add_child(note)
-		note.set_line("阿禾 · 收摊手记", guide_line, "waiter")
+		note.set_line(tr("阿禾 · 收摊手记"), guide_line, "waiter")
 
 func _data_card(parent: Control) -> VBoxContainer:
 	var card = Style.card()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", Style.box(Style.BG, CARD_BORDER, 8, 12))
+	card.add_theme_stylebox_override("panel", Style.inset(12,8))
 	parent.add_child(card)
 	var stack = VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 7)
@@ -198,18 +205,18 @@ func _add_focus(parent: VBoxContainer, report: Dictionary) -> void:
 	_data_card(parent).add_child(row)
 	var focus = str(report.diagnosis.focus)
 	var missing = int(report.get("refused_no_table", 0))
-	row.add_child(Style.text("主要瓶颈" if not focus.is_empty() or missing > 0 else "服务状态", 15, Style.GOLD))
-	var issue = "缺匹配餐桌 · %d 人" % missing if missing > 0 else "无明显瓶颈"
+	row.add_child(Style.text(tr("主要瓶颈") if not focus.is_empty() or missing > 0 else tr("服务状态"), 15, Style.GOLD))
+	var issue = tr("缺匹配餐桌 · %d 人") % missing if missing > 0 else tr("无明显瓶颈")
 	if not focus.is_empty():
 		var value = _diagnostic_value(report.diagnosis.stages[focus], focus)
-		issue = DIAGNOSTIC_TEXT[focus].label
+		issue = tr(str(DIAGNOSTIC_TEXT[focus].label))
 		if value != NO_SAMPLE:
 			issue += " · " + value
 	var headline = Style.text(issue, 15)
 	headline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(headline)
 	if not focus.is_empty():
-		var locate = Style.button("在餐厅定位")
+		var locate = Style.button(tr("在餐厅定位"))
 		locate.tooltip_text = DIAGNOSTIC_TEXT[focus].hint
 		locate.custom_minimum_size.y = 30
 		locate.pressed.connect(locate_requested.emit)
@@ -235,16 +242,16 @@ func _add_guest_outcomes(left: VBoxContainer, report: Dictionary) -> void:
 	summary.add_child(legend)
 	var missing = int(report.get("refused_no_table", 0))
 	var outcomes = [
-		["完成用餐", int(report.funnel.S), Style.GREEN],
-		["队满拒客", int(report.funnel.R) - missing, Color("d9a562")],
-		["缺匹配餐桌", missing, Color("cda4dc")],
-		["点单超时", int(report.funnel.O), Color("d3c49d")],
-		["等餐超时", int(report.funnel.F), Style.RED],
-		["清场未完餐", int(report.funnel.C), Color("8aaad5")],
-		["其他离店", int(report.funnel.get("Q", 0)), Style.MUTED],
+		[tr("完成用餐"), int(report.funnel.S), Style.GREEN],
+		[tr("队满拒客"), int(report.funnel.R) - missing, Color("d9a562")],
+		[tr("缺匹配餐桌"), missing, Color("cda4dc")],
+		[tr("点单超时"), int(report.funnel.O), Color("d3c49d")],
+		[tr("等餐超时"), int(report.funnel.F), Style.RED],
+		[tr("清场未完餐"), int(report.funnel.C), Color("8aaad5")],
+		[tr("其他离店"), int(report.funnel.get("Q", 0)), Style.MUTED],
 	]
 	for entry in outcomes:
-		if entry[1] <= 0 and entry[0] != "完成用餐": continue
+		if entry[1] <= 0 and entry[0] != tr("完成用餐"): continue
 		ring.segments.append({"count": entry[1], "tint": entry[2]})
 		var item = HBoxContainer.new()
 		legend.add_child(item)
@@ -256,21 +263,21 @@ func _add_guest_outcomes(left: VBoxContainer, report: Dictionary) -> void:
 		var name_label = Style.text(entry[0], 14, Style.MUTED)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item.add_child(name_label)
-		item.add_child(Style.text("%d 人" % entry[1], 14))
+		item.add_child(Style.text(tr("%d 人") % entry[1], 14))
 	ring.animate()
 
 func _add_key_metrics(parent: VBoxContainer, report: Dictionary, previous: Dictionary) -> void:
-	_add_heading(parent, "昨日对比" if not previous.is_empty() else "营业表现", "│ 昨日" if not previous.is_empty() else "")
+	_add_heading(parent, tr("昨日对比") if not previous.is_empty() else tr("营业表现"), tr("│ 昨日") if not previous.is_empty() else "")
 	var today_planned = int(report.planned)
 	var prior_planned = int(previous.get("planned", 0))
 	var today_complete = float(report.get("completed_before_midnight", report.completed)) * 100.0 / today_planned if today_planned > 0 else null
 	var prior_complete = float(previous.get("completed_before_midnight", previous.get("completed", 0))) * 100.0 / prior_planned if prior_planned > 0 else null
-	_comparison(parent, "午夜前完餐率", today_complete, prior_complete, "%", 100, true)
+	_comparison(parent, tr("午夜前完餐率"), today_complete, prior_complete, "%", 100, true)
 	var today_refused = float(report.refused) * 100.0 / int(report.arrived) if int(report.arrived) > 0 else null
 	var prior_refused = float(previous.get("refused", 0)) * 100.0 / int(previous.arrived) if int(previous.get("arrived", 0)) > 0 else null
-	_comparison(parent, "拒客率", today_refused, prior_refused, "%", 100, false)
-	_comparison(parent, "平均排队", _wait_average(report, "queue_wait_summary"), _wait_average(previous, "queue_wait_summary"), " 秒", 60, false)
-	_comparison(parent, "平均等餐", _wait_average(report, "food_wait_summary"), _wait_average(previous, "food_wait_summary"), " 秒", 60, false)
+	_comparison(parent, tr("拒客率"), today_refused, prior_refused, "%", 100, false)
+	_comparison(parent, tr("平均排队"), _wait_average(report, "queue_wait_summary"), _wait_average(previous, "queue_wait_summary"), tr(" 秒"), 60, false)
+	_comparison(parent, tr("平均等餐"), _wait_average(report, "food_wait_summary"), _wait_average(previous, "food_wait_summary"), tr(" 秒"), 60, false)
 
 func _wait_average(report: Dictionary, key: String):
 	var totals = report.get(key, {})
@@ -285,7 +292,7 @@ func _comparison(parent: VBoxContainer, caption: String, today, yesterday, unit:
 	var title = Style.text(caption, 14, Style.MUTED)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(title)
-	row.add_child(Style.text("暂无记录" if today == null else "%.1f%s" % [today, unit], 14))
+	row.add_child(Style.text(tr("暂无记录") if today == null else "%.1f%s" % [today, unit], 14))
 	var bar = Charts.ComparisonBar.new()
 	bar.name = "ComparisonBar%d" % parent.get_child_count()
 	var range_max = maxf(scale, maxf(float(today) if today != null else 0.0, float(yesterday) if yesterday != null else 0.0))
@@ -293,7 +300,7 @@ func _comparison(parent: VBoxContainer, caption: String, today, yesterday, unit:
 	bar.has_previous = yesterday != null
 	bar.yesterday = float(yesterday) / range_max if bar.has_previous else 0.0
 	if bar.has_previous:
-		bar.tooltip_text = "昨日 %.1f%s" % [yesterday, unit]
+		bar.tooltip_text = tr("昨日 %.1f%s") % [yesterday, unit]
 		if today != null and absf(today - yesterday) >= .05:
 			var better = (today > yesterday) == higher_is_better
 			bar.change = Style.GREEN if better else Style.RED
@@ -309,17 +316,17 @@ func _add_details(details: VBoxContainer, report: Dictionary, previous: Dictiona
 	var today_focus = str(report.diagnosis.focus)
 	var previous_focus = str(previous.get("diagnosis", {}).get("focus", ""))
 	var service = _data_card(columns)
-	_add_heading(service, "服务明细")
+	_add_heading(service, tr("服务明细"))
 	var stages = GridContainer.new()
 	stages.name = "ServiceBreakdown"
 	stages.columns = 2 if previous.is_empty() else 3
 	stages.add_theme_constant_override("h_separation", 16)
 	stages.add_theme_constant_override("v_separation", 5)
 	service.add_child(stages)
-	_detail_cell(stages, "环节", Style.MUTED, true)
-	_detail_cell(stages, "今日", Style.MUTED)
+	_detail_cell(stages, tr("环节"), Style.MUTED, true)
+	_detail_cell(stages, tr("今日"), Style.MUTED)
 	if not previous.is_empty():
-		_detail_cell(stages, "昨日", Style.MUTED)
+		_detail_cell(stages, tr("昨日"), Style.MUTED)
 	for key in DIAGNOSTIC_TEXT:
 		var stage = report.diagnosis.stages[key]
 		var prior = previous.get("diagnosis", {}).get("stages", {}).get(key, {})
@@ -327,7 +334,7 @@ func _add_details(details: VBoxContainer, report: Dictionary, previous: Dictiona
 		label.mouse_filter = Control.MOUSE_FILTER_PASS
 		label.tooltip_text = DIAGNOSTIC_TEXT[key].hint
 		if key == previous_focus:
-			label.tooltip_text = "昨日重点\n" + label.tooltip_text
+			label.tooltip_text = tr("昨日重点\n") + label.tooltip_text
 		var tint = Style.INK
 		if int(stage.count) > 0 and int(prior.get("count", 0)) > 0 and absf(stage.average - prior.average) >= .05:
 			tint = Style.GREEN if stage.average < prior.average else Style.RED
@@ -337,40 +344,40 @@ func _add_details(details: VBoxContainer, report: Dictionary, previous: Dictiona
 			var yesterday = _detail_cell(stages, _diagnostic_value(prior, key), Style.MUTED)
 			yesterday.name = key + "_yesterday"
 	service.add_child(HSeparator.new())
-	_detail_pair(service, "座位占用率", "%.0f%%" % (100.0 * report.seat_utilization))
-	_detail_pair(service, "灶台使用率", "%.0f%%" % (100.0 * report.stove_utilization))
-	_detail_pair(service, "排队峰值", "%d 人" % report.peak_queue)
-	_detail_pair(service, "午夜后完餐", "%d 人" % (int(report.completed) - int(report.get("completed_before_midnight", report.completed))))
-	_detail_pair(service, "收尾用时", "%.1f 秒" % (float(report.overtime_ticks) * int(catalog.chapter.simulation_tick_ms) / 1000.0))
+	_detail_pair(service, tr("座位占用率"), "%.0f%%" % (100.0 * report.seat_utilization))
+	_detail_pair(service, tr("灶台使用率"), "%.0f%%" % (100.0 * report.stove_utilization))
+	_detail_pair(service, tr("排队峰值"), tr("%d 人") % report.peak_queue)
+	_detail_pair(service, tr("午夜后完餐"), tr("%d 人") % (int(report.completed) - int(report.get("completed_before_midnight", report.completed))))
+	_detail_pair(service, tr("收尾用时"), tr("%.1f 秒") % (float(report.overtime_ticks) * int(catalog.chapter.simulation_tick_ms) / 1000.0))
 	var kitchen = _data_card(columns)
-	_add_heading(kitchen, "厨房与收入")
-	_detail_pair(kitchen, "制作", "%d 份" % report.produced)
-	_detail_pair(kitchen, "已食用", "%d 份" % report.consumed)
-	_detail_pair(kitchen, "损耗", "%d 份" % report.discarded)
-	_detail_pair(kitchen, "昨夜支出", "%d$" % report.night_spend)
+	_add_heading(kitchen, tr("厨房与收入"))
+	_detail_pair(kitchen, tr("制作"), tr("%d 份") % report.produced)
+	_detail_pair(kitchen, tr("已食用"), tr("%d 份") % report.consumed)
+	_detail_pair(kitchen, tr("损耗"), tr("%d 份") % report.discarded)
+	_detail_pair(kitchen, tr("昨夜支出"), "%d$" % report.night_spend)
 	if not report.income_recipes.is_empty():
 		kitchen.add_child(HSeparator.new())
-		_add_heading(kitchen, "菜品营收")
+		_add_heading(kitchen, tr("菜品营收"))
 		for id in report.income_recipes:
 			_detail_pair(kitchen, catalog.recipes[id].name, "%d$" % report.income_recipes[id])
 	kitchen.add_child(HSeparator.new())
-	_add_heading(kitchen, "声望来源")
+	_add_heading(kitchen, tr("声望来源"))
 	var earned = int(report.rep_base) + int(report.rep_buff)
 	var wait_loss = int(report.wait_penalty_actual)
 	var quality_loss = int(report.quality_penalty_actual)
-	_detail_pair(kitchen, "完餐与增益", "%+d" % earned)
-	_detail_pair(kitchen, "等餐扣分", str(-wait_loss))
-	_detail_pair(kitchen, "品质扣分", str(-quality_loss))
+	_detail_pair(kitchen, tr("完餐与增益"), "%+d" % earned)
+	_detail_pair(kitchen, tr("等餐扣分"), str(-wait_loss))
+	_detail_pair(kitchen, tr("品质扣分"), str(-quality_loss))
 	var inspection = report.get("quality_inspection", {})
 	var inspection_change = int(inspection.get("change", 0))
 	if not inspection.is_empty():
-		_detail_pair(kitchen, "食品安全检查", "%+d" % inspection_change)
+		_detail_pair(kitchen, tr("食品安全检查"), "%+d" % inspection_change)
 	var reward = int(report.reputation_change) - earned + wait_loss + quality_loss - inspection_change
 	if reward != 0:
-		_detail_pair(kitchen, "活动奖励", "%+d" % reward)
+		_detail_pair(kitchen, tr("活动奖励"), "%+d" % reward)
 	if not report.tips.is_empty():
 		var tips = _data_card(details)
-		_add_heading(tips, "调整建议")
+		_add_heading(tips, tr("调整建议"))
 		for tip in report.tips:
 			tips.add_child(Style.text(tip, 14, Style.MUTED, true))
 
@@ -388,10 +395,10 @@ func _detail_cell(parent: Container, value: String, tint: Color, expand := false
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	if value == NO_SAMPLE:
 		label.mouse_filter = Control.MOUSE_FILTER_PASS
-		label.tooltip_text = "暂无样本"
+		label.tooltip_text = tr("暂无样本")
 	parent.add_child(label)
 	return label
 
 func _diagnostic_value(stage: Dictionary, key: String) -> String:
 	if int(stage.get("count", 0)) == 0: return NO_SAMPLE
-	return ("%.1f%%" if key == "queue" else "%.1f 秒") % float(stage.average)
+	return ("%.1f%%" if key == "queue" else tr("%.1f 秒")) % float(stage.average)

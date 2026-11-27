@@ -1,7 +1,7 @@
 extends VBoxContainer
 
 const Style = preload("res://scripts/ui/style.gd")
-const ReportPanel = preload("res://scripts/ui/report_panel.gd")
+const REPORT_PANEL = preload("res://scenes/ui/report_panel.tscn")
 const METRICS = [
 	{"title": "营收", "tint": Color("ebba79")},
 	{"title": "午夜前完餐率", "tint": Color("9dd9b9")},
@@ -25,7 +25,7 @@ func populate(history: Array, definitions: Dictionary) -> void:
 	catalog = definitions
 	add_theme_constant_override("separation", 12)
 	var card = Style.card()
-	card.add_theme_stylebox_override("panel", Style.box(Style.BG, Color("617775"), 12, 14))
+	card.add_theme_stylebox_override("panel", Style.inset(10,8))
 	add_child(card)
 	var block = VBoxContainer.new()
 	block.add_theme_constant_override("separation", 9)
@@ -50,21 +50,21 @@ func populate(history: Array, definitions: Dictionary) -> void:
 	navigation.add_theme_constant_override("separation", 5)
 	controls.add_child(navigation)
 	previous_button = Style.button("‹")
-	previous_button.accessibility_name = "前一天"
-	previous_button.tooltip_text = "前一天"
+	previous_button.accessibility_name = tr("前一天")
+	previous_button.tooltip_text = tr("前一天")
 	previous_button.pressed.connect(func(): _select_day(day_index - 1))
 	navigation.add_child(previous_button)
 	day_picker = OptionButton.new()
 	day_picker.name = "ReportDay"
 	day_picker.custom_minimum_size.x = 165
-	day_picker.add_theme_stylebox_override("normal", Style.box(Style.PANEL, Color("617775"), 7, 8))
+	day_picker.add_theme_stylebox_override("normal", Style.inset(7,6))
 	for report in reports:
-		day_picker.add_item("第 %d 天 · 经营明细" % int(report.day))
+		day_picker.add_item(tr("第 %d 天 · 经营明细") % int(report.day))
 	day_picker.item_selected.connect(_select_day)
 	navigation.add_child(day_picker)
 	next_button = Style.button("›")
-	next_button.accessibility_name = "后一天"
-	next_button.tooltip_text = "后一天"
+	next_button.accessibility_name = tr("后一天")
+	next_button.tooltip_text = tr("后一天")
 	next_button.pressed.connect(func(): _select_day(day_index + 1))
 	navigation.add_child(next_button)
 	value.custom_minimum_size.x = 108
@@ -98,7 +98,7 @@ func _select_day(index: int) -> void:
 	for child in detail.get_children():
 		detail.remove_child(child)
 		child.queue_free()
-	var panel = ReportPanel.new()
+	var panel = REPORT_PANEL.instantiate()
 	panel.name = "ArchivedReport"
 	detail.add_child(panel)
 	var previous = reports[index - 1] if index > 0 else {}
@@ -140,11 +140,11 @@ class Trend extends Control:
 		return null
 
 	static func format_value(amount, index: int) -> String:
-		if amount == null: return "暂无记录"
+		if amount == null: return TranslationServer.translate("暂无记录")
 		match index:
 			0: return "%d$" % roundi(amount)
 			1: return "%.1f%%" % amount
-			_: return "%.1f 秒" % amount
+			_: return TranslationServer.translate("%.1f 秒") % amount
 
 	func set_metric(index: int) -> void:
 		metric = index
@@ -171,7 +171,7 @@ class Trend extends Control:
 			var area = _area()
 			var index = clampi(roundi((event.position.x - area.position.x) / area.size.x * (points.size() - 1)), 0, points.size() - 1)
 			hovered = index
-			tooltip_text = "第 %d 天 · %s" % [int(reports[index].day), format_value(points[index], metric)]
+			tooltip_text = tr("第 %d 天 · %s") % [int(reports[index].day), format_value(points[index], metric)]
 			queue_redraw()
 			if event is InputEventMouseButton:
 				day_picked.emit(index)

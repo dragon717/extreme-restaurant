@@ -2,12 +2,12 @@
   {
     "id": "street_corner",
     "name": "街角试营业",
-    "summary": "家常饭 · 渐进扩建"
+    "summary": "从家常饭起步，逐步扩建餐厅。"
   },
   {
     "id": "market_lane",
     "name": "集市快线",
-    "summary": "四份拼盘 · 高周转",
+    "summary": "用四人份拼盘应对集市客流。",
     "config": "res://data/chapters/market_lane.json"
   }
 ]

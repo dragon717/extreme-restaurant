@@ -6,6 +6,7 @@ const THUNDER_AUDIO := "res://assets/weather/thunder.wav"
 
 var ground := Control.new()
 var rain := 0.0
+var use_spatial_rain := false
 var cloud_cover := 0.0
 var flash := 0.0
 var lamp_voltage := 1.0
@@ -74,8 +75,10 @@ func reset() -> void:
 	queue_redraw()
 
 func configure(street, base_seed: int) -> void:
-	if bounds == street.bounds and seed_value == base_seed: return
-	bounds = street.bounds
+	var area: Rect2 = street.bounds
+	if use_spatial_rain: area = area.intersection(Rect2(Vector2(-18,-12),Vector2(street.dimensions)+Vector2(36,27)))
+	if bounds == area and seed_value == base_seed: return
+	bounds = area
 	rain_draw_bounds = bounds.grow(DROP_FRINGE + 1.0)
 	size = rain_draw_bounds.size
 	ground.size = bounds.size
@@ -248,6 +251,7 @@ func _draw() -> void:
 		var impact = Vector2(drop[0], drop[1])
 		var phase = fposmod(time * drop[4] + drop[5], 1.0)
 		if phase < .79:
+			if use_spatial_rain: continue
 			var height = drop[3] * (1.0 - phase / .79)
 			var tip = impact - fall * height
 			if not visible_rain.has_point(tip): continue

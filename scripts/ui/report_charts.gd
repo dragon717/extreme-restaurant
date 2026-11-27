@@ -37,8 +37,8 @@ class GuestRing extends Control:
 		var amount = str(roundi(arrivals * reveal))
 		var width = font.get_string_size(amount, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 		draw_string(font, center + Vector2(-width * .5, 2), amount, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Style.INK)
-		width = font.get_string_size("到店", HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		draw_string(font, center + Vector2(-width * .5, 23), "到店", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Style.MUTED)
+		width = font.get_string_size(tr("到店"), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+		draw_string(font, center + Vector2(-width * .5, 23), tr("到店"), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Style.MUTED)
 
 class ComparisonBar extends Control:
 	var today := 0.0

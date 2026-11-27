@@ -41,7 +41,6 @@ const PLATE = preload("res://assets/canyon/panel.webp")
 func _draw() -> void:
 	if font == null: return
 	var center := size * 0.5
-	draw_texture_rect(PLATE, Rect2(center - Vector2(28,28), Vector2(56,56)), false)
 	var icon_bounds := Rect2(center - Vector2(12,23), Vector2(24,24))
 	if rainy:
 		draw_texture_rect_region(Icon.SHEET, icon_bounds, Icon.region("rain"), Color("ddd6ff") if storm else Color.WHITE)

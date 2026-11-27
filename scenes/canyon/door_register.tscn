@@ -1,0 +1,364 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="Texture2D" path="res://assets/interface/register-paper.webp" id="paper"]
+[ext_resource type="Texture2D" path="res://assets/interface/brass_thread.tres" id="rule"]
+
+[ext_resource type="Texture2D" path="res://assets/interface/menu-pigment.webp" id="ink"]
+
+[node name="Register" type="Control"]
+offset_right = 640.0
+offset_bottom = 820.0
+
+[node name="PaperFace" type="TextureRect" parent="."]
+unique_name_in_owner = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("paper")
+expand_mode = 1
+mouse_filter = 2
+
+[node name="Heading" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = 57.0
+offset_top = 54.0
+offset_right = 585.0
+offset_bottom = 103.0
+text = "营业簿"
+theme_override_font_sizes/font_size = 29
+mouse_filter = 2
+
+
+[node name="Navigation" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+offset_left = 48.0
+offset_top = 114.0
+offset_right = 579.0
+offset_bottom = 161.0
+theme_override_constants/separation = 26
+
+[node name="ServiceTab" type="Button" parent="Navigation"]
+unique_name_in_owner = true
+text = "营业"
+custom_minimum_size = Vector2(95,47)
+theme_override_font_sizes/font_size = 23
+mouse_default_cursor_shape = 2
+
+[node name="Current" type="TextureRect" parent="Navigation/ServiceTab"]
+anchor_left = 0.23
+anchor_right = 0.77
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+offset_bottom = -1.0
+texture = ExtResource("ink")
+expand_mode = 1
+mouse_filter = 2
+modulate = Color(0.46,0.24,0.15,1)
+visible = true
+
+[node name="ChaptersTab" type="Button" parent="Navigation"]
+unique_name_in_owner = true
+text = "章节"
+custom_minimum_size = Vector2(95,47)
+theme_override_font_sizes/font_size = 23
+mouse_default_cursor_shape = 2
+
+[node name="Current" type="TextureRect" parent="Navigation/ChaptersTab"]
+anchor_left = 0.23
+anchor_right = 0.77
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+offset_bottom = -1.0
+texture = ExtResource("ink")
+expand_mode = 1
+mouse_filter = 2
+modulate = Color(0.46,0.24,0.15,1)
+visible = false
+
+[node name="More" type="Button" parent="Navigation"]
+unique_name_in_owner = true
+text = "设置"
+custom_minimum_size = Vector2(95,47)
+theme_override_font_sizes/font_size = 23
+mouse_default_cursor_shape = 2
+
+[node name="Current" type="TextureRect" parent="Navigation/More"]
+anchor_left = 0.23
+anchor_right = 0.77
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+offset_bottom = -1.0
+texture = ExtResource("ink")
+expand_mode = 1
+mouse_filter = 2
+modulate = Color(0.46,0.24,0.15,1)
+visible = false
+
+[node name="Rule" type="TextureRect" parent="."]
+unique_name_in_owner = true
+offset_left = 54.0
+offset_top = 169.0
+offset_right = 585.0
+offset_bottom = 178.0
+expand_mode = 1
+stretch_mode = 0
+mouse_filter = 2
+texture = ExtResource("rule")
+modulate = Color(0.61,0.45,0.28,0.67)
+
+[node name="ServicePage" type="Control" parent="."]
+unique_name_in_owner = true
+offset_left = 55.0
+offset_top = 195.0
+offset_right = 586.0
+offset_bottom = 737.0
+mouse_filter = 2
+
+
+[node name="ChapterPage" type="Control" parent="."]
+unique_name_in_owner = true
+offset_left = 55.0
+offset_top = 195.0
+offset_right = 586.0
+offset_bottom = 737.0
+mouse_filter = 2
+visible = false
+
+[node name="Options" type="Control" parent="."]
+unique_name_in_owner = true
+offset_left = 55.0
+offset_top = 195.0
+offset_right = 586.0
+offset_bottom = 737.0
+mouse_filter = 2
+visible = false
+
+[node name="ChapterNumber" type="Label" parent="ServicePage"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 20.0
+offset_right = 522.0
+offset_bottom = 54.0
+text = ""
+theme_override_font_sizes/font_size = 21
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32,0.29,0.24,1)
+
+[node name="CoverName" type="Label" parent="ServicePage"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 54.0
+offset_right = 531.0
+offset_bottom = 139.0
+text = ""
+theme_override_font_sizes/font_size = 54
+mouse_filter = 2
+text_overrun_behavior = 3
+
+[node name="CoverSummary" type="Label" parent="ServicePage"]
+unique_name_in_owner = true
+offset_left = 1.0
+offset_top = 140.0
+offset_right = 526.0
+offset_bottom = 180.0
+text = ""
+theme_override_font_sizes/font_size = 23
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32,0.29,0.24,1)
+autowrap_mode = 3
+
+[node name="SlotRow" type="Control" parent="ServicePage"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 218.0
+offset_right = 531.0
+offset_bottom = 326.0
+mouse_filter = 2
+
+[node name="SlotCaption" type="Label" parent="ServicePage/SlotRow"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 1.0
+offset_right = 349.0
+offset_bottom = 34.0
+text = ""
+theme_override_font_sizes/font_size = 20
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32,0.29,0.24,1)
+
+[node name="SlotText" type="Label" parent="ServicePage/SlotRow"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 35.0
+offset_right = 343.0
+offset_bottom = 98.0
+text = ""
+theme_override_font_sizes/font_size = 37
+mouse_filter = 2
+
+
+[node name="Previous" type="Button" parent="ServicePage/SlotRow"]
+unique_name_in_owner = true
+offset_left = 374.0
+offset_top = 38.0
+offset_right = 438.0
+offset_bottom = 96.0
+text = "‹"
+theme_override_font_sizes/font_size = 35
+mouse_default_cursor_shape = 2
+
+
+[node name="Next" type="Button" parent="ServicePage/SlotRow"]
+unique_name_in_owner = true
+offset_left = 457.0
+offset_top = 38.0
+offset_right = 523.0
+offset_bottom = 96.0
+text = "›"
+theme_override_font_sizes/font_size = 35
+mouse_default_cursor_shape = 2
+
+
+[node name="Start" type="Button" parent="ServicePage"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 365.0
+offset_right = 531.0
+offset_bottom = 437.0
+text = "新开游戏"
+alignment = 0
+theme_override_font_sizes/font_size = 29
+mouse_default_cursor_shape = 2
+
+
+[node name="Arrow" type="Label" parent="ServicePage/Start"]
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -52.0
+text = "›"
+theme_override_font_sizes/font_size = 38
+theme_override_colors/font_color = Color(0.46,0.24,0.15,1)
+vertical_alignment = 1
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="ActionRule" type="TextureRect" parent="ServicePage"]
+unique_name_in_owner = true
+offset_top = 437.0
+offset_right = 531.0
+offset_bottom = 440.0
+texture = ExtResource("rule")
+expand_mode = 1
+mouse_filter = 2
+modulate = Color(0.57,0.39,0.24,0.68)
+
+[node name="NewRun" type="Button" parent="ServicePage"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 449.0
+offset_right = 531.0
+offset_bottom = 505.0
+text = "新开游戏"
+alignment = 0
+theme_override_font_sizes/font_size = 23
+mouse_default_cursor_shape = 2
+
+
+[node name="ChapterHeading" type="Label" parent="ChapterPage"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 12.0
+offset_right = 531.0
+offset_bottom = 82.0
+text = "选择章节"
+theme_override_font_sizes/font_size = 40
+mouse_filter = 2
+
+
+[node name="Chapters" type="VBoxContainer" parent="ChapterPage"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 116.0
+offset_right = 531.0
+offset_bottom = 360.0
+theme_override_constants/separation = 22
+
+[node name="OptionsHeading" type="Label" parent="Options"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 10.0
+offset_right = 531.0
+offset_bottom = 78.0
+text = "门厅设置"
+theme_override_font_sizes/font_size = 39
+mouse_filter = 2
+
+
+[node name="DoorToggle" type="Button" parent="Options"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 97.0
+offset_right = 527.0
+offset_bottom = 155.0
+text = "推开店门"
+theme_override_font_sizes/font_size = 26
+mouse_default_cursor_shape = 2
+alignment = 0
+
+[node name="Language" type="Button" parent="Options"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 161.0
+offset_right = 527.0
+offset_bottom = 219.0
+text = "English"
+theme_override_font_sizes/font_size = 26
+mouse_default_cursor_shape = 2
+alignment = 0
+
+[node name="CrewGroups" type="Button" parent="Options"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 225.0
+offset_right = 527.0
+offset_bottom = 283.0
+text = "阵容分组"
+theme_override_font_sizes/font_size = 26
+mouse_default_cursor_shape = 2
+alignment = 0
+
+[node name="BackToCanyon" type="Button" parent="Options"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 338.0
+offset_right = 527.0
+offset_bottom = 396.0
+text = "返回峡谷"
+theme_override_font_sizes/font_size = 26
+mouse_default_cursor_shape = 2
+alignment = 0
+
+[node name="Quit" type="Button" parent="Options"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 406.0
+offset_right = 527.0
+offset_bottom = 464.0
+text = "退出游戏"
+theme_override_font_sizes/font_size = 26
+mouse_default_cursor_shape = 2
+alignment = 0
+
+[node name="Controls" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = 54.0
+offset_top = 748.0
+offset_right = 585.0
+offset_bottom = 784.0
+text = ""
+theme_override_font_sizes/font_size = 17
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32,0.29,0.24,1)
+horizontal_alignment = 1
