@@ -3710,3 +3710,9 @@ msgstr "Orchid Crystal"
 
 msgid "虹釉秘方"
 msgstr "Celestial Crystal"
+
+msgid "可扩建"
+msgstr "Expand"
+
+msgid "闪星不足"
+msgstr "Need stars"

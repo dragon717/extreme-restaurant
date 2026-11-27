@@ -69,6 +69,7 @@ var season := -1
 var season_tween: Tween
 var garden := preload("res://scenes/canyon/gate_garden.tscn").instantiate()
 var season_weights := Vector3.ZERO
+var projection := preload("res://scripts/visuals/expansion_projection.gd").new()
 var rooms := Node3D.new()
 var fixtures := Node3D.new()
 var portraits := Node3D.new()
@@ -130,6 +131,8 @@ func _ready() -> void:
 	view.add_child(garden)
 	view.add_child(crew_shadows)
 	view.add_child(frontage)
+	view.add_child(projection)
+	projection.hide()
 	current_decal.name = "RiverCurrent"
 	current_decal.texture = preload("res://assets/canyon/current.webp")
 	current_decal.hframes = 4
@@ -552,12 +555,8 @@ func _build_rooms(layout: Dictionary) -> void:
 					# The guests pass underneath this continuous piece of the west eave.
 					canopy.add_run(id,PackedVector2Array([Vector2(x,y+1),Vector2(x,y)]))
 					continue
-				var horizontal: bool = side.y != 0
-				var line := (y if horizontal else x) + (1 if side == Vector2i.RIGHT or side == Vector2i.DOWN else 0)
-				var key := Vector3i(side.x, side.y, line)
 				if not boundaries.has(id): boundaries[id] = {}
-				if not boundaries[id].has(key): boundaries[id][key] = []
-				boundaries[id][key].append(x if horizontal else y)
+				_record_exterior_edge(boundaries[id], cell, side)
 	for id in geometry_by_room:
 		var wing := Node3D.new()
 		wing.name = id
@@ -707,7 +706,43 @@ func _ensure_frontage(entrance: Vector2) -> void:
 		porch.add_child(lantern)
 		porch_lamps.append(lantern)
 
-func _build_bays(id: String, layers: Dictionary, edges: Dictionary) -> void:
+func _record_exterior_edge(edges: Dictionary, cell: Vector2i, side: Vector2i) -> void:
+	var horizontal := side.y != 0
+	var line := cell.y if horizontal else cell.x
+	if side == Vector2i.RIGHT or side == Vector2i.DOWN: line += 1
+	var edge := Vector3i(side.x, side.y, line)
+	if not edges.has(edge): edges[edge] = []
+	edges[edge].append(cell.x if horizontal else cell.y)
+
+func preview_expansion(plot: Dictionary, show_preview: bool, eligible: bool, focused: bool) -> void:
+	# A camera move or a change in cash must never rebuild the model.
+	if plot.is_empty() or site_layout.is_empty():
+		if not projection.plot_id.is_empty(): projection.clear()
+		return
+	var b: Dictionary = plot.bounds
+	var area := Rect2i(int(b.left), int(b.top), int(b.right-b.left+1), int(b.bottom-b.top+1))
+	var rebuild := projection.plot_id != str(plot.id) or projection.bounds != area
+	if not show_preview:
+		if rebuild and not projection.plot_id.is_empty(): projection.clear()
+		projection.hide()
+		return
+	if rebuild:
+		projection.configure(str(plot.id), area, DEPTH)
+		var edges := {}
+		for y in range(area.position.y, area.end.y):
+			for x in range(area.position.x, area.end.x):
+				var cell := Vector2i(x,y)
+				for side: Vector2i in Grid.DIRECTIONS:
+					var neighbor := cell + side
+					if area.has_point(neighbor) or Grid.has_room(site_layout, neighbor): continue
+					if neighbor == Vector2i(Grid.vec(site_layout.entrance)) or neighbor == Vector2i(Grid.vec(site_layout.exit)): continue
+					_record_exterior_edge(edges, cell, side)
+		_build_bays(str(plot.id), {"floor":projection, "frame":projection}, edges, true)
+		projection.coat_walls()
+	projection.set_appearance(eligible, focused, rebuild)
+	projection.show()
+
+func _build_bays(id: String, layers: Dictionary, edges: Dictionary, preview := false) -> void:
 	for key: Vector3i in edges:
 		var cells: Array = edges[key]
 		cells.sort()
@@ -723,12 +758,12 @@ func _build_bays(id: String, layers: Dictionary, edges: Dictionary) -> void:
 				var split := 7 if length >= 11 else ceili(length*.58)
 				var begin := start if i == 0 else start + split
 				var end := start + length if i == sections - 1 else start + split
-				_attach_bay(id,layers, key, begin, end)
+				_attach_bay(id,layers, key, begin, end, preview)
 			if n < cells.size():
 				start = int(cells[n])
 				last = start
 
-func _attach_bay(id: String,layers: Dictionary, edge: Vector3i, begin: int, end: int) -> void:
+func _attach_bay(id: String,layers: Dictionary, edge: Vector3i, begin: int, end: int, preview: bool) -> void:
 	var horizontal := edge.y != 0
 	var middle := (begin + end) * .5
 	var center := Vector2(middle, edge.z) if horizontal else Vector2(edge.z, middle)
@@ -746,13 +781,14 @@ func _attach_bay(id: String,layers: Dictionary, edge: Vector3i, begin: int, end:
 	var span := float(end - begin)
 	var depth_scale := minf(1.0, span / 3.0)
 	if edge.x > 0 and begin >= 7: depth_scale *= .76
-	var key := source.resource_path.get_file().get_basename()
-	var line := PackedVector2Array()
-	var along := Vector2(-edge.y,edge.x)
-	var outward := Vector2(edge.x,edge.y)
-	for p in facade_profiles[key].line:
-		line.append(center + along * (float(p[0])*span/6.) + outward*float(p[1])*depth_scale)
-	canopy.add_run(id,line)
+	if not preview:
+		var key := source.resource_path.get_file().get_basename()
+		var line := PackedVector2Array()
+		var along := Vector2(-edge.y,edge.x)
+		var outward := Vector2(edge.x,edge.y)
+		for p in facade_profiles[key].line:
+			line.append(center + along * (float(p[0])*span/6.) + outward*float(p[1])*depth_scale)
+		canopy.add_run(id,line)
 	for layer_name in BAY_LAYERS:
 		var piece := module.find_child(layer_name, true, false) as Node3D
 		if piece == null: continue
@@ -769,6 +805,7 @@ func _attach_bay(id: String,layers: Dictionary, edge: Vector3i, begin: int, end:
 
 func start_construction(id: String) -> void:
 	if not wings.has(id): return
+	if projection.plot_id == id: projection.clear()
 	construction[id] = 0.0
 	_pose_construction(id, 0.0)
 	_set_new_furniture(id, 0.0)

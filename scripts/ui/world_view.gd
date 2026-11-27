@@ -144,6 +144,7 @@ var floor_style := []
 var sign_view := []
 const FLOOR_DRAW_UNIT := 28.0
 var plot_buttons: Dictionary = {}
+var pressed_plot := ""
 var home_bounds := Rect2()
 var home_target := Rect2()
 var home_signature := 0
@@ -191,6 +192,7 @@ func release_stage():
 	var stage = district_3d
 	district_3d = null
 	if stage != null:
+		stage.projection.clear()
 		for id in stage.actor_planes.keys(): stage.remove_actor(id)
 		remove_child(stage)
 	return stage
@@ -826,11 +828,11 @@ func _diagnostic_cells() -> Array[Vector2]:
 			cells.append(Grid.vec(facility.pos))
 	return cells
 
-func _make_plot_button(id: String) -> Dictionary:
+func _make_plot_button(plot: Dictionary) -> Dictionary:
 	var button = Style.button("")
 	button.mouse_filter = MOUSE_FILTER_PASS
-	button.size = Vector2(72, 40)
-	button.pressed.connect(func(): inspect_requested.emit("plot", id))
+	button.size = Vector2(144, 54)
+	button.pressed.connect(inspect_requested.emit.bind("plot", str(plot.id)))
 	add_child(button)
 	var center = CenterContainer.new()
 	center.mouse_filter = MOUSE_FILTER_IGNORE
@@ -839,23 +841,55 @@ func _make_plot_button(id: String) -> Dictionary:
 	var contents = HBoxContainer.new()
 	contents.mouse_filter = MOUSE_FILTER_IGNORE
 	contents.add_theme_constant_override("separation", 2)
-	center.add_child(contents)
-	var glyph = Icon.make("lock", Style.MUTED, 22.0)
+	var lines := VBoxContainer.new()
+	lines.mouse_filter = MOUSE_FILTER_IGNORE
+	lines.add_theme_constant_override("separation", 0)
+	center.add_child(lines)
+	var title := Style.text(str(plot.name), 17, Style.INK)
+	title.mouse_filter = MOUSE_FILTER_IGNORE
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lines.add_child(title)
+	contents.alignment = BoxContainer.ALIGNMENT_CENTER
+	lines.add_child(contents)
+	var glyph = Icon.make("lock", Style.MUTED, 16.0)
 	contents.add_child(glyph)
+	var state_label = Style.text("", 13, Style.INK)
+	state_label.mouse_filter = MOUSE_FILTER_IGNORE
+	contents.add_child(state_label)
 	var star = Icon.make("star", Style.GOLD, 15.0)
 	contents.add_child(star)
-	var cost = Style.text("", 16, Style.INK)
+	var cost = Style.text("", 13, Style.INK)
 	cost.mouse_filter = MOUSE_FILTER_IGNORE
 	contents.add_child(cost)
-	return {"button": button, "glyph": glyph, "star": star, "cost": cost, "ready": -1}
+	return {"button": button, "glyph": glyph, "star": star, "cost": cost, "label": state_label, "title": title, "lines": lines, "ready": -1}
 
 func _sync_plot_buttons() -> void:
-	var next_plot = str(sim.next_land_plot().get("id", ""))
+	var next: Dictionary = sim.next_land_plot()
+	var next_plot := str(next.get("id", ""))
+	var show_preview := _show_expansion_preview()
+	var status: Dictionary = sim.land_plot_status(next_plot) if show_preview and not next.is_empty() else {}
+	var ready := bool(status.get("ok", false))
+	var focused := false
 	for plot in sim.layout.plots:
 		var id = str(plot.id)
-		if not plot_buttons.has(id): plot_buttons[id] = _make_plot_button(id)
+		if not plot_buttons.has(id): plot_buttons[id] = _make_plot_button(plot)
 		var marker = plot_buttons[id]
 		var button: Button = marker.button
+		if id != next_plot or not show_preview:
+			button.hide()
+			button.disabled = true
+			button.mouse_filter = MOUSE_FILTER_IGNORE
+			marker.ready = 0
+			continue
+		marker.cost.text = str(int(plot.star_cost))
+		if ready:
+			marker.label.text = tr("可扩建")
+		elif sim.day < int(plot.unlock_day):
+			marker.label.text = tr("第 %d 天开放") % int(plot.unlock_day)
+		else:
+			marker.label.text = tr("闪星不足")
+		button.accessibility_name = tr(str(plot.name)) + " · " + marker.label.text
+		button.size.x = maxf(144., marker.lines.get_combined_minimum_size().x + 18.)
 		var bounds = plot.bounds
 		var center = Vector2((float(bounds.left) + float(bounds.right)) * 0.5, (float(bounds.top) + float(bounds.bottom)) * 0.5)
 		if Grid.has_room(sim.layout, Vector2i(int(bounds.left)-1, floori(center.y))):
@@ -864,27 +898,28 @@ func _sync_plot_buttons() -> void:
 			center.y = float(bounds.top) + .6
 		elif Grid.has_room(sim.layout, Vector2i(floori(center.x), int(bounds.bottom)+1)):
 			center.y = float(bounds.bottom) - .6
-		button.position = screen_point(center) - button.size * 0.5
-		var current = id == next_plot and sim.phase == "NIGHT"
-		button.visible = current and overview_mix < .40 and not inspect_roof and Rect2(Vector2.ZERO, size).intersects(button.get_rect())
-		var interactive = current and not editing and not placing_wall and pressed_entity.is_empty() and camera_input_enabled
+		# Keep the marker inside the projected room at the seam with the old house.
+		var margin := Vector2(5, 4)
+		var area := Rect2(_origin() + Vector2(bounds.left, bounds.top)*_unit(), Vector2(bounds.right-bounds.left+1,bounds.bottom-bounds.top+1)*_unit())
+		var upper := area.end - button.size - margin
+		button.position = (screen_point(center) - button.size * .5).clamp(area.position+margin,upper.max(area.position+margin))
+		button.visible = Rect2(Vector2.ZERO, size).intersects(button.get_rect())
+		var interactive = not editing and not placing_wall and pressed_entity.is_empty() and camera_input_enabled
 		button.disabled = not interactive
 		button.mouse_filter = MOUSE_FILTER_PASS if interactive else MOUSE_FILTER_IGNORE
 		if not button.visible:
-			marker.ready = 0 if not current else -1
+			marker.ready = -1
 			continue
-		var status = sim.land_plot_status(id) if current else {}
-		var ready = bool(status.get("ok", false))
-		marker.cost.text = str(int(plot.star_cost))
+		focused = button.is_hovered() or button.has_focus()
 		button.tooltip_text = tr("%s · %d 闪星") % [tr(str(plot.name)), int(plot.star_cost)] if interactive else ""
 		if interactive and not ready:
 			button.tooltip_text += "\n" + str(status.error)
-		var state = 2 if ready else (1 if current else 0)
+		var state = 2 if ready else 1
 		if marker.ready == state: continue
 		marker.ready = state
-		var shade = [Color("32383c"), Color("263837"), Color("e4ba72")][state]
-		var trim = [Color("777c7d"), Color("d7b87c"), Color("f5d693")][state]
-		var ink = [Color("b6b9b7"), Color("f2dfae"), Color("362d23")][state]
+		var shade := Color("43372b") if ready else Color("25383c")
+		var trim := Style.GOLD if ready else Color("a5d6d7")
+		var ink := Color("ffe1a3") if ready else Color("c5e2e2")
 		button.add_theme_stylebox_override("normal", Style.box(shade, trim, 8, 6))
 		button.add_theme_stylebox_override("hover", Style.box(shade.lightened(0.15), trim, 8, 6))
 		button.add_theme_stylebox_override("pressed", Style.box(shade.darkened(0.12), trim, 8, 6))
@@ -892,6 +927,19 @@ func _sync_plot_buttons() -> void:
 		marker.glyph.set_glyph("expand" if ready else "lock", ink)
 		marker.star.set_glyph("star", Style.GOLD if state == 1 else ink)
 		marker.cost.add_theme_color_override("font_color", ink)
+		marker.label.add_theme_color_override("font_color", ink)
+		marker.title.add_theme_color_override("font_color", ink)
+	if district_3d != null:
+		focused = focused or (camera_input_enabled and not editing and not placing_wall and not drag_active and not _preview_plot_at(hovered).is_empty())
+		district_3d.preview_expansion(next, show_preview, ready, focused)
+
+func _show_expansion_preview() -> bool:
+	return sim.phase == "NIGHT" and not entering_canyon and not inspect_roof and overview_mix < .40 and not feature_active
+
+func _preview_plot_at(cell: Vector2i) -> String:
+	if not _show_expansion_preview(): return ""
+	var plot: Dictionary = Grid.locked_plot_at(sim.layout, cell)
+	return str(plot.id) if not plot.is_empty() and plot.id == sim.next_land_plot().get("id","") else ""
 
 func _update_traffic_door(delta: float) -> void:
 	if sim.phase!="DAY":
@@ -1065,12 +1113,19 @@ func _primary_pointer(point: Vector2, pressed: bool) -> void:
 		if not shop_sign.is_empty():id=shop_sign
 		if sim.phase == "NIGHT":
 			pressed_entity = id
+			if id.is_empty() and not editing:
+				pressed_plot = _preview_plot_at(cell)
 			if not id.is_empty() and feature_motion != null and feature_motion.is_running():
 				feature_motion.pause()
 				drag_paused_motion = feature_motion
 			if not facility.is_empty(): grab_offset = cell - Grid.footprint(facility).position
 		else:
 			_inspect_entity(id)
+	elif not pressed_plot.is_empty():
+		var plot_id := pressed_plot
+		cancel_drag()
+		if camera_input_enabled and point.distance_to(press_position) <= 7. and plot_id == _preview_plot_at(cell):
+			inspect_requested.emit("plot", plot_id)
 	elif not pressed_entity.is_empty():
 		var id = pressed_entity
 		var moved = point.distance_to(press_position) > 7
@@ -1139,6 +1194,7 @@ func cancel_touch() -> void:
 	touch_primary_started = false
 
 func cancel_drag() -> void:
+	pressed_plot = ""
 	if drag_paused_motion != null and drag_paused_motion == feature_motion and drag_paused_motion.is_valid():
 		drag_paused_motion.play()
 	drag_paused_motion = null
@@ -1232,7 +1288,7 @@ func _update_cursor(point: Vector2) -> void:
 	if not Grid.facility_at(sim.layout, cell_at(point)).is_empty() or not _shop_sign_at(point).is_empty():
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		return
-	if not _actor_at(point).is_empty():
+	if not _actor_at(point).is_empty() or not _preview_plot_at(cell_at(point)).is_empty():
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		return
 	mouse_default_cursor_shape = Control.CURSOR_ARROW
@@ -1636,7 +1692,7 @@ func _draw() -> void:
 	if sim.trophy_shop_unlocked() and (district_3d == null or float(district_3d.construction.get("trophy_gallery", 2.0)) >= 1.1):
 		_draw_unlocked_trophy_zone(origin,unit,zone)
 		if not trophy_placement_id.is_empty(): _draw_trophy_placement(origin, unit, zone)
-	_draw_locked_plots(origin,unit,l,next_plot)
+	if district_3d == null and _show_expansion_preview(): _draw_locked_plots(origin,unit,l,next_plot)
 	if district_3d == null: _draw_frontage(origin, unit, l)
 	draw_rect(Rect2(origin + Vector2(kitchen.left,kitchen.top) * unit, Vector2(int(kitchen.right)-int(kitchen.left)+1,int(kitchen.bottom)-int(kitchen.top)+1) * unit), Color(0.24,0.36,0.27,0.24), false, 2)
 	if sim.phase == "NIGHT" and camera_input_enabled and not selected_id.is_empty():
@@ -1914,7 +1970,7 @@ func _draw_unlocked_trophy_zone(origin: Vector2, unit: float, zone: Dictionary) 
 func _draw_locked_plots(origin: Vector2, unit: float, layout: Dictionary, next_plot: String) -> void:
 	if not plot_buttons.has(next_plot): return
 	var button: Button = plot_buttons[next_plot].button
-	if not button.visible or not (button.is_hovered() or button.has_focus()): return
+	if not button.visible: return
 	for plot in layout.plots:
 		if str(plot.id) != next_plot: continue
 		var b: Dictionary = plot.bounds
