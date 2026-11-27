@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cqhgapkss7u2j"
 path.s3tc="res://.godot/imported/inn-plaster.jpg-41bdd32d9ea5c0db661a2ab6a9836e2d.s3tc.ctex"
+path.etc2="res://.godot/imported/inn-plaster.jpg-41bdd32d9ea5c0db661a2ab6a9836e2d.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/materials/inn-plaster.jpg"
-dest_files=["res://.godot/imported/inn-plaster.jpg-41bdd32d9ea5c0db661a2ab6a9836e2d.s3tc.ctex"]
+dest_files=["res://.godot/imported/inn-plaster.jpg-41bdd32d9ea5c0db661a2ab6a9836e2d.s3tc.ctex", "res://.godot/imported/inn-plaster.jpg-41bdd32d9ea5c0db661a2ab6a9836e2d.etc2.ctex"]
 
 [params]
 

@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dwusi7kb3jnhu"
 path.s3tc="res://.godot/imported/inn-stone.jpg-9075863c6322a1d983d590f8f7352386.s3tc.ctex"
+path.etc2="res://.godot/imported/inn-stone.jpg-9075863c6322a1d983d590f8f7352386.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/materials/inn-stone.jpg"
-dest_files=["res://.godot/imported/inn-stone.jpg-9075863c6322a1d983d590f8f7352386.s3tc.ctex"]
+dest_files=["res://.godot/imported/inn-stone.jpg-9075863c6322a1d983d590f8f7352386.s3tc.ctex", "res://.godot/imported/inn-stone.jpg-9075863c6322a1d983d590f8f7352386.etc2.ctex"]
 
 [params]
 

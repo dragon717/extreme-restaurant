@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://ktp8esd7orxi"
 path.s3tc="res://.godot/imported/stone_bridge_stone_bridge_orm.png-31dbee1d2d391583f77a78652b00f13c.s3tc.ctex"
+path.etc2="res://.godot/imported/stone_bridge_stone_bridge_orm.png-31dbee1d2d391583f77a78652b00f13c.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/canyon_world/stone_bridge_stone_bridge_orm.png"
-dest_files=["res://.godot/imported/stone_bridge_stone_bridge_orm.png-31dbee1d2d391583f77a78652b00f13c.s3tc.ctex"]
+dest_files=["res://.godot/imported/stone_bridge_stone_bridge_orm.png-31dbee1d2d391583f77a78652b00f13c.s3tc.ctex", "res://.godot/imported/stone_bridge_stone_bridge_orm.png-31dbee1d2d391583f77a78652b00f13c.etc2.ctex"]
 
 [params]
 

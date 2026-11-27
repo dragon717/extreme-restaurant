@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cex8wrj7h3ld5"
 path.s3tc="res://.godot/imported/inn-needles-normal.png-889b12b67998cb5bd5d1f8fcfd69f0e9.s3tc.ctex"
+path.etc2="res://.godot/imported/inn-needles-normal.png-889b12b67998cb5bd5d1f8fcfd69f0e9.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/materials/inn-needles-normal.png"
-dest_files=["res://.godot/imported/inn-needles-normal.png-889b12b67998cb5bd5d1f8fcfd69f0e9.s3tc.ctex"]
+dest_files=["res://.godot/imported/inn-needles-normal.png-889b12b67998cb5bd5d1f8fcfd69f0e9.s3tc.ctex", "res://.godot/imported/inn-needles-normal.png-889b12b67998cb5bd5d1f8fcfd69f0e9.etc2.ctex"]
 
 [params]
 

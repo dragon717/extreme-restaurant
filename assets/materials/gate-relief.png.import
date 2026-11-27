@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bjxd5eaoo0wxh"
 path.s3tc="res://.godot/imported/gate-relief.png-1b2b2a15dc6028e96c3519bac4516f82.s3tc.ctex"
+path.etc2="res://.godot/imported/gate-relief.png-1b2b2a15dc6028e96c3519bac4516f82.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/materials/gate-relief.png"
-dest_files=["res://.godot/imported/gate-relief.png-1b2b2a15dc6028e96c3519bac4516f82.s3tc.ctex"]
+dest_files=["res://.godot/imported/gate-relief.png-1b2b2a15dc6028e96c3519bac4516f82.s3tc.ctex", "res://.godot/imported/gate-relief.png-1b2b2a15dc6028e96c3519bac4516f82.etc2.ctex"]
 
 [params]
 

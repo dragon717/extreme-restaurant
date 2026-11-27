@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cmthfj8axy7ca"
 path.s3tc="res://.godot/imported/crane_crane_normal.png-4a6d49efbfe0798bc4dda1b7f7b5dc23.s3tc.ctex"
+path.etc2="res://.godot/imported/crane_crane_normal.png-4a6d49efbfe0798bc4dda1b7f7b5dc23.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/canyon_world/crane_crane_normal.png"
-dest_files=["res://.godot/imported/crane_crane_normal.png-4a6d49efbfe0798bc4dda1b7f7b5dc23.s3tc.ctex"]
+dest_files=["res://.godot/imported/crane_crane_normal.png-4a6d49efbfe0798bc4dda1b7f7b5dc23.s3tc.ctex", "res://.godot/imported/crane_crane_normal.png-4a6d49efbfe0798bc4dda1b7f7b5dc23.etc2.ctex"]
 
 [params]
 

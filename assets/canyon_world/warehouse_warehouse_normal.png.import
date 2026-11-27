@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7nvppjmignfm"
 path.s3tc="res://.godot/imported/warehouse_warehouse_normal.png-b6435147a7b216555b68f4b858854ba5.s3tc.ctex"
+path.etc2="res://.godot/imported/warehouse_warehouse_normal.png-b6435147a7b216555b68f4b858854ba5.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/canyon_world/warehouse_warehouse_normal.png"
-dest_files=["res://.godot/imported/warehouse_warehouse_normal.png-b6435147a7b216555b68f4b858854ba5.s3tc.ctex"]
+dest_files=["res://.godot/imported/warehouse_warehouse_normal.png-b6435147a7b216555b68f4b858854ba5.s3tc.ctex", "res://.godot/imported/warehouse_warehouse_normal.png-b6435147a7b216555b68f4b858854ba5.etc2.ctex"]
 
 [params]
 

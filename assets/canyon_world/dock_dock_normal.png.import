@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bt03ev8fjlcwg"
 path.s3tc="res://.godot/imported/dock_dock_normal.png-1bebde0947089cc0a950896d9fa9b70e.s3tc.ctex"
+path.etc2="res://.godot/imported/dock_dock_normal.png-1bebde0947089cc0a950896d9fa9b70e.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/canyon_world/dock_dock_normal.png"
-dest_files=["res://.godot/imported/dock_dock_normal.png-1bebde0947089cc0a950896d9fa9b70e.s3tc.ctex"]
+dest_files=["res://.godot/imported/dock_dock_normal.png-1bebde0947089cc0a950896d9fa9b70e.s3tc.ctex", "res://.godot/imported/dock_dock_normal.png-1bebde0947089cc0a950896d9fa9b70e.etc2.ctex"]
 
 [params]
 

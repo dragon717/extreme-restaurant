@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://2fiaik1qqby8"
 path.s3tc="res://.godot/imported/timber_bridge_timber_bridge_normal.png-d152918d16ae7678b570c4a1da24ed46.s3tc.ctex"
+path.etc2="res://.godot/imported/timber_bridge_timber_bridge_normal.png-d152918d16ae7678b570c4a1da24ed46.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/canyon_world/timber_bridge_timber_bridge_normal.png"
-dest_files=["res://.godot/imported/timber_bridge_timber_bridge_normal.png-d152918d16ae7678b570c4a1da24ed46.s3tc.ctex"]
+dest_files=["res://.godot/imported/timber_bridge_timber_bridge_normal.png-d152918d16ae7678b570c4a1da24ed46.s3tc.ctex", "res://.godot/imported/timber_bridge_timber_bridge_normal.png-d152918d16ae7678b570c4a1da24ed46.etc2.ctex"]
 
 [params]
 

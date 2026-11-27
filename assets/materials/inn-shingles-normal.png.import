@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://ceh6n26b7xbk1"
 path.s3tc="res://.godot/imported/inn-shingles-normal.png-a8cc44b3b5fdb793891e56bfcdf56c3c.s3tc.ctex"
+path.etc2="res://.godot/imported/inn-shingles-normal.png-a8cc44b3b5fdb793891e56bfcdf56c3c.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/materials/inn-shingles-normal.png"
-dest_files=["res://.godot/imported/inn-shingles-normal.png-a8cc44b3b5fdb793891e56bfcdf56c3c.s3tc.ctex"]
+dest_files=["res://.godot/imported/inn-shingles-normal.png-a8cc44b3b5fdb793891e56bfcdf56c3c.s3tc.ctex", "res://.godot/imported/inn-shingles-normal.png-a8cc44b3b5fdb793891e56bfcdf56c3c.etc2.ctex"]
 
 [params]
 

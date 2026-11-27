@@ -36,6 +36,8 @@ var active := true
 
 
 func _ready() -> void:
+	# An exported instance can inherit zero-sized root offsets from its packed scene.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if DisplayServer.get_name() != "headless":
 		model = District.new()
 		add_child(model)

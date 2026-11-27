@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dvl2u2sq05ljx"
 path.s3tc="res://.godot/imported/gallery_gallery_color.jpg-18f74a756b6ae5e5eb962901909aed84.s3tc.ctex"
+path.etc2="res://.godot/imported/gallery_gallery_color.jpg-18f74a756b6ae5e5eb962901909aed84.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/canyon_world/gallery_gallery_color.jpg"
-dest_files=["res://.godot/imported/gallery_gallery_color.jpg-18f74a756b6ae5e5eb962901909aed84.s3tc.ctex"]
+dest_files=["res://.godot/imported/gallery_gallery_color.jpg-18f74a756b6ae5e5eb962901909aed84.s3tc.ctex", "res://.godot/imported/gallery_gallery_color.jpg-18f74a756b6ae5e5eb962901909aed84.etc2.ctex"]
 
 [params]
 
