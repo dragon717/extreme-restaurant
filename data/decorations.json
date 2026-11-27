@@ -11,7 +11,7 @@
     "width": 4,
     "effect": "waiter_speed",
     "value": 0.24,
-    "price": 210,
+    "star_cost": 1,
     "color": "78b7aa"
   },
   {
@@ -25,7 +25,7 @@
     "reach": 1,
     "effect": "table_eat",
     "value": 0.18,
-    "price": 220,
+    "star_cost": 1,
     "color": "efbd74"
   },
   {
@@ -39,7 +39,7 @@
     "reach": 2,
     "effect": "table_quality",
     "value": 0.15,
-    "price": 520,
+    "star_cost": 2,
     "color": "8abec3"
   },
   {
@@ -54,7 +54,7 @@
     "width": 1,
     "effect": "table_reputation",
     "value": 1,
-    "price": 490,
+    "star_cost": 2,
     "color": "d0a5c7"
   },
   {
@@ -68,7 +68,7 @@
     "reach": 1,
     "effect": "table_gold",
     "value": 0.12,
-    "price": 330,
+    "star_cost": 1,
     "color": "edbc69"
   },
   {
@@ -82,7 +82,7 @@
     "reach": 3,
     "effect": "group_base_gold",
     "value": 2,
-    "price": 680,
+    "star_cost": 3,
     "color": "da9eaa"
   },
   {
@@ -96,7 +96,7 @@
     "reach": 1,
     "effect": "stove_speed",
     "value": 0.22,
-    "price": 255,
+    "star_cost": 1,
     "color": "9bb987"
   },
   {
@@ -110,7 +110,7 @@
     "reach": 1,
     "effect": "stove_quality",
     "value": 0.25,
-    "price": 560,
+    "star_cost": 2,
     "color": "9caed4"
   }
 ]

@@ -9,9 +9,9 @@ const MAX_EAT_TIME_REDUCTION := 0.75
 static func ticks(seconds: float, tick_ms: int) -> int:
 	return maxi(1, int(ceil(seconds * 1000.0 / float(tick_ms) - 0.0000001)))
 
-static func quality(base: float, levels: int, chapter: Dictionary) -> float:
+static func quality(base: float, levels: int, chapter: Dictionary, bonus := 0.0) -> float:
 	var q = chapter.quality_rules
-	return clampf(base + float(q.step) * levels, float(q.minimum), float(q.maximum))
+	return clampf(base + float(q.step) * levels + bonus, float(q.minimum), float(q.maximum))
 
 static func payment(base: int, q: float, percent: float, multiplier: float, flat: int, override_zero: bool = false) -> int:
 	if override_zero:

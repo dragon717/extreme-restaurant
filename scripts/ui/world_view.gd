@@ -6,6 +6,7 @@ const Weather = preload("res://scripts/visuals/restaurant_weather.gd")
 const Grid = preload("res://scripts/core/layout.gd")
 const Decor = preload("res://scripts/core/decoration_effects.gd")
 const DecorArt = preload("res://scripts/visuals/decoration_art.gd")
+const TrophyArt = preload("res://scripts/visuals/trophy_art.gd")
 const GuestChatter = preload("res://scripts/ui/guest_chatter.gd")
 const Bubble = preload("res://scripts/ui/speech_bubble.gd")
 const Actor = preload("res://scripts/visuals/actor_view.gd")
@@ -912,7 +913,7 @@ func _process(delta: float) -> void:
 	if not pressed_entity.is_empty():
 		if sim.phase != "NIGHT" or not camera_input_enabled:
 			cancel_drag()
-		elif not drag_active and pressed_entity not in ["trophy_shop", "slot", "decor_shop"]:
+		elif not drag_active:
 			press_elapsed += delta
 			if press_elapsed >= HOLD_TO_DRAG:
 				drag_active = true
@@ -1059,7 +1060,8 @@ func _primary_pointer(point: Vector2, pressed: bool) -> void:
 		var id = actor_id
 		if not facility.is_empty() and (actor_id.is_empty() or sim.phase == "NIGHT"):
 			id = str(facility.id)
-		if _trophy_shop_hit(point): id = "trophy_shop"
+		var shop_sign := _shop_sign_at(point)
+		if not shop_sign.is_empty():id=shop_sign
 		if sim.phase == "NIGHT":
 			pressed_entity = id
 			if not id.is_empty() and feature_motion != null and feature_motion.is_running():
@@ -1189,18 +1191,25 @@ func _actor_at(point: Vector2) -> String:
 				best_distance = distance
 	return selected
 
-func _trophy_shop_at(cell: Vector2i) -> bool:
-	return sim.phase == "NIGHT" and sim.trophy_shop_unlocked() and cell == sim.trophy_shop_cell()
-
-func _trophy_shop_hit(point: Vector2) -> bool:
-	if sim.phase != "NIGHT" or not sim.trophy_shop_unlocked(): return false
-	var cell = sim.trophy_shop_cell()
-	if cell_at(point) == cell: return true
-	return _trophy_shop_sign(cell, _unit()).has_point(point)
+func _shop_sign_at(point: Vector2) -> String:
+	if sim.phase != "NIGHT": return ""
+	var nearest := ""
+	var shortest := INF
+	var unit = _unit()
+	for id in ["slot", "trophy_shop", "decor_shop"]:
+		var shop = Grid.find(sim.layout, id)
+		if shop.is_empty() or not Grid.placed(shop): continue
+		var cell = Vector2i(Grid.vec(shop.pos))
+		var rect = _trophy_shop_sign(cell, unit) if id == "trophy_shop" else _facility_label_rect(shop, screen_point(Vector2(cell)), _origin().y + cell.y * unit)
+		var distance = rect.get_center().distance_squared_to(point)
+		if rect.has_point(point) and distance < shortest:
+			nearest = id
+			shortest = distance
+	return nearest
 
 func _trophy_shop_sign(cell: Vector2i, unit: float) -> Rect2:
 	var font_size = clampi(roundi(unit * .43), 12, 16)
-	var width = font.get_string_size(tr("奖杯商店"), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var width = font.get_string_size(tr("奖杯盲盒"), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var start = screen_point(Vector2(cell)) - Vector2(width * .5 + 4, unit * .68 + font_size)
 	return Rect2(start, Vector2(width + 8, font_size + 5))
 
@@ -1217,7 +1226,7 @@ func _update_cursor(point: Vector2) -> void:
 	if sim.phase == "NIGHT" and editing and not selected_id.is_empty():
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		return
-	if _trophy_shop_hit(point) or not Grid.facility_at(sim.layout, cell_at(point)).is_empty():
+	if not Grid.facility_at(sim.layout, cell_at(point)).is_empty() or not _shop_sign_at(point).is_empty():
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		return
 	if not _actor_at(point).is_empty():
@@ -1232,9 +1241,7 @@ func _inspect_actor(point: Vector2) -> String:
 
 func _inspect_entity(id: String) -> void:
 	if id.is_empty(): return
-	if id == "trophy_shop":
-		inspect_requested.emit("trophy_shop", id)
-	elif id.begins_with("preview_"):
+	if id.begins_with("preview_"):
 		selected_id = id
 		inspect_requested.emit("preview", id)
 	elif id.begins_with("s_"):
@@ -1450,7 +1457,7 @@ func _sync_actors() -> void:
 				action = "walk"
 			elif not s.task.is_empty():
 				if s.task.stage == "MOVE":
-					action = "carry" if not s.carry_food.is_empty() or s.carry_order != 0 else "walk"
+					action = "carry" if not s.carry_food.is_empty() or not s.carry_orders.is_empty() else "walk"
 				else:
 					action = "cook" if s.task.kind == "COOK" else "order"
 					label = "做" if s.task.kind == "COOK" else "单"
@@ -1626,7 +1633,6 @@ func _draw() -> void:
 	if sim.trophy_shop_unlocked() and (district_3d == null or float(district_3d.construction.get("trophy_gallery", 2.0)) >= 1.1):
 		_draw_unlocked_trophy_zone(origin,unit,zone)
 		if not trophy_placement_id.is_empty(): _draw_trophy_placement(origin, unit, zone)
-		_draw_trophy_shop(unit)
 	_draw_locked_plots(origin,unit,l,next_plot)
 	if district_3d == null: _draw_frontage(origin, unit, l)
 	draw_rect(Rect2(origin + Vector2(kitchen.left,kitchen.top) * unit, Vector2(int(kitchen.right)-int(kitchen.left)+1,int(kitchen.bottom)-int(kitchen.top)+1) * unit), Color(0.24,0.36,0.27,0.24), false, 2)
@@ -1847,27 +1853,26 @@ func _draw_window_light(origin: Vector2, unit: float, l: Dictionary) -> void:
 			draw_polygon(PackedVector2Array([a,b,b+shift,a+shift]), PackedColorArray([
 				Color("ffedba",strength), Color("ffedba",strength), Color("ffedba",.0), Color("ffedba",.0)]))
 
-func _draw_trophy_shop(unit: float) -> void:
-	var cell = sim.trophy_shop_cell()
+func _draw_trophy_shop(f: Dictionary, unit: float) -> void:
+	var cell = Vector2i(Grid.vec(f.pos))
 	var center = screen_point(Vector2(cell))
 	draw_set_transform(center, 0, Vector2.ONE * unit / 48.0)
-	draw_rect(Rect2(-21, -16, 44, 38), Color("443445"))
-	draw_rect(Rect2(-19, -20, 40, 22), Color("9a6654"))
-	draw_rect(Rect2(-17, -3, 36, 20), Color("775379"))
-	draw_rect(Rect2(-13, 0, 28, 13), Color("f2ce8b"))
-	draw_rect(Rect2(-16, -20, 34, 3), Color("e5ad78"))
-	for x in range(-15, 19, 8):
-		draw_rect(Rect2(x, -15, 4, 9), Color("e3b68a"))
-	draw_circle(Vector2(0, 4), 5, Color("72544b"))
-	draw_line(Vector2(0, 8), Vector2(0, 11), Color("72544b"), 2)
-	draw_line(Vector2(-5, 11), Vector2(5, 11), Color("72544b"), 2)
-	if _trophy_shop_at(hovered):
+	draw_rect(Rect2(-22, -18, 44, 39), Color("27393a"))
+	draw_rect(Rect2(-20, -17, 40, 22), Color("708c7f"))
+	draw_rect(Rect2(-18, -12, 36, 29), Color("42655f"))
+	draw_rect(Rect2(-21, -5, 42, 4), Color("c9a171"))
+	draw_rect(Rect2(-13, 0, 26, 13), Color("304e4d"))
+	draw_circle(Vector2(0, 2), 7, Color("f0c383"), true, -1, true)
+	draw_colored_polygon(PackedVector2Array([Vector2(0, -3), Vector2(4, 2), Vector2(0, 7), Vector2(-4, 2)]), Color("6e5949"))
+	for edge in [-15, 15]:
+		draw_line(Vector2(edge, -13), Vector2(edge, 15), Color("b1936d"), 2, true)
+	if sim.phase == "NIGHT" and (cell == hovered or f.id == selected_id):
 		draw_rect(Rect2(-22, -22, 46, 46), Style.GOLD, false, 2)
 	draw_set_transform(Vector2.ZERO)
 	var sign = _trophy_shop_sign(cell, unit)
 	var font_size = int(sign.size.y) - 5
 	draw_rect(sign, Color("3e3143", .95))
-	draw_string(font, sign.position + Vector2(4, font_size), tr("奖杯商店"), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("ffe4b4"))
+	draw_string(font, sign.position + Vector2(4, font_size), tr("奖杯盲盒"), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("ffe4b4"))
 
 func _sync_trophy_placement() -> void:
 	var next_id := ""
@@ -1931,42 +1936,12 @@ func _draw_frontage(origin: Vector2, unit: float, l: Dictionary) -> void:
 
 
 func _draw_trophy(id: String) -> void:
-	var definition = sim.relic_defs[id]
-	var metal = Color(str(definition.color))
-	draw_rect(Rect2(-20,14,40,8),Color("544a49"))
-	draw_rect(Rect2(-16,10,32,6),Color("c4a56f"))
-	match id:
-		"bronze_clock":
-			draw_circle(Vector2(0,-5),15,metal)
-			draw_circle(Vector2(0,-5),11,Color("fff5d5"))
-			draw_line(Vector2(0,-5),Vector2(0,-13),metal,2)
-			draw_line(Vector2(0,-5),Vector2(7,-2),metal,2)
-		"ember_cup":
-			draw_rect(Rect2(-11,-17,22,23),metal)
-			draw_arc(Vector2(11,-8),8,-PI/2,PI/2,12,metal,3)
-			draw_rect(Rect2(-2,5,4,7),metal)
-		"silver_bell":
-			draw_circle(Vector2(0,-4),14,metal)
-			draw_rect(Rect2(-15,-4,30,13),metal)
-			draw_circle(Vector2(0,10),4,Color("e9c479"))
-		"jade_medal":
-			draw_colored_polygon(PackedVector2Array([Vector2(-15,-8),Vector2(0,-23),Vector2(15,-8),Vector2(0,7)]),metal)
-			draw_circle(Vector2(0,-7),5,Color("e7dfba"))
-		"golden_spoon":
-			draw_line(Vector2(-8,9),Vector2(6,-8),metal,6)
-			draw_circle(Vector2(9,-13),9,metal)
-		"laurel_crown":
-			draw_rect(Rect2(-15,-5,30,13),metal)
-			for x in [-12,0,12]: draw_colored_polygon(PackedVector2Array([Vector2(x-5,-5),Vector2(x,-20),Vector2(x+5,-5)]),metal)
-		"dining_hourglass":
-			draw_colored_polygon(PackedVector2Array([Vector2(-11,-20),Vector2(11,-20),Vector2(0,-6)]),Color("fff1ce"))
-			draw_colored_polygon(PackedVector2Array([Vector2(0,-6),Vector2(11,9),Vector2(-11,9)]),Color("fff1ce"))
-			draw_colored_polygon(PackedVector2Array([Vector2(-8,7),Vector2(0,-1),Vector2(8,7)]),metal)
-			draw_circle(Vector2(0,-6),1.5,metal)
-			draw_rect(Rect2(-14,-22,28,4),metal)
-			draw_rect(Rect2(-14,8,28,4),metal)
+	TrophyArt.paint(self, sim.relic_defs[id])
 
 func _draw_facility(f: Dictionary) -> void:
+	if f.type == "trophy_shop":
+		_draw_trophy_shop(f, _unit())
+		return
 	if f.type == "decoration":
 		var footprint = Grid.footprint(f)
 		var bounds = Rect2(_origin() + Vector2(footprint.position) * _unit(), Vector2(footprint.size) * _unit())
@@ -2089,6 +2064,12 @@ func _draw_large_table(f: Dictionary) -> void:
 	var hovering = area.has_point(hovered)
 	if f.id == selected_id or hovering: draw_rect(bounds.grow(-1), Color("ffda84"), false, 2.5)
 	_draw_facility_label(f, center, bounds.position.y, hovering)
+
+func _facility_label_rect(f: Dictionary, center: Vector2, top: float) -> Rect2:
+	var font_size = clampi(roundi(_unit() * .27), 13, 17)
+	var width = font.get_string_size(str(f.name), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var label_origin = Vector2(roundf(center.x - (width + 8) * .5), roundf(top - font_size - 11))
+	return Rect2(label_origin, Vector2(width + 8, font_size + 8))
 
 func _draw_facility_label(f: Dictionary, center: Vector2, top: float, hovering: bool) -> void:
 	if f.type not in ["cashier", "slot", "decor_shop"] and f.id != selected_id and not hovering and f.id not in diagnostic_facilities:

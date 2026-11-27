@@ -40,11 +40,27 @@ func _initialize() -> void:
 	check(sim.purchase_unlocked() and sim.trophy_shop_unlocked() and sim.decoration_shop_unlocked(), "三个商店随各自地块开放")
 	for id in ["slot", "trophy_shop", "decor_shop"]:
 		var counter = Grid.find(sim.layout, id)
-		check(Grid.interaction_accessible(counter, Grid.walkable_region(sim.layout)) and not sim.move_facility(id, Vector2i(13, 13)).ok, "商店可达且位置固定 " + id)
+		check(Grid.interaction_accessible(counter, Grid.walkable_region(sim.layout)), "商店初始位置可达 " + id)
+		var origin = Vector2i(Grid.vec(counter.pos))
+		var moved = false
+		for step in Grid.DIRECTIONS:
+			if sim.move_facility(id, origin + step).ok:
+				moved = true
+				break
+		check(moved and Vector2i(Grid.vec(counter.pos)) != origin and sim.opening_errors().is_empty(), "商店可移动且保持通路 " + id)
+		check(not sim.store_facility(id).ok and sim.move_facility(id, origin).ok, "可移回的商店保持在场景内 " + id)
+	var savings = sim.gold
+	var night_spending = sim.night_spend
+	var stars = sim.stars
+	sim.stars = 0
+	var before_purchase = sim.export_state()
+	check(not sim.buy_decoration("meal_bell").ok and sim.export_state() == before_purchase, "装饰缺少闪星时不交易")
+	sim.stars = stars
 	var first = sim.buy_decoration("meal_bell")
 	var second = sim.buy_decoration("meal_bell")
 	var lantern = sim.buy_decoration("gold_lantern")
 	check(first.ok and second.ok and first.facility_id != second.facility_id and sim.stored_facilities("decoration").size() == 3, "同款可重复购买并存入背包")
+	check(sim.stars == stars - 3 and sim.gold == savings and sim.night_spend == night_spending, "装饰只花闪星，金币与金币支出不变")
 	var placements = [
 		[first.facility_id, Vector2i(4, 7)], [second.facility_id, Vector2i(3, 8)], [lantern.facility_id, Vector2i(5, 7)],
 	]
@@ -84,7 +100,7 @@ func _initialize() -> void:
 	sim._advance_staff(runner)
 	var expected_step = float(sim.chapter.movement.waiter_speed) * (1.0 + sim.modifiers.speed + .24) * sim.tick_ms / 1000.0
 	check(is_equal_approx(runner.pos.y - 11.0, expected_step), "服务员实际在亮格内加速")
-	var cook = {"task": {"kind": "COOK", "recipe": "starter_rice", "stove_id": "gift_stove_k", "order_ids": []}}
+	var cook = {"task": {"kind": "COOK", "recipe": "starter_rice", "stove_id": "gift_stove_k", "order_ids": [], "batch": 2}}
 	sim._arrive_task(cook)
 	check(cook.task.done_tick - sim.tick == Rules.ticks(6.0 / 1.22, sim.tick_ms), "灶台实际按局部速度烹饪")
 	sim._complete_action(cook)

@@ -74,27 +74,35 @@ func prepare_plate(s, quality: float = 1.0) -> void:
 	s.foods[1] = {"id":1,"recipe":"starter_rice","quality":quality,"location":"PLATE","location_id":"1","origin":"stove_1","bound_order":1,"reserved_by":0,"created_tick":0}
 	s.stats.produced = 1
 
+func draw_named_trophy(sim, id: String) -> Dictionary:
+	var catalog = sim.relic_defs
+	sim.relic_defs = {id: catalog[id]}
+	var drawn = sim.draw_trophy()
+	sim.relic_defs = catalog
+	return drawn
+
 func verify_shop_tiers() -> void:
 	var invalid = Catalog.load_all()
 	invalid.buffs.quick_dining.level = 0
-	invalid.chapter.trophy_shop_weights[0].weights = {"4": -1}
+	invalid.chapter.trophy_box.day_weights[0].weights[0] = -1
 	var errors = Catalog.validate(invalid)
-	expect(errors.any(func(error): return error.contains("星级")) and errors.any(func(error): return error.contains("奖杯等级权重")), "SHOP: 配置拒绝无效增益等级和负权重")
+	expect(errors.any(func(error): return error.contains("星级")) and errors.any(func(error): return error.contains("奖杯品质权重")), "SHOP: 配置拒绝无效增益等级和盲盒权重")
 	var sim = Sim.new()
 	sim.chapter.buff_shop_weights = [{"from_day":1,"weights":{"1":100}}, {"from_day":8,"weights":{"3":100}}]
-	sim.chapter.trophy_shop_weights = [{"from_day":1,"weights":{"2":100}}, {"from_day":8,"weights":{"4":100}}]
 	sim.day = 7
 	sim._refresh_shop()
-	sim._refresh_trophies()
 	expect(sim.shop.slice(1).all(func(offer): return offer.type == "buff" and int(sim.buff_defs[offer.id].level) == 1), "SHOP: 阶段变更前按旧增益星级出货")
-	var early_trophies = sim.trophy_shop.filter(func(offer): return not offer.id.is_empty())
-	expect(early_trophies.size() == 2 and early_trophies.all(func(offer): return offer.price == 2), "SHOP: 奖杯按价格等级出货并排除未解锁地块赠礼")
 	sim.day = 8
 	sim._refresh_shop()
-	sim._refresh_trophies()
 	expect(sim.shop.slice(1).all(func(offer): return offer.type == "buff" and int(sim.buff_defs[offer.id].level) == 3) and sim.shop[1].id != sim.shop[2].id, "SHOP: 新阶段按高星级出货且两格增益不重复")
-	var late_trophies = sim.trophy_shop.filter(func(offer): return not offer.id.is_empty())
-	expect(late_trophies.size() == 1 and late_trophies[0].id == "dining_hourglass" and late_trophies[0].price == 4, "SHOP: 高星奖杯不足时留空且不重复抽取")
+	var early = sim.trophy_box_offer()
+	sim.day = 25
+	var later_day = sim.trophy_box_offer()
+	sim.trophy_draws_total = 20
+	var later_draws = sim.trophy_box_offer()
+	for grade in [2, 3, 4]:
+		expect(early.odds[grade] < later_day.odds[grade] and later_day.odds[grade] < later_draws.odds[grade], "TROPHY: 天数与累计次数独立提高紫橙彩概率")
+	expect(early.pools.size() == 5 and early.pools.all(func(pool): return not pool.is_empty() and "bronze_clock" not in pool), "TROPHY: 五档都有独立候选，展廊赠礼保留")
 
 func verify_faster_dining() -> void:
 	var sim = Sim.new()
@@ -109,8 +117,8 @@ func verify_faster_dining() -> void:
 	sim.stars = 24
 	sim.reputation = 1000
 	var exhibit = sim.unlock_land_plot("trophy_gallery").ok and sim.upgrade("relic_slots").ok
-	sim.trophy_shop[0] = {"id":"dining_hourglass","price":4,"bought":false}
-	expect(sim.buy_trophy(0).ok and sim.stars == 18 and is_equal_approx(sim.guest_eating_duration("normal"), normal * .8), "DINING: 流沙漏价值四闪星且进背包时暂未生效")
+	sim.gold = 1000
+	expect(draw_named_trophy(sim, "dining_hourglass").ok and sim.stars == 22 and is_equal_approx(sim.guest_eating_duration("normal"), normal * .8), "DINING: 流沙漏用金币抽取，放背包时暂未生效")
 	expect(exhibit and sim.move_facility("trophy_dining_hourglass", Vector2i(27, 10)).ok and is_equal_approx(sim.guest_eating_duration("elder"), elder * .65), "DINING: 展示流沙漏与增益叠加并保留客人用餐倍率")
 	var first_meal = {}
 	if sim.start_day().ok:
@@ -459,7 +467,11 @@ func execute() -> void:
 	locked.day = 3
 	expect("chefs" in locked.upgrade_progression().unlocked and locked.upgrade_progression().next_key == "menu_slots", "GATE: 厨师开放后只预告下一项菜单槽")
 	locked.day = 5
-	expect(locked.upgrade("relic_slots").ok,"GATE: 解锁日可以买遗物位")
+	expect(locked.attributes.relic_slots == 3 and int(locked.chapter.attribute_caps.relic_slots) == 6, "TROPHY: 默认三个展示位，最高六个")
+	expect(locked.upgrade("relic_slots").ok and locked.attributes.relic_slots == 4, "GATE: 解锁日可以买第四个展示位")
+	locked.day = 21
+	locked.gold = 4000
+	expect(locked.upgrade("relic_slots").ok and locked.upgrade("relic_slots").ok and locked.attributes.relic_slots == 6 and not locked.upgrade("relic_slots").ok, "TROPHY: 可升级至六个展示位")
 	var unlimited = Sim.new()
 	unlimited.reputation = 1000
 	unlimited.chapter.upgrade_unlocks.waiters.unlock_day = 0
@@ -467,42 +479,59 @@ func execute() -> void:
 	expect(unlimited.upgrade("waiters").ok and unlimited.upgrade("waiters").ok,"GATE: 配置 0 表示没有按天购买次数限制")
 	var relic_run = Sim.new()
 	relic_run.stars = 12
-	expect(relic_run.trophy_shop.size()==3 and relic_run.trophy_shop[0].id!=relic_run.trophy_shop[1].id,"TROPHY: 每晚三种不重复候选")
-	var locked_shop = relic_run.export_state()
-	expect(not relic_run.buy_trophy(0).ok and not relic_run.refresh_trophies().ok and relic_run.export_state() == locked_shop, "TROPHY: 商店随展廊开放，锁定时拒绝交易且不扣星")
+	var locked_box = relic_run.export_state()
+	expect(not relic_run.draw_trophy().ok and relic_run.export_state() == locked_box, "TROPHY: 展廊开放前无法开箱且不扣款")
 	relic_run.day = 5
 	relic_run.reputation = 1000
-	expect(relic_run.unlock_land_plot("purchase_annex").ok and relic_run.unlock_land_plot("trophy_gallery").ok and relic_run.trophy_shop_unlocked(), "TROPHY: 开放展廊时一并开放商店")
-	var candidate = str(relic_run.trophy_shop[0].id)
+	relic_run.gold = 4000
+	expect(relic_run.unlock_land_plot("purchase_annex").ok and relic_run.unlock_land_plot("trophy_gallery").ok and relic_run.trophy_shop_unlocked(), "TROPHY: 开放展廊时一并开放盲盒")
 	var original_mods = relic_run.effective_modifiers()
-	expect(relic_run.buy_trophy(0).ok and candidate in relic_run.owned_relics and not Grid.placed(Grid.find(relic_run.layout,"trophy_"+candidate)),"TROPHY: 闪星购买后入背包")
-	var relic_effect = str(relic_run.relic_defs[candidate].effect_type)
-	expect(relic_run.effective_modifiers()[relic_effect] == original_mods[relic_effect] and not relic_run.move_facility("trophy_"+candidate,relic_run.trophy_shop_cell()).ok, "TROPHY: 未展示的奖杯不生效，商店格留给固定商店")
-	expect(relic_run.upgrade("relic_slots").ok and relic_run.move_facility("trophy_"+candidate,Vector2i(27,10)).ok,"TROPHY: 解锁展区后可升级容量并摆放")
-	expect(relic_run.effective_modifiers()[relic_effect]>original_mods[relic_effect],"TROPHY: 展示后常驻效果生效")
-	var offered_before = relic_run.trophy_shop.map(func(o): return str(o.id))
-	var stars_before = relic_run.stars
-	expect(relic_run.refresh_trophies().ok and relic_run.stars==stars_before-1 and relic_run.trophy_shop.map(func(o): return str(o.id))!=offered_before,"TROPHY: 付一星刷新为不同列表")
-	expect(relic_run.trophy_shop.all(func(o): return str(o.id) not in relic_run.owned_relics),"TROPHY: 已拥有种类不再上架")
-	var second_offer = str(relic_run.trophy_shop[0].id)
-	expect(relic_run.buy_trophy(0).ok and not relic_run.move_facility("trophy_"+second_offer,Vector2i(28,10)).ok,"TROPHY: 已展示奖杯占用容量")
-	expect(relic_run.store_facility("trophy_"+candidate).ok and relic_run.move_facility("trophy_"+second_offer,Vector2i(28,10)).ok,"TROPHY: 收起后可替换展示奖杯")
-	var next_night = Sim.new()
-	var first_offers = next_night.trophy_shop.map(func(o): return str(o.id))
-	next_night.start_day()
-	next_night.tick = next_night.day_ticks
-	next_night._close_day()
-	next_night.continue_night()
-	expect(next_night.trophy_shop.map(func(o): return str(o.id))!=first_offers and next_night.trophy_refreshes==0,"TROPHY: 每晚免费自动换成不同列表")
+	var initial_gold = relic_run.gold
+	var initial_stars = relic_run.stars
+	var first_offer = relic_run.trophy_box_offer()
+	var first = draw_named_trophy(relic_run, "brass_spoon")
+	expect(first.ok and first.id in relic_run.owned_relics and not Grid.placed(Grid.find(relic_run.layout,first.facility_id)) and relic_run.gold == initial_gold - first_offer.gold and relic_run.stars == initial_stars, "TROPHY: 只扣金币且奖杯直接入背包")
+	expect(relic_run.effective_modifiers() == original_mods and not relic_run.move_facility(first.facility_id,relic_run.trophy_shop_cell()).ok, "TROPHY: 未展示的奖杯不生效，盲盒占用独立格子")
+	expect(relic_run.move_facility(first.facility_id,Vector2i(27,10)).ok, "TROPHY: 默认容量足以展示额外奖杯")
+	expect(relic_run.effective_modifiers().flat_gold == original_mods.flat_gold + 1, "TROPHY: 展示后常驻效果生效")
+	var second_price = relic_run.trophy_box_offer().gold
+	var golden_draw = draw_named_trophy(relic_run, "golden_spoon")
+	expect(golden_draw.ok and golden_draw.gold == second_price and second_price > first.gold and relic_run.trophy_box_offer().gold > second_price and relic_run.trophy_draws_total == 2, "TROPHY: 当晚金币逐箱涨价，累计计数增加")
+	expect(relic_run.move_facility(golden_draw.facility_id,Vector2i(28,10)).ok and Grid.facilities(relic_run.layout, "trophy").size() == 3, "TROPHY: 到默认容量前可摆三件奖杯")
+	expect(relic_run.store_facility(first.facility_id).ok and relic_run.move_facility(golden_draw.facility_id,Vector2i(27,10)).ok and relic_run.move_facility(first.facility_id,Vector2i(28,10)).ok, "TROPHY: 收起后可替换奖杯格子")
 	var relic_save = relic_run.export_state()
 	var reloaded = Sim.new()
-	expect(reloaded.restore_state(relic_save).ok and reloaded.trophy_shop_unlocked() and equivalent(reloaded.export_state(),relic_save),"TROPHY: 奖杯、闪星、商店随机状态完整存档")
-	expect(reloaded.start_day().ok and reloaded.modifiers[str(reloaded.relic_defs[second_offer].effect_type)]>original_mods[str(reloaded.relic_defs[second_offer].effect_type)],"TROPHY: 装备常驻效果参与正式营业计算")
+	expect(reloaded.restore_state(relic_save).ok and reloaded.trophy_shop_unlocked() and equivalent(reloaded.export_state(),relic_save), "TROPHY: 当日、累计次数与随机状态可恢复")
+	var third = relic_run.draw_trophy()
+	var replay = reloaded.draw_trophy()
+	expect(third.ok and third.id == replay.id and third.id not in [first.id, golden_draw.id, "bronze_clock"], "TROPHY: 重读生成相同的下一箱，排除已拥有和展廊赠礼")
+	expect(not reloaded.move_facility(replay.facility_id, Vector2i(29, 10)).ok and reloaded.trophy_placement_cells(replay.facility_id).is_empty(), "TROPHY: 默认展位满时第四件留在背包")
+	var expensive_gold = reloaded.gold
+	reloaded.gold = 0
+	var insufficient = reloaded.export_state()
+	expect(not reloaded.draw_trophy().ok and reloaded.export_state() == insufficient, "TROPHY: 余额不足不改随机状态和背包")
+	reloaded.gold = expensive_gold
+	expect(reloaded.start_day().ok and reloaded.modifiers.flat_gold == original_mods.flat_gold + 2, "TROPHY: 展示效果参与实际营业")
+	var during = reloaded.trophy_rng.state
+	expect(not reloaded.draw_trophy().ok and reloaded.trophy_rng.state == during, "TROPHY: 营业期间无法开箱")
+	var total_draws = reloaded.trophy_draws_total
+	reloaded.phase = "REPORT"
+	reloaded.last_report = {"result": "CONTINUE"}
+	expect(reloaded.continue_night().ok and reloaded.trophy_draws_today == 0 and reloaded.trophy_draws_total == total_draws and reloaded.trophy_box_offer().gold == first_offer.gold, "TROPHY: 换天只重置当晚金币报价")
+	var prior_capacity = relic_save.duplicate(true)
+	prior_capacity.attributes.relic_slots = 3
+	prior_capacity.upgrade_purchases.relic_slots = 2
+	var adapted_capacity = Sim.new()
+	expect(adapted_capacity.restore_state(prior_capacity).ok and adapted_capacity.attributes.relic_slots == 5, "TROPHY: 已购买的展位升级按三个默认展位累计")
 	var moved_counters = Sim.new()
 	moved_counters.day = 3
 	moved_counters.stars = 1
 	moved_counters.unlock_land_plot("purchase_annex")
-	expect(moved_counters.move_facility("cashier",Vector2i(3,10)).ok and not moved_counters.move_facility("slot",Vector2i(16,8)).ok and moved_counters.opening_errors().is_empty(),"LAYOUT: 收银台可移动，采购处固定在地块内")
+	expect(moved_counters.move_facility("cashier",Vector2i(3,10)).ok and moved_counters.move_facility("slot",Vector2i(16,8)).ok and moved_counters.opening_errors().is_empty(), "LAYOUT: 收银台和采购处可移动")
+	var moved_shop = moved_counters.export_state()
+	expect(not moved_counters.move_facility("slot", Vector2i(24, 8)).ok and not moved_counters.move_facility("slot", Vector2i(0, 0)).ok and moved_counters.export_state() == moved_shop, "LAYOUT: 商店不能阻塞墙体或移入未开放地块")
+	var persisted_shop = Sim.new()
+	expect(persisted_shop.restore_state(moved_shop).ok and Grid.vec(Grid.find(persisted_shop.layout, "slot").pos) == Vector2(16, 8), "LAYOUT: 采购处移动后跨存档保留新位置")
 	var all_stars = Sim.new()
 	all_stars.start_day()
 	all_stars.arrival_plan = [{"id":1,"type":"normal","tick":1}]
@@ -572,14 +601,20 @@ func execute() -> void:
 	result = night.buy_offer(0,0)
 	expect(result.ok and night.owned_recipes.size()==2 and "starter_rice" in night.owned_recipes and night.menu[0]==night.shop[0].id,"SHOP-02: 原子解锁并保留旧菜")
 	var money = night.gold
-	expect(not night.buy_offer(0,0).ok and night.gold==money,"SHOP: 一格只购买一次")
+	var today = night.export_state()
+	expect(night.purchase_spent() and not night.buy_offer(0,0).ok and not night.buy_offer(1).ok and night.export_state() == today, "SHOP: 一次成功购买占用当晚所有商品的额度")
+	var next_shop = Sim.new()
+	expect(next_shop.restore_state(today).ok and next_shop.purchase_spent() and not next_shop.buy_offer(2).ok, "SHOP: 读档不会恢复已用过的额度")
+	expect(run_day(next_shop) and next_shop.continue_night().ok and not next_shop.purchase_spent() and next_shop.purchase_offer_status(1).ok, "SHOP: 下一晚刷新商品并恢复采购额度")
 	expect(night.change_menu(0,"starter_rice").ok and night.gold==money,"RECIPE-02: 收藏换菜免费")
 	var poor = Sim.new()
 	poor.day = 3
 	poor.stars = 1
 	poor.unlock_land_plot("purchase_annex")
 	poor.gold = 0
-	expect(not poor.buy_offer(1).ok and poor.buff_states.is_empty(),"ECON-07: 余额不足无副作用")
+	expect(not poor.buy_offer(1).ok and poor.buff_states.is_empty() and not poor.purchase_spent(),"ECON-07: 余额不足无副作用")
+	poor.gold = 5000
+	expect(poor.buy_offer(1).ok and poor.purchase_spent() and not poor.buy_offer(0, 0).ok, "SHOP: 买了营业增益后今夜无法再买菜谱")
 	var growth = Sim.new()
 	growth.day = 3
 	growth.reputation = 1000
@@ -620,7 +655,7 @@ func execute() -> void:
 	served.orders[1].supply = "WITH_WAITER"
 	served.foods[1] = {"id":1,"recipe":"starter_rice","quality":1.0,"location":"WAITER","location_id":"1","origin":"stove_1","bound_order":1,"reserved_by":0,"created_tick":0}
 	served.stats.produced = 1
-	served.staff = [{"id":1,"role":"waiter","pos":served.customers[1].pos,"path":[],"task":{"kind":"DELIVER","stage":"MOVE","order_id":1},"carry_order":0,"carry_food":[1],"reason":"","time":{"move":0,"cook":0,"interact":0,"idle":0,"blocked":0}}]
+	served.staff = [{"id":1,"role":"waiter","pos":served.customers[1].pos,"path":[],"task":{"kind":"DELIVER","stage":"MOVE","order_id":1},"carry_orders":[],"carry_food":[1],"reason":"","time":{"move":0,"cook":0,"interact":0,"idle":0,"blocked":0}}]
 	served.step()
 	expect(served.customers[1].state=="EATING" and served.stats.wait_penalty_raw==0,"GUEST-03: 同tick上菜先于扣分")
 	var checkout = food_fixture()

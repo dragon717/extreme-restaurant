@@ -188,7 +188,6 @@ func teach_tables(before_open := false) -> void:
 	app.world.guide_camera_manual = false
 	app.world.cancel_placement()
 	app._clear_inspector()
-	app.ui.slot_panel.hide()
 	opens_after_tables = before_open
 	var pair = _practice_pair()
 	if pair.is_empty():
@@ -324,14 +323,14 @@ func _plot_text(plot: Dictionary) -> String:
 	var missing = price - int(app.sim.stars)
 	var message: String
 	match str(plot.id):
-		"purchase_annex": message = tr("花 %d 颗闪星打开采购小厅。采购处每晚到货菜谱和增益。") % price
-		"decor_studio": message = tr("花 %d 颗闪星开放装饰商店。装饰放下后，会为范围内的餐桌、员工或灶台提供效果。") % price
-		"kitchen_extension": message = tr("花 %d 颗闪星扩开厨房，就多一口灶，也多一位厨师。") % price
-		"trophy_gallery": message = tr("花 %d 颗闪星可开放奖杯展廊和旁边的奖杯商店，还会送一座铜摆钟。") % price
-		"east_dining": message = tr("东边一开就多四张桌，花 %d 颗闪星。门口没坐上的客人，这回有地方请了。") % price
-		"south_dining": message = tr("南边还能添三张桌，花 %d 颗闪星。这回你来掌眼，端到最远那桌得走多远？") % price
-		_: message = tr("%s需要 %d 颗闪星。") % [tr(str(plot.name)), price]
-	if missing > 0: message += tr(" 还差 %d 颗，攒够了再来。") % missing
+		"purchase_annex": message = "花 %d 颗闪星打开采购小厅。采购处每晚到货菜谱和增益。" % price
+		"decor_studio": message = "花 %d 颗闪星开放装饰商店。店里也用闪星付款，装饰摆好后能照顾附近的餐桌、员工或灶台。" % price
+		"kitchen_extension": message = "花 %d 颗闪星扩开厨房，就多一口灶，也多一位厨师。" % price
+		"trophy_gallery": message = "花 %d 颗闪星可开放奖杯展廊和旁边的奖杯盲盒，还会送一座铜摆钟。" % price
+		"east_dining": message = "东边一开就多四张桌，花 %d 颗闪星。门口没坐上的客人，这回有地方请了。" % price
+		"south_dining": message = "南边还能添三张桌，花 %d 颗闪星。这回你来掌眼，端到最远那桌得走多远？" % price
+		_: message = "%s需要 %d 颗闪星。" % [plot.name, price]
+	if missing > 0: message += " 还差 %d 颗，攒够了再来。" % missing
 	return message
 
 func plot_note(parent: Control, selected: String) -> void:
@@ -346,9 +345,9 @@ func show_gallery() -> void:
 	app.world.guide_camera_manual = false
 	var shop = Vector2(app.sim.trophy_shop_cell())
 	app.world.guide_shot(shop, 1.25, [shop])
-	_line("gallery_gift", tr("奖杯商店开门了，就在展廊里。用闪星买奖杯，点右下角的背包图标取出。放到展廊里亮起的格子后，奖杯就会生效。"))
-	bubble.add_choice(tr("查看奖杯商店"), app._show_trophy_shop, true)
-	bubble.add_choice(tr("稍后再看"), clear_line)
+	_line("gallery_gift", "展廊的盲盒可以用金币打开。今晚越开越贵，明晚恢复首箱价。开出的奖杯在右下角背包里，摆进展廊才会生效。")
+	bubble.add_choice("查看奖杯盲盒", app._show_trophy_shop, true)
+	bubble.add_choice("稍后再看", clear_line)
 
 func trophy_shop_opened() -> void:
 	if stage == "gallery_gift": clear_line()
@@ -360,7 +359,7 @@ func show_new_shop(id: String) -> void:
 	clear_line()
 	var cell = _fixture(id)
 	app.world.guide_shot(cell, 1.25, [cell])
-	var message = tr("采购小厅开门了。今晚可以用金币买新菜谱和营业增益。") if id == "slot" else tr("装饰商店开门了。买到的装饰在建造背包里，摆放时会亮出效果范围。")
+	var message = "采购小厅开门了。每晚可以用金币选购一件菜谱或增益。" if id == "slot" else "装饰商店开门了。用闪星买的装饰在建造背包里，摆放时会亮出效果范围。"
 	_line(flag, message)
 	if id == "slot":
 		bubble.add_choice(tr("查看采购处"), func(): app._show_purchase_page(), true)
@@ -371,14 +370,9 @@ func show_new_shop(id: String) -> void:
 func shop_opened(id: String) -> void:
 	var flag = "shop_slot" if id == "slot" else "decor_shop"
 	if stage == flag: clear_line()
-	if mode == "on": _mark(flag)
-
-func purchase() -> void:
-	if mode != "on" or blocks_clock or app.sim.phase != "NIGHT" or seen.has("purchase"): return
-	clear_line()
-	_mark("purchase")
-	_line("purchase", tr("点右侧「进入采购」。买到的菜谱会永久进收藏，增益只在标明的营业日内生效。"), 10)
-	_highlight(app.ui.enter_shop)
+	if mode == "on":
+		_mark(flag)
+		if flag == "shop_slot": _mark("purchase")
 
 func placement() -> void:
 	if mode != "on" or seen.has("placement"): return
@@ -407,11 +401,12 @@ func _group_dates() -> String:
 
 func populate_handbook(parent: VBoxContainer) -> void:
 	var sections = [
-		[tr("合桌与客人组"), tr(MERGE) + "\n" + _group_dates() + tr("。客人组只坐人数相同的桌，店里没有对应的桌就会离开。\n选中多人桌后，点右下角的拆分图标或按 %s，可以逐级拆回。") % app.keys.text("split")],
-		[tr("重大事件"), tr(EVENT_ENTRY)],
-		[tr("奖杯商店"), tr("解锁右上角的奖杯展廊后，点外墙上的奖杯商店。用闪星购买，摆进展廊后生效。")],
-		[tr("建造和布置"), _build_text() + tr("\n选中设施后，右下角会显示可用工具。把鼠标停在图标上可查看名称。也可以按 %s 旋转。") % app.keys.text("rotate")],
-		[tr("营业与复盘"), tr("服务员点单后送到订单口，厨师做好后放到出餐口，服务员再取餐上桌。\n") + tr(HOURS) + tr("\n日报的「在餐厅定位」会标出瓶颈。缺匹配餐桌时，先按客组人数调整桌型。")],
+		["合桌与客人组", MERGE + "\n" + _group_dates() + "。客人组只坐人数相同的桌，店里没有对应的桌就会离开。\n选中多人桌后，点右下角的拆分图标或按 %s，可以逐级拆回。" % app.keys.text("split")],
+		["重大事件", EVENT_ENTRY],
+		["采购处", "点击柜台查看今夜商品。每天可用金币选购一件，菜谱永久收藏，增益按标明的天数生效。"],
+		["奖杯盲盒", "解锁奖杯展廊后，晚上用金币开盲盒。次日恢复首箱价，越晚、累计开箱越多，高品质越容易出现。奖杯摆进展廊后生效。"],
+		["建造和布置", _build_text() + "\n选中设施后，右下角会显示可用工具。把鼠标停在图标上可查看名称。也可以按 %s 旋转。" % app.keys.text("rotate")],
+		["营业与复盘", "服务员点单后送到订单口，厨师做好后放到出餐口，服务员再取餐上桌。\n" + HOURS + "\n日报的「在餐厅定位」会标出瓶颈。缺匹配餐桌时，先按客组人数调整桌型。"],
 	]
 	for section in sections:
 		var heading = Style.text(section[0], 18, Style.GOLD)

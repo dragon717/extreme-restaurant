@@ -101,10 +101,19 @@ func execute() -> void:
 	scene.sim.day = 5
 	scene.sim.unlock_land_plot("purchase_annex")
 	scene.sim.unlock_land_plot("trophy_gallery")
-	scene._inspect("trophy_shop", "trophy_shop")
-	expect(scene.modal_kind == "trophy_shop", "独立奖杯商店在展廊开放时可用")
-	scene._buy_trophy(0)
-	expect(scene.sim.owned_relics.size()==2 and scene.service_feedback.amounts.get(scene.ui.star_label) == scene.sim.stars,"TROPHY: 购买同步闪星 HUD 和背包")
+	scene._inspect("facility", "trophy_shop")
+	expect(scene.modal_kind == "trophy_shop", "独立奖杯盲盒在展廊开放时可用")
+	var before_draw = scene.sim.gold
+	var star_balance = scene.sim.stars
+	scene.trophy_box.buy.pressed.emit()
+	expect(scene.sim.owned_relics.size() == 2 and scene.service_feedback.amounts.get(scene.ui.gold_label) == scene.sim.gold and scene.sim.gold < before_draw and scene.sim.stars == star_balance, "TROPHY: 开箱同步金币 HUD 与背包")
+	scene.trophy_box.skip.pressed.emit()
+	var purchased_state = scene.sim.export_state()
+	var working_path = scene.save_path
+	scene.save_path = "res://project.godot/rejected_checkpoint.json"
+	scene.trophy_box.buy.pressed.emit()
+	expect(scene.sim.export_state() == purchased_state and not scene.trophy_box.opening, "TROPHY: 存档写入失败回滚当次扣款、奖杯和随机状态")
+	scene.save_path = working_path
 	scene._show_trophy_bag()
 	expect(scene.modal_kind=="trophy_bag","TROPHY: 已购奖杯可在背包中管理")
 	scene._dismiss_modal()
@@ -144,8 +153,8 @@ func execute() -> void:
 	var recipe_stats = []
 	scene._show_purchase_page()
 	for label in scene.modal_layer.find_children("*","Label",true,false):
-		if label.text.contains("基础价值") and label.text.contains("当前品质"): recipe_stats.append(label)
-	expect(recipe_stats.size()==1,"菜谱详情展示基础价值与品质等参数")
+		if label.text.contains("份/锅") and label.tooltip_text.contains("当前品质"): recipe_stats.append(label)
+	expect(recipe_stats.size()==1,"菜谱卡保留产量，品质在悬停详情中显示")
 	scene._dismiss_modal()
 	var right = InputEventMouseButton.new()
 	right.button_index = MOUSE_BUTTON_RIGHT

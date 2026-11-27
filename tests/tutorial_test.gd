@@ -172,7 +172,7 @@ func run() -> void:
 	check(choice(guide.bubble, "查看采购处") and app.modal_kind == "purchase", "解锁后指向真实采购入口")
 	app._close_modal()
 	app._inspect("facility", "slot")
-	check(guide.stage == "purchase" and guide.seen.has("purchase"), "首次采购")
+	check(app.modal_kind == "purchase" and guide.seen.has("purchase"), "点击柜台直接打开采购，并记录教学")
 	var offer = {"type":"recipe", "id":"batch_snacks", "price":50, "bought":false}
 	app.sim.shop[0] = offer
 	app._buy(0)
@@ -205,7 +205,7 @@ func run() -> void:
 	check(guide.seen.has("plot_trophy_gallery"), "满足前置条件后提示展廊")
 	app._unlock_land("trophy_gallery")
 	check(guide.stage == "gallery_gift" and app.sim.trophy_shop_unlocked(), "成功解锁展廊才提示独立商店")
-	check(choice(guide.bubble, "查看奖杯商店") and app.modal_kind == "trophy_shop" and guide.seen.has("gallery_shop"), "阿禾的提示可打开独立商店")
+	check(choice(guide.bubble, "查看奖杯盲盒") and app.modal_kind == "trophy_shop" and guide.seen.has("gallery_shop"), "阿禾的提示可打开独立商店")
 	app._close_modal()
 	app._show_plot_confirmation("decor_studio")
 	check(guide.seen.has("plot_decor_studio"), "装饰工坊条件教学")

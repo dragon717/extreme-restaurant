@@ -5,7 +5,7 @@ const Store = preload("res://scripts/core/save_store.gd")
 const ACTIONS = {
 	"rotate": ["旋转设施", KEY_R], "split": ["拆分餐桌", KEY_X], "store": ["收起设施", KEY_BACKSPACE],
 	"build": ["建造背包", KEY_B], "menu": ["菜谱", KEY_M], "upgrades": ["招聘与改造", KEY_U],
-	"trophy_bag": ["奖杯背包", KEY_T], "trophy_shop": ["奖杯商店", KEY_Y], "purchase": ["采购", KEY_P],
+	"trophy_bag": ["奖杯背包", KEY_T], "trophy_shop": ["奖杯盲盒", KEY_Y], "purchase": ["采购", KEY_P],
 	"open": ["开店", KEY_E], "pause": ["暂停 / 继续", KEY_SPACE], "fast": ["切换倍速", KEY_V], "focus": ["复位视野", KEY_F],
 }
 const RESERVED = [KEY_NONE, KEY_ESCAPE, KEY_TAB, KEY_ENTER, KEY_KP_ENTER, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META,

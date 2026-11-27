@@ -3,6 +3,7 @@ extends RefCounted
 const Grid = preload("res://scripts/core/layout.gd")
 const Rules = preload("res://scripts/core/rules.gd")
 const Decor = preload("res://scripts/core/decoration_effects.gd")
+const Trophies = preload("res://scripts/core/trophies.gd")
 
 const DEFAULT_CHAPTER = "street_corner"
 
@@ -63,7 +64,7 @@ static func validate(data: Dictionary) -> Array:
 		return [TranslationServer.translate("章节配置为空")]
 	for key in ["id","config_version","save_version","chapter_days","day_duration_seconds","simulation_tick_ms","arrival_cutoff_ratio","fast_forward_multiplier","demand_curve","guaranteed_traffic_offer_days","initial_gold","initial_reputation","initial_attributes","attribute_caps","initial_menu","initial_layout","common_guest_template","base_customer_counts","rent_schedule","calendar","events","upgrade_rules","movement","quality_rules","upgrade_unlocks","trophy_zone","land_plots","completion_star_targets","weather"]:
 		if not c.has(key): errors.append(TranslationServer.translate("章节缺少字段：") + key)
-	for key in ["buff_shop_weights", "trophy_shop_weights", "guest_groups"]:
+	for key in ["buff_shop_weights", "trophy_box", "guest_groups"]:
 		if not c.has(key): errors.append(TranslationServer.translate("章节缺少字段：") + key)
 	if not errors.is_empty(): return errors
 	for field in ["initial_attributes","attribute_caps","upgrade_rules"]:
@@ -108,12 +109,6 @@ static func validate(data: Dictionary) -> Array:
 		errors.append(TranslationServer.translate("奖杯展示区配置缺失"))
 	elif int(zone.left) < 1 or int(zone.top) < 1 or int(zone.right) >= int(c.initial_layout.width)-1 or int(zone.bottom) >= int(c.initial_layout.height)-1 or int(zone.left)>int(zone.right) or int(zone.top)>int(zone.bottom):
 		errors.append(TranslationServer.translate("奖杯展示区越界"))
-	for relic in data.relics.values():
-		if not relic.has_all(["id","name","description","effect_type","effect_value","star_cost","color"]) or not _whole_number(relic.star_cost) or int(relic.star_cost) < 1:
-			errors.append(TranslationServer.translate("奖杯配置字段或价格无效"))
-		elif not Rules.BASE_MODIFIERS.has(relic.effect_type) or float(relic.effect_value) <= 0:
-			errors.append(TranslationServer.translate("奖杯效果无效：") + str(relic.id))
-	if data.relics.size() < 3: errors.append(TranslationServer.translate("奖杯候选不足三种"))
 	if not c.land_plots is Array or c.land_plots.is_empty():
 		errors.append(TranslationServer.translate("可解锁地块配置不能为空"))
 	else:
@@ -243,13 +238,13 @@ static func validate(data: Dictionary) -> Array:
 		elif buff.duration_days <= 0 or buff.max_stacks <= 0 or buff.base_cost < 0 or not Rules.BASE_MODIFIERS.has(buff.effect_type):
 			errors.append(TranslationServer.translate("Buff 配置无效：") + buff.id)
 	errors.append_array(_shop_weight_errors(c.buff_shop_weights, data.buffs, "level", int(c.chapter_days), TranslationServer.translate("增益")))
-	errors.append_array(_shop_weight_errors(c.trophy_shop_weights, data.relics, "star_cost", int(c.chapter_days), TranslationServer.translate("奖杯")))
+	errors.append_array(_trophy_errors(c.trophy_box,data.relics,int(c.chapter_days)))
 	for item in data.decorations.values():
-		if not item.has_all(["name", "extent", "shape", "reach", "effect", "value", "price", "color"]) or not Decor.TARGETS.has(item.effect):
+		if not item.has_all(["name", "extent", "shape", "reach", "effect", "value", "star_cost", "color"]) or not Decor.TARGETS.has(item.effect):
 			errors.append(TranslationServer.translate("装饰缺少有效字段：") + item.id)
 		elif not item.extent is Array or item.extent.size() != 2 or item.extent.any(func(n): return not _whole_number(n) or n < 1 or n > 3):
 			errors.append(TranslationServer.translate("装饰占地无效：") + item.id)
-		elif item.shape not in ["cross", "ring", "forward"] or not _whole_number(item.reach) or item.reach < 1 or not _whole_number(item.get("width", 1)) or item.get("width", 1) < 1 or not _finite_number(item.value) or item.value <= 0 or not _whole_number(item.price) or item.price < 1:
+		elif item.shape not in ["cross", "ring", "forward"] or not _whole_number(item.reach) or item.reach < 1 or not _whole_number(item.get("width", 1)) or item.get("width", 1) < 1 or not _finite_number(item.value) or item.value <= 0 or not _whole_number(item.star_cost) or item.star_cost < 1:
 			errors.append(TranslationServer.translate("装饰范围或效果无效：") + item.id)
 	errors.append_array(_weather_errors(c))
 	errors.append_array(_calendar_errors(c, data.guests))
@@ -391,6 +386,51 @@ static func _valid_event_reward(reward: Variant) -> bool:
 
 static func _whole_number(value: Variant) -> bool:
 	return value is int or (value is float and is_finite(value) and float(value) == floorf(value))
+
+static func _trophy_errors(config: Variant, definitions: Dictionary, last_day: int) -> Array:
+	var errors = []
+	if not config is Dictionary:
+		return ["奖杯盲盒配置无效"]
+	for key in ["base_gold", "daily_step_gold", "daily_growth_gold"]:
+		if not _whole_number(config.get(key)) or int(config[key]) < (0 if key == "daily_growth_gold" else 1) or int(config[key]) > 1000000:
+			errors.append("奖杯盲盒金币报价无效：" + key)
+	if not _valid_trophy_curve(config.get("day_weights"), 1, last_day) or not _valid_trophy_curve(config.get("draw_bonus"), 0, 999):
+		errors.append("奖杯品质权重无效")
+	var tiers = {}
+	var families = {}
+	for item in definitions.values():
+		var effect = Trophies.EFFECTS.get(item.get("effect_type", ""), [])
+		if effect.is_empty() or not _whole_number(item.get("rarity")) or int(item.rarity) not in [1, 2, 3, 4, 5] or not _finite_number(item.get("effect_value")) or item.effect_value <= 0 or item.effect_value > effect[2] or str(item.get("name", "")).is_empty() or item.get("art") not in Trophies.ART or not Color.html_is_valid(str(item.get("color", ""))):
+			errors.append("奖杯品质、外观或效果无效：" + str(item.id))
+			continue
+		var rank = int(item.rarity)
+		var grades = families.get_or_add(item.effect_type, {})
+		if grades.has(rank):
+			errors.append("同类奖杯的品质重复：" + str(item.id))
+		grades[rank] = true
+		tiers[rank] = true
+		if effect[1] in ["count", "batch"] and not _whole_number(item.effect_value):
+			errors.append("奖杯份数或容量必须为整数：" + str(item.id))
+		if effect[1] in ["batch", "quality_roll"] and (not _finite_number(item.get("chance")) or item.chance <= 0 or item.chance > 1):
+			errors.append("奖杯触发概率无效：" + str(item.id))
+	if tiers.size() != Trophies.NAMES.size(): errors.append("奖杯需包含全部五档品质")
+	return errors
+
+static func _valid_trophy_curve(curve: Variant, first: int, last: int) -> bool:
+	if not curve is Array or curve.is_empty(): return false
+	var previous = first - 1
+	for node in curve:
+		if not node is Dictionary or not _whole_number(node.get("at")) or not node.get("weights") is Array or node.weights.size() != Trophies.NAMES.size():
+			return false
+		var date = int(node.at)
+		if date <= previous or date > last or (previous < first and date != first): return false
+		var total = 0.0
+		for weight in node.weights:
+			if not _finite_number(weight) or absf(float(weight)) > 100.0 or (first == 1 and weight < 0.0): return false
+			total += float(weight)
+		if first == 1 and total <= 0.0: return false
+		previous = date
+	return true
 
 static func _shop_weight_errors(stages: Variant, items: Dictionary, level_field: String, chapter_days: int, title: String) -> Array:
 	if not stages is Array or stages.is_empty():

@@ -100,13 +100,33 @@ func run() -> void:
 	scene.sim.unlock_land_plot("trophy_gallery")
 	scene._show_trophy_shop()
 	await modal(scene, "trophy_shop")
+	await shot("trophy-case")
+	var box = scene.trophy_box
+	box.buy.pressed.emit()
+	var opened_id = scene.sim.last_trophy_id
+	var balance = scene.sim.gold
+	box.buy.pressed.emit()
+	check(box.opening and box.reel.rolling and scene.sim.trophy_draws_today == 1 and scene.sim.gold == balance, "开箱过程只扣费一次")
+	check(box.reel.cards[box.reel.STOP_CARD].id == opened_id, "动画终点与已到账奖杯完全一致")
+	await create_timer(.50).timeout
+	await shot("trophy-spin")
+	box.skip.pressed.emit()
+	check(not box.opening and box.reel.reward.id == opened_id and box.ledger.text.contains("第 2 箱"), "揭晓后显示结果和下一箱")
+	var result = Sim.new()
+	check(result.restore_state(Store.read_checkpoint(path)).ok and result.last_trophy_id == opened_id and result.gold == balance, "开启动效前已完成存档")
+	for reward in ["brass_spoon", "ember_cup", "dining_hourglass", "triad_pot", "feast_pot"]:
+		box.reel.show_reward(scene.sim.relic_defs[reward])
+		await shot("trophy-grade-" + str(int(scene.sim.relic_defs[reward].rarity)))
+	scene._close_modal()
+	scene._show_trophy_shop()
+	check(scene.trophy_box.reel.reward.id == opened_id, "关闭再打开可看到已开出的奖杯")
 	scene._close_modal()
 	scene.sim.reputation = 1000
 	scene._refresh_all()
-	check(scene.sim.upgrade("relic_slots").ok and scene.sim.buy_trophy(0).ok, "已购奖杯可准备布置")
+	check(scene.sim.upgrade("relic_slots").ok, "可扩充展示位放置刚抽到的奖杯")
 	scene._refresh_all()
 	var hud = scene.service_feedback
-	check(hud.rolls.has(scene.ui.gold_label) and hud.rolls.has(scene.ui.rep_label) and hud.rolls.has(scene.ui.star_label), "扩容和购买覆盖金币、声望、闪星扣款动画")
+	check(hud.rolls.has(scene.ui.gold_label) and hud.rolls.has(scene.ui.rep_label), "开箱和扩容覆盖金币、声望扣款动画")
 	check(scene.ui.trophy_bag.visible, "已解锁展廊时显示独立背包")
 	scene._show_trophy_bag()
 	await modal(scene, "trophy_bag")
@@ -121,8 +141,10 @@ func run() -> void:
 	scene._inspect("facility", "decor_shop")
 	await modal(scene, "decor_shop")
 	await shot("decoration-shop")
+	var stars_before = scene.sim.stars
+	var coins_before = scene.sim.gold
 	scene.modal_layer.find_child("Buy_meal_bell", true, false).pressed.emit()
-	check(scene.sim.stored_facilities("decoration").size() == 1, "在商店购买装饰后入包")
+	check(scene.sim.stored_facilities("decoration").size() == 1 and scene.sim.stars == stars_before - 1 and scene.sim.gold == coins_before, "装饰商店购买扣闪星并放入背包")
 	var decoration = scene.sim.stored_facilities("decoration")[0]
 	scene._close_modal()
 	scene._select_pending(decoration.id)

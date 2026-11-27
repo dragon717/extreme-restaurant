@@ -803,6 +803,12 @@ func _build_fixtures(layout: Dictionary) -> void:
 						var chair := point + Vector2(0, direction * .46)
 						mesh.block(chair, .24, Vector3(.35,.10,.25), TIMBER)
 						mesh.block(chair + Vector2(0,direction*.12), .39, Vector3(.35,.30,.065), TIMBER)
+			"trophy_shop":
+				mesh.block(Vector2.ZERO,.22,Vector3(.91,.42,.76),STONE)
+				var coffer:=preload("res://assets/tavern/hextech_coffer.glb").instantiate() as Node3D
+				coffer.name="HextechCoffer"
+				coffer.position.y=.44
+				model.add_child(coffer)
 			"stove":
 				model.add_child(STOVE.instantiate())
 			"wall":
@@ -821,6 +827,19 @@ func _build_fixtures(layout: Dictionary) -> void:
 				mesh.block(Vector2(.18, -.11), .68, Vector3(.30, .11, .28), Color("5f746c"))
 		mesh.finish(model, _material("wood" if f.type in ["table", "wall", "slot", "cashier", "decor_shop"] else "plain"))
 		glow.finish(model, _material("glow"))
+
+func open_gallery_coffer() -> void:
+	var fixture: Node3D=fixture_models.get("trophy_shop")
+	if not is_instance_valid(fixture):return
+	var lid:=fixture.find_child("CofferHinge",true,false) as Node3D
+	if lid==null:return
+	var previous=lid.get_meta("opening",null) if lid.has_meta("opening") else null
+	if previous is Tween:previous.kill()
+	var motion:=lid.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	lid.set_meta("opening",motion)
+	motion.tween_property(lid,"rotation:x",-1.69,.56)
+	motion.tween_interval(.78)
+	motion.tween_property(lid,"rotation:x",0.,.48)
 
 func _tree(mesh: Geometry, point: Vector2, scale_factor: float) -> void:
 	mesh.block(point, scale_factor * .50, Vector3(.14, scale_factor, .16), TIMBER)

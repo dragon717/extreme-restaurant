@@ -1,6 +1,6 @@
 {
   "id": "street_corner",
-  "config_version": "0.8.0",
+  "config_version": "0.9.0",
   "title": "街角食堂",
   "subtitle": "第一章 · 从一碗家常饭开始",
   "chapter_days": 28,
@@ -18,7 +18,7 @@
     "menu_slots": 1,
     "tables": 8,
     "queue_capacity": 96,
-    "relic_slots": 1
+    "relic_slots": 3
   },
   "attribute_caps": {
     "waiters": 18,
@@ -112,7 +112,7 @@
       "increment": 38,
       "first_gold": 210,
       "gold_increment": 100,
-      "base_count": 1
+      "base_count": 3
     }
   },
   "movement": {
@@ -508,19 +508,30 @@
     "high_utilization": 0.8,
     "queue_wait_hint_seconds": 30
   },
-  "save_version": 7,
+  "save_version": 8,
   "buff_shop_weights": [
     { "from_day": 1, "weights": { "1": 75, "2": 22, "3": 3 } },
     { "from_day": 8, "weights": { "1": 55, "2": 35, "3": 10 } },
     { "from_day": 15, "weights": { "1": 30, "2": 45, "3": 25 } },
     { "from_day": 22, "weights": { "1": 15, "2": 45, "3": 40 } }
   ],
-  "trophy_shop_weights": [
-    { "from_day": 1, "weights": { "2": 90, "3": 9, "4": 1 } },
-    { "from_day": 8, "weights": { "2": 70, "3": 26, "4": 4 } },
-    { "from_day": 15, "weights": { "2": 50, "3": 40, "4": 10 } },
-    { "from_day": 22, "weights": { "2": 25, "3": 48, "4": 27 } }
-  ],
+  "trophy_box": {
+    "base_gold": 220,
+    "daily_step_gold": 145,
+    "daily_growth_gold": 60,
+    "day_weights": [
+      {"at": 1, "weights": [71, 22, 5.8, 1.05, 0.15]},
+      {"at": 8, "weights": [63, 24, 9, 3.65, 0.35]},
+      {"at": 15, "weights": [53, 26, 14, 6.2, 0.8]},
+      {"at": 28, "weights": [37, 31, 20, 10.2, 1.8]}
+    ],
+    "draw_bonus": [
+      {"at": 0, "weights": [0, 0, 0, 0, 0]},
+      {"at": 10, "weights": [-5, -0.3, 2.8, 2, 0.5]},
+      {"at": 24, "weights": [-12, -0.9, 6.6, 5, 1.3]},
+      {"at": 40, "weights": [-18, -1.4, 9.2, 7.3, 2.9]}
+    ]
+  },
   "completion_star_targets": [
     { "from_day": 1, "percent": 75 },
     { "from_day": 8, "percent": 80 },
@@ -728,7 +739,7 @@
         {
           "id": "trophy_shop",
           "type": "trophy_shop",
-          "name": "奖杯商店",
+          "name": "奖杯盲盒",
           "pos": [
             23,
             8

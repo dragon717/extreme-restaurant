@@ -6,6 +6,7 @@ signal closed
 const Style = preload("res://scripts/ui/style.gd")
 const Icon = preload("res://scripts/ui/ui_icon.gd")
 const Grid = preload("res://scripts/core/layout.gd")
+const Trophies = preload("res://scripts/core/trophies.gd")
 const HEIGHT := 226.0
 const CATEGORIES = {"all": ["build", "全部"], "table": ["table", "餐桌"],
 	"stove": ["stove", "厨房"], "trophy": ["trophy", "奖杯"], "wall": ["wall", "隔墙"], "decoration": ["star_outline", "装饰"]}
@@ -168,7 +169,10 @@ func _tile(id: String, caption: String, kind: String, detail: String, seats: int
 	var thumb := Thumbnail.new()
 	thumb.kind = kind
 	thumb.seats = seats
-	if kind == "trophy": thumb.metal = Color(str(sim.relic_defs[relic_id].color))
+	if kind == "trophy":
+		thumb.trophy = sim.relic_defs[relic_id]
+		detail = Trophies.grade_name(int(thumb.trophy.rarity)) + "品质"
+		btn.tooltip_text = caption + " · " + Trophies.description(thumb.trophy)
 	thumb.custom_minimum_size.y = 63
 	thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(thumb)
@@ -191,9 +195,10 @@ func _sync_selected() -> void:
 
 class Thumbnail extends Control:
 	const Style = preload("res://scripts/ui/style.gd")
+	const TrophyArt = preload("res://scripts/visuals/trophy_art.gd")
 	var kind := ""
 	var seats := 1
-	var metal := Color("ebc185")
+	var trophy: Dictionary = {}
 	var decoration := {}
 
 	func _draw_decoration() -> void:
@@ -223,11 +228,7 @@ class Thumbnail extends Control:
 					draw_circle(point, 6, Color("4b5f59"))
 					draw_circle(point, 3, Color("d8b783"))
 			"trophy":
-				draw_rect(Rect2(-18, 15, 36, 7), Color("a07651"))
-				draw_circle(Vector2(0,-5), 14, metal)
-				draw_circle(Vector2(0,-6), 9, metal.darkened(.35))
-				draw_circle(Vector2(-2,-8), 4, metal.lightened(.45))
-				draw_rect(Rect2(-3, 6, 6, 10), metal)
+				if not trophy.is_empty(): TrophyArt.paint(self, trophy)
 			"wall":
 				draw_rect(Rect2(-27,-16,54,36), Color("765940"))
 				for x in range(-25,26,10):
