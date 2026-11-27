@@ -62,6 +62,24 @@ static func write_checkpoint(data: Dictionary, path: String = "") -> String:
 	error = DirAccess.rename_absolute(temporary, absolute)
 	return "" if error == OK else TranslationServer.translate("无法提交存档（%s）") % error
 
+# Preserve the exact readable source (including a recovered .bak) before a
+# v8 autosave can rotate either file. Do this only after simulation validation.
+static func archive_v7(path: String,saved: Dictionary) -> String:
+	if saved.get("save_version",0)!=7 or saved.get("config_version","")!="0.8.0":return ""
+	var destination:=ProjectSettings.globalize_path(path+".v7.bak")
+	if FileAccess.file_exists(destination):return ""
+	for candidate in [path,path+".bak"]:
+		if not FileAccess.file_exists(candidate):continue
+		var text:=FileAccess.get_file_as_string(candidate)
+		var parsed:=JSON.new()
+		if parsed.parse(text)!=OK or parsed.data!=saved:continue
+		var temp:=destination+"."+Crypto.new().generate_random_bytes(6).hex_encode()+".tmp"
+		var err:=DirAccess.copy_absolute(ProjectSettings.globalize_path(candidate),temp)
+		if err==OK:err=DirAccess.rename_absolute(temp,destination)
+		if FileAccess.file_exists(temp):DirAccess.remove_absolute(temp)
+		return "" if err==OK else TranslationServer.translate("无法备份旧版进度（%s）")%err
+	return TranslationServer.translate("旧版进度已变更，请重新读取。")
+
 static func read_checkpoint(path: String = "") -> Dictionary:
 	if path.is_empty():
 		path = default_path()

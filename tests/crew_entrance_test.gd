@@ -24,7 +24,7 @@ func run() -> void:
 	draft.get_node("%Confirm").pressed.emit()
 	var hub=title.get_node("Menu/CanyonHub")
 	var stage=hub.model
-	var porch=stage.rooms.find_child("Entrance_porch_frame",true,false) as MeshInstance3D
+	var porch=stage.frontage.find_child("Entrance_porch_frame",true,false) as MeshInstance3D
 	check(porch!=null,"入场使用实际门廊的表面")
 	if porch!=null:
 		var faces: PackedVector3Array=porch.mesh.get_faces()

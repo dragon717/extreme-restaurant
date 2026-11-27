@@ -103,5 +103,28 @@ func run() -> void:
 	world.sim = market
 	world._process(0)
 	check(district.wings.size() == 1 and room_area(market) == 168, "第二章同样从小屋开始")
+	game.sim = market
+	market.stars = 99
+	market.day = 22
+	var door_id: int = district.doorway.get_instance_id()
+	var lamp_id: int = district.porch_lamps[0].get_instance_id()
+	for plot in market.layout.plots:
+		game._unlock_land(plot.id)
+		check(district.construction.has(plot.id), "第二章启动施工 " + str(plot.id))
+		if plot.id == "south_dining":
+			world._process(.43)
+			continue
+		if plot.id == "garden_dining":
+			var previous_wing: Dictionary = district.wings.south_dining
+			check(not previous_wing.across and is_equal_approx(district.construction.south_dining,.43), "连续扩建沿南侧客席原接缝接着铺地")
+			check(not previous_wing.roof.get_node("Soffit").is_visible_in_tree(), "新房檐底随各自屋面施工")
+			var early := false
+			for fixture_id in district.fixture_plots:
+				if district.fixture_plots[fixture_id] in ["south_dining", "garden_dining"]:
+					early = early or district.fixture_models[fixture_id].visible
+			check(not early, "连续扩建重建家具后仍依各房间进度显示")
+		world._process(2.)
+	check(district.doorway.get_instance_id()==door_id and district.porch_lamps[0].get_instance_id()==lamp_id, "扩建时门扇与门灯常驻原位")
+	check(room_area(market)==600 and district.wings.size()==8, "第二章七处扩建全部到位")
 	print("GROWTH RESULT: %d passed / %d failed" % [passed,failures])
 	quit(0 if failures == 0 else 1)

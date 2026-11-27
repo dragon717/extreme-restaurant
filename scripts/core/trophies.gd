@@ -30,7 +30,7 @@ const EFFECTS = {
 }
 
 static func grade_name(grade: int) -> String:
-	return NAMES[clampi(grade, 1, NAMES.size()) - 1]
+	return TranslationServer.translate(NAMES[clampi(grade, 1, NAMES.size()) - 1])
 
 static func grade_color(grade: int) -> Color:
 	return Color(COLORS[clampi(grade, 1, COLORS.size()) - 1])
@@ -38,13 +38,14 @@ static func grade_color(grade: int) -> Color:
 static func description(item: Dictionary) -> String:
 	var effect = EFFECTS[item.effect_type]
 	var value = float(item.effect_value)
+	var label = TranslationServer.translate(effect[0])
 	match str(effect[1]):
-		"count": return "%s +%d" % [effect[0], int(value)]
-		"percent": return "%s +%d%%" % [effect[0], roundi(value * 100.0)]
-		"reduction": return "%s缩短 %d%%" % [effect[0], roundi(value * 100.0)]
-		"points": return "%s +%d 个百分点" % [effect[0], roundi(value * 100.0)]
-		"batch": return "每锅有 %d%% 概率产出至少 %d 份" % [roundi(float(item.chance) * 100.0), int(value)]
-		"quality_roll": return "每锅有 %d%% 概率额外提高 %d 个百分点品质" % [roundi(float(item.chance) * 100.0), roundi(value * 100.0)]
+		"count": return "%s +%d" % [label, int(value)]
+		"percent": return "%s +%d%%" % [label, roundi(value * 100.0)]
+		"reduction": return TranslationServer.translate("%s缩短 %d%%") % [label, roundi(value * 100.0)]
+		"points": return TranslationServer.translate("%s +%d 个百分点") % [label, roundi(value * 100.0)]
+		"batch": return TranslationServer.translate("每锅有 %d%% 概率产出至少 %d 份") % [roundi(float(item.chance) * 100.0), int(value)]
+		"quality_roll": return TranslationServer.translate("每锅有 %d%% 概率额外提高 %d 个百分点品质") % [roundi(float(item.chance) * 100.0), roundi(value * 100.0)]
 	return ""
 
 static func price(config: Dictionary, today: int) -> int:

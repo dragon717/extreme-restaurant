@@ -3314,3 +3314,399 @@ msgstr "Normal speed"
 
 msgid "跳过入场"
 msgstr "Skip entrance"
+
+msgid "营业日越晚、累计开箱越多，高品质越常见。"
+msgstr "Later service days and more coffer openings improve the odds of higher tiers."
+
+msgid "海克斯奖杯盲盒"
+msgstr "Hextech Trophy Coffer"
+
+msgid "奖杯盲盒"
+msgstr "Trophy Coffer"
+
+msgid "%s品质"
+msgstr "%s tier"
+
+msgid "今晚第 %d 箱 · 累计 %d 箱"
+msgstr "Coffer %d tonight · %d opened overall"
+
+msgid "每开一箱，今晚下一箱更贵。次日恢复首箱价。"
+msgstr "Each opening raises tonight’s price. The starting price returns tomorrow."
+
+msgid "开箱中…"
+msgstr "Unlocking…"
+
+msgid "奖杯已集齐"
+msgstr "Collection complete"
+
+msgid "打开盲盒 · %d 金币"
+msgstr "Open coffer · %d gold"
+
+msgid "奖杯即将揭晓"
+msgstr "Opening the coffer"
+
+msgid "即使关闭页面，开出的奖杯也会留在背包。"
+msgstr "Your trophy is already in your bag."
+
+msgid "展廊收藏"
+msgstr "Gallery collection"
+
+msgid "开出未收藏的奖杯，放进展廊即可生效。"
+msgstr "Discover a new trophy. Display it in the gallery to activate its effect."
+
+msgid "%s · %s品质"
+msgstr "%s · %s tier"
+
+msgid "展示位已满，可在奖杯背包收起现有奖杯"
+msgstr "All displays are occupied. Store a trophy to free a space."
+
+msgid "到展廊选择展示位置"
+msgstr "Choose a display in the gallery"
+
+msgid "跳过动效"
+msgstr "Skip reveal"
+
+msgid "绿色"
+msgstr "Green"
+
+msgid "蓝色"
+msgstr "Blue"
+
+msgid "紫色"
+msgstr "Purple"
+
+msgid "橙色"
+msgstr "Orange"
+
+msgid "彩色"
+msgstr "Prismatic"
+
+msgid "当前金币余额"
+msgstr "Your gold balance"
+
+msgid "打开盲盒后，可从这里取出奖杯。"
+msgstr "Trophies from coffers can be displayed from here."
+
+msgid "搜索名称、品质或效果"
+msgstr "Search name, tier, or effect"
+
+msgid " · 生效中"
+msgstr " · Active"
+
+msgid " · 已展示"
+msgstr " · On display"
+
+msgid "%s · %s品质%s"
+msgstr "%s · %s tier%s"
+
+msgid "已展示 %d / %d 件 · 同类奖杯只生效最高档"
+msgstr "On display %d / %d · Only the strongest of each effect applies"
+
+msgid "展廊开放后，可在这里用金币开启海克斯奖杯盲盒。"
+msgstr "Once the gallery opens, spend gold here to open a Hextech trophy coffer."
+
+msgid "旧奖杯记录无效"
+msgstr "The old trophy record is invalid."
+
+msgid "无法备份旧版进度（%s）"
+msgstr "Could not back up the old save (%s)."
+
+msgid "旧版进度已变更，请重新读取。"
+msgstr "The old save changed. Please load it again."
+
+msgid "服务员移动速度"
+msgstr "Waiter speed"
+
+msgid "烹饪速率"
+msgstr "Cooking rate"
+
+msgid "所有菜品品质"
+msgstr "Dish quality"
+
+msgid "每位付费客人额外金币"
+msgstr "Bonus gold per paying guest"
+
+msgid "每位完餐客人额外声望"
+msgstr "Reputation per completed meal"
+
+msgid "客人等餐耐心"
+msgstr "Patience while waiting for food"
+
+msgid "客人用餐时间"
+msgstr "Dining time"
+
+msgid "厨师移动速度"
+msgstr "Chef speed"
+
+msgid "客人移动速度"
+msgstr "Guest speed"
+
+msgid "客人等点单的耐心"
+msgstr "Patience while waiting to order"
+
+msgid "客人选菜时间"
+msgstr "Time choosing a dish"
+
+msgid "服务员点单和交单用时"
+msgstr "Time taking and filing orders"
+
+msgid "服务员一次可交单数"
+msgstr "Orders carried per waiter"
+
+msgid "服务员一次可取餐数"
+msgstr "Dishes carried per waiter"
+
+msgid "厨师一次可搬运份数"
+msgstr "Dishes carried per chef"
+
+msgid "每座灶台备餐位"
+msgstr "Space per stove"
+
+msgid "出餐口餐位"
+msgstr "Space on the pass"
+
+msgid "菜品结账收入"
+msgstr "Meal revenue"
+
+msgid "普通客到店人数"
+msgstr "Regular arrivals"
+
+msgid "每天到店的稀有客人"
+msgstr "Rare guests per day"
+
+msgid "烹饪额外份数"
+msgstr "Extra servings"
+
+msgid "烹饪额外品质"
+msgstr "Bonus cooking quality"
+
+msgid "%s缩短 %d%%"
+msgstr "%s −%d%%"
+
+msgid "%s +%d 个百分点"
+msgstr "%s +%d percentage points"
+
+msgid "每锅有 %d%% 概率产出至少 %d 份"
+msgstr "%d%% chance per pot to yield at least %d servings"
+
+msgid "每锅有 %d%% 概率额外提高 %d 个百分点品质"
+msgstr "%d%% chance per pot to add %d quality points"
+
+msgid "发条小钟"
+msgstr "Spring Clock"
+
+msgid "飞燕摆钟"
+msgstr "Swift Clock"
+
+msgid "金轮座钟"
+msgstr "Sun Clock"
+
+msgid "追光天仪"
+msgstr "Sky Clock"
+
+msgid "温灶小盏"
+msgstr "Glow Cup"
+
+msgid "赤焰高盏"
+msgstr "Crimson Cup"
+
+msgid "朝阳炉心"
+msgstr "Sun Cup"
+
+msgid "凤凰炉冠"
+msgstr "Phoenix Cup"
+
+msgid "晨露玉扣"
+msgstr "Dew Gem"
+
+msgid "霜花玉章"
+msgstr "Frost Gem"
+
+msgid "澄江玉盘"
+msgstr "River Gem"
+
+msgid "御宴金璧"
+msgstr "Imperial Gem"
+
+msgid "铜柄小匙"
+msgstr "Brass Spoon"
+
+msgid "朱漆赏匙"
+msgstr "Lacquer Spoon"
+
+msgid "御赐金勺"
+msgstr "Imperial Spoon"
+
+msgid "聚宝长勺"
+msgstr "Fortune Spoon"
+
+msgid "梅枝冠"
+msgstr "Plum Crown"
+
+msgid "银叶桂冠"
+msgstr "Silver Crown"
+
+msgid "琥珀名冠"
+msgstr "Honor Crown"
+
+msgid "满城芳冠"
+msgstr "Orchid Crown"
+
+msgid "石铃"
+msgstr "Pebble Bell"
+
+msgid "莲台风铃"
+msgstr "Lotus Bell"
+
+msgid "晚照静铃"
+msgstr "Quiet Bell"
+
+msgid "望月天铃"
+msgstr "Moon Bell"
+
+msgid "半刻沙漏"
+msgstr "Short Glass"
+
+msgid "晨雾沙漏"
+msgstr "Mist Glass"
+
+msgid "琥珀时漏"
+msgstr "Amber Glass"
+
+msgid "破晓时轮"
+msgstr "Dawn Glass"
+
+msgid "后厨布履"
+msgstr "Linen Boot"
+
+msgid "紫藤厨履"
+msgstr "Swift Boot"
+
+msgid "踏火短靴"
+msgstr "Fire Boot"
+
+msgid "迎客雀羽"
+msgstr "Swift Feather"
+
+msgid "晴江鹤羽"
+msgstr "Crane Feather"
+
+msgid "顺风翎"
+msgstr "Wind Feather"
+
+msgid "候席竹扇"
+msgstr "Bamboo Fan"
+
+msgid "青竹团扇"
+msgstr "Linen Fan"
+
+msgid "烟雨绢扇"
+msgstr "Silk Fan"
+
+msgid "一页小菜单"
+msgstr "Pocket List"
+
+msgid "折页菜笺"
+msgstr "Foldout List"
+
+msgid "招牌菜册"
+msgstr "Signature List"
+
+msgid "芦管笔"
+msgstr "Reed Pen"
+
+msgid "银毫餐笔"
+msgstr "Silver Pen"
+
+msgid "描金快笔"
+msgstr "Sun Pen"
+
+msgid "双联账本"
+msgstr "Double Book"
+
+msgid "三联点单簿"
+msgstr "Triad Book"
+
+msgid "百席总册"
+msgstr "Service Codex"
+
+msgid "并排托盘"
+msgstr "Dual Tray"
+
+msgid "燕衡托盘"
+msgstr "Balanced Tray"
+
+msgid "巡席银托"
+msgstr "Grand Tray"
+
+msgid "双层餐车"
+msgstr "Small Cart"
+
+msgid "铁木餐车"
+msgstr "Stout Cart"
+
+msgid "长席餐车"
+msgstr "Banquet Cart"
+
+msgid "叠沿锅架"
+msgstr "Stacked Pot"
+
+msgid "陶灶叠架"
+msgstr "Brick Pot"
+
+msgid "窑火藏架"
+msgstr "Kiln Pot"
+
+msgid "小窗隔板"
+msgstr "Compact Shelf"
+
+msgid "双层出餐架"
+msgstr "Twin Shelf"
+
+msgid "拱门置餐架"
+msgstr "Arc Shelf"
+
+msgid "邻里金券"
+msgstr "House Coin"
+
+msgid "市集金印"
+msgstr "Market Coin"
+
+msgid "金满堂匾"
+msgstr "Royal Coin"
+
+msgid "街口迎灯"
+msgstr "Lane Lantern"
+
+msgid "长街红灯"
+msgstr "Gather Lantern"
+
+msgid "万家灯楼"
+msgstr "Festival Lantern"
+
+msgid "绣边请帖"
+msgstr "Silk Invite"
+
+msgid "描金请柬"
+msgstr "Lacquer Invite"
+
+msgid "星宴邀函"
+msgstr "Rainbow Invite"
+
+msgid "双香小釜"
+msgstr "Twin Pot"
+
+msgid "三珍鼎"
+msgstr "Triad Pot"
+
+msgid "五福宴锅"
+msgstr "Feast Pot"
+
+msgid "百味香晶"
+msgstr "Spice Crystal"
+
+msgid "兰露调味晶"
+msgstr "Orchid Crystal"
+
+msgid "虹釉秘方"
+msgstr "Celestial Crystal"

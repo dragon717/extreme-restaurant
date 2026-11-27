@@ -168,6 +168,7 @@ var feature_active := false
 var feature_cell := Vector2.ZERO
 var feature_zoom := 1.0
 var feature_motion: Tween
+var drag_paused_motion: Tween
 var rendered_phase := ""
 var rendered_hour := 22.0
 var transition_from := 22.0
@@ -1066,6 +1067,7 @@ func _primary_pointer(point: Vector2, pressed: bool) -> void:
 			pressed_entity = id
 			if not id.is_empty() and feature_motion != null and feature_motion.is_running():
 				feature_motion.pause()
+				drag_paused_motion = feature_motion
 			if not facility.is_empty(): grab_offset = cell - Grid.footprint(facility).position
 		else:
 			_inspect_entity(id)
@@ -1137,8 +1139,9 @@ func cancel_touch() -> void:
 	touch_primary_started = false
 
 func cancel_drag() -> void:
-	if not pressed_entity.is_empty() and feature_motion != null and feature_motion.is_valid() and not feature_motion.is_running():
-		feature_motion.play()
+	if drag_paused_motion != null and drag_paused_motion == feature_motion and drag_paused_motion.is_valid():
+		drag_paused_motion.play()
+	drag_paused_motion = null
 	wall_anchor = null
 	pressed_entity = ""
 	press_elapsed = 0.0

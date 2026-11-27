@@ -117,6 +117,7 @@ func _ready() -> void:
 	elif not saved.is_empty():
 		var result = sim.restore_state(saved)
 		if not result.ok: load_message = result.error
+		else: load_message=Store.archive_v7(save_path,saved)
 	if soundtrack == null:
 		soundtrack = SeasonalMusic.new()
 		add_child(soundtrack)
@@ -246,7 +247,7 @@ func _build_interface() -> void:
 	ui.income_label = Style.readout(resources_row, "income", "0$", tr("今日收入"))
 	ui.gold_label = Style.readout(resources_row, "coins", "0$", tr("持有金币"))
 	ui.rep_label = Style.readout(resources_row, "reputation", "0", tr("声望"), Style.GREEN)
-	ui.star_label = Style.readout(resources_row, "star", "0", tr("闪星 · 购买地块扩建和奖杯"))
+	ui.star_label = Style.readout(resources_row, "star", "0", tr("闪星 · 扩建地块和购买装饰"))
 	ui.gear = _icon_button("settings", tr("设置"))
 	overlay.add_child(ui.gear)
 	_rect(ui.gear, -61, 14, -14, 61, 1, 0)
@@ -1303,12 +1304,12 @@ func _show_trophy_bag() -> void:
 	var box = _new_modal("trophy_bag", "奖杯背包", 710)
 	var displayed = sim.displayed_trophy_effects()
 	var placed_count = Grid.facilities(sim.layout, "trophy").size()
-	box.add_child(Style.text("已展示 %d / %d 件 · 同类奖杯只生效最高档" % [placed_count, int(sim.attributes.relic_slots)], 15, Style.GOLD))
+	box.add_child(Style.text(tr("已展示 %d / %d 件 · 同类奖杯只生效最高档") % [placed_count, int(sim.attributes.relic_slots)], 15, Style.GOLD))
 	if sim.owned_relics.is_empty():
 		box.add_child(Style.text("打开盲盒后，可从这里取出奖杯。", 15, Style.MUTED))
 		return
 	var search := LineEdit.new()
-	search.placeholder_text = "搜索名称、品质或效果"
+	search.placeholder_text = tr("搜索名称、品质或效果")
 	search.visible = sim.owned_relics.size() > 7
 	box.add_child(search)
 	var entries = []
@@ -1343,8 +1344,8 @@ func _trophy_bag_row(entry: Dictionary, displayed: Dictionary, placed_count: int
 	row.add_child(info)
 	var state = ""
 	if entry.placed:
-		state = " · 生效中" if displayed.get(relic.effect_type, {}).get("id") == relic.id else " · 已展示"
-	var label = "%s · %s品质%s" % [relic.name, Trophies.grade_name(grade), state]
+		state = tr(" · 生效中") if displayed.get(relic.effect_type, {}).get("id") == relic.id else tr(" · 已展示")
+	var label = tr("%s · %s品质%s") % [tr(relic.name), Trophies.grade_name(grade), state]
 	var description = Trophies.description(relic)
 	row_wrap.set_meta("search", label + description)
 	info.add_child(Style.text(label, 16, tint, true))
@@ -1352,7 +1353,7 @@ func _trophy_bag_row(entry: Dictionary, displayed: Dictionary, placed_count: int
 	var action = _icon_button("move", "移动奖杯" if entry.placed else "摆放奖杯")
 	action.custom_minimum_size.x = 42
 	action.disabled = sim.phase != "NIGHT" or (not entry.placed and placed_count >= int(sim.attributes.relic_slots))
-	action.tooltip_text = "夜晚可布置" if sim.phase != "NIGHT" else ("展示位已满，请先收起一件" if action.disabled else action.tooltip_text)
+	action.tooltip_text = "夜晚可布置" if sim.phase != "NIGHT" else (tr("展示位已满，请先收起一件") if action.disabled else action.tooltip_text)
 	action.pressed.connect(_pick_pending.bind(entry.id))
 	row.add_child(action)
 	if entry.placed:
@@ -1707,7 +1708,7 @@ func _new_modal(kind: String, title: String, width: int = 780) -> VBoxContainer:
 		world.cancel_touch()
 		if gamepad != null: gamepad.release_pointer()
 		world.camera_input_enabled = false
-		if feature != null: world.enter_feature(feature, .58 if not landmark_context.is_empty() or (kind == "major_event" and major_notice.get("id") == "river_lantern_run") else (1.84 if kind == "major_event" else 2.08))
+		if feature != null: world.enter_feature(feature, .58 if (not landmark_context.is_empty() and kind != "trophy_shop") or (kind == "major_event" and major_notice.get("id") == "river_lantern_run") else (1.84 if kind == "major_event" else 2.08))
 		world.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_DISABLED
 		ui.overlay.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_DISABLED
 	modal_layer = CanvasLayer.new()
@@ -1765,7 +1766,7 @@ func _visit_landmark(id: String) -> void:
 				if not forecast.is_empty(): notice.add_child(Style.text(forecast,18,Style.GOLD,true))
 
 func _modal_feature(kind: String) -> Variant:
-	if not landmark_context.is_empty(): return Plan.landmark(landmark_context)
+	if not landmark_context.is_empty() and kind != "trophy_shop": return Plan.landmark(landmark_context)
 	if world == null or sim == null: return null
 	var fixture_id := ""
 	match kind:

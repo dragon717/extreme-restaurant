@@ -66,12 +66,26 @@ def contact(im):
     feet=xs[ys>=low-1.4]
     return (round(float(np.median(feet))/im.width,5),round((low+.5)/im.height,5))
 
-def normal(atlas,neutral_edge=False):
-    a=np.asarray(atlas).astype(float)/255
-    dy,dx=np.gradient(a[:,:,3]*(.52+.48*a[:,:,:3].mean(2)))
-    n=np.stack([-dx,dy,np.ones_like(dx)],axis=2)
-    n/=np.linalg.norm(n,axis=2)[:,:,None]
-    return Image.fromarray(np.uint8((n*.5+.5)*255))
+def normal(atlas):
+    """Bake convex forms independently for each silhouette on a four-column atlas."""
+    from scipy.ndimage import distance_transform_edt, gaussian_filter
+
+    rgba = np.asarray(atlas.convert("RGBA"), dtype=float) / 255.0
+    width = atlas.width // 4
+    rgb = np.full((*rgba.shape[:2], 3), [128, 128, 255], dtype=np.uint8)
+    for top in range(0, atlas.height, width):
+        for left in range(0, atlas.width, width):
+            tile = rgba[top:top+width, left:left+width]
+            alpha = tile[:, :, 3]
+            depth = gaussian_filter(distance_transform_edt(alpha > .45), 1.4)
+            radius = width * .095
+            dome = radius * .69 * np.sin(np.minimum(depth/radius, 1) * np.pi/2)
+            pigment = gaussian_filter(tile[:, :, :3].mean(2) * alpha, 1.1)
+            dy, dx = np.gradient(dome + 1.8 * pigment)
+            vectors = np.stack((-dx, dy, np.ones_like(dx)), axis=2)
+            vectors /= np.linalg.norm(vectors, axis=2, keepdims=True)
+            rgb[top:top+width, left:left+width] = np.rint((vectors * .5 + .5) * 255)
+    return Image.fromarray(rgb)
 
 def resource(sheet_id,row,w,tex,foot):
     u,v=foot
@@ -104,7 +118,7 @@ def generate(key,path):
         tile.paste(fg,(round(w*.5-(cx-box[0])*factor),round(w*.947-(cy-box[1])*factor)))
         atlas.paste(tile,(i%4*w,i//4*w));subs.append(resource('dir'+str(i),i,w,'directions',contact(tile)))
     atlas.save(OUT/(key+'.webp'),quality=93,method=6)
-    normal(atlas,key=="Gromp").save(OUT/(key+'-normal.png'),optimize=True)
+    normal(atlas).save(OUT/(key+'-normal.png'),optimize=True)
     path=CREW/(key+'.tres')
     if new:
         head='[gd_resource type="SpriteFrames" format=3]\n'

@@ -55,7 +55,10 @@ var right_hinge: Node3D
 var door_open := 0.0
 var entrance_glass: StandardMaterial3D
 var porch_sky: SpotLight3D
-var soffits := Node3D.new()
+var ceiling_panels: Array[Node3D] = []
+var frontage := Node3D.new()
+var porch_lamps: Array[OmniLight3D] = []
+var frontage_gate := Vector2.INF
 var light := DirectionalLight3D.new()
 var environment := Environment.new()
 var district := Geography.instantiate()
@@ -78,6 +81,7 @@ var walkway_time := 0.0
 var weather_field := WeatherField.new()
 var actor_planes: Dictionary = {}
 var actor_materials: Dictionary = {}
+var crew_shadows := preload("res://scripts/visuals/crew_shadows.gd").new()
 var site_layout := {}
 var ground_view := Rect2()
 var map_size := Vector2.ZERO
@@ -92,6 +96,7 @@ var room_signature := 0
 var room_structure: Array = []
 var fixture_structure := ""
 var fixture_signature := 0
+var dragged_fixture := ""
 var district_signature := 0
 
 func _ready() -> void:
@@ -123,7 +128,8 @@ func _ready() -> void:
 		view.add_child(group)
 	view.add_child(GATE_COURT.instantiate())
 	view.add_child(garden)
-	view.add_child(soffits)
+	view.add_child(crew_shadows)
+	view.add_child(frontage)
 	current_decal.name = "RiverCurrent"
 	current_decal.texture = preload("res://assets/canyon/current.webp")
 	current_decal.hframes = 4
@@ -133,7 +139,6 @@ func _ready() -> void:
 	current_decal.transparent = true
 	current_decal.hide()
 	view.add_child(current_decal)
-	soffits.hide()
 	view.add_child(seasonal_ground)
 	for i in range(2):
 		var traveler := preload("res://scripts/visuals/actor_view.gd").new()
@@ -237,6 +242,7 @@ func hit_door(point: Vector2) -> bool:
 # glass. A stage owns the emission strength for its own hour and weather.
 func _bind_entrance_glass(model: Node3D) -> void:
 	for mesh_node: MeshInstance3D in model.find_children("*","MeshInstance3D",true,false):
+		if str(mesh_node.name).begins_with("LanternEmitter"): mesh_node.layers=2
 		for surface in mesh_node.mesh.get_surface_count():
 			var original := mesh_node.mesh.surface_get_material(surface) as StandardMaterial3D
 			if original == null or original.resource_name != "Gate_glass": continue
@@ -315,6 +321,10 @@ func light_at(hour: float, overcast: float, flash: float, voltage: float) -> voi
 	for lamp in lanterns:
 		var level := smoothstep(.98, BUILD_SECONDS, float(construction.get(lamp.get_meta("wing_id", ""), BUILD_SECONDS)))
 		lamp.light_energy = (.10 + maxf(night, overcast * .65) * .65) * voltage * level * float(lamp.get_meta("flame_gain",1.0))
+	if not porch_lamps.is_empty():
+		var door_cell := Vector2(doorway.position.x, doorway.position.z/DEPTH)
+		var close_to_porch := door_camera > .06 or (ground_view.size.x < 25. and ground_view.grow(1.).has_point(door_cell))
+		porch_lamps[0].shadow_enabled = close_to_porch and (door_camera > .06 or night > .18 or overcast > .45)
 	if entrance_glass != null:
 		entrance_glass.emission_energy_multiplier = (.11 + maxf(night,overcast*.65)*.51)*voltage
 	if is_instance_valid(porch_sky):
@@ -323,6 +333,7 @@ func light_at(hour: float, overcast: float, flash: float, voltage: float) -> voi
 
 func sync_layout(layout: Dictionary, street, hide_fixture: String) -> void:
 	site_layout = layout
+	dragged_fixture=hide_fixture
 	var signature := hash([layout.get("unlocked_plots",[]),layout.width,layout.height,layout.get("kitchen_bounds"),layout.get("wall_cells"),layout.get("plots"),layout.entrance,layout.exit])
 	if room_signature != signature:
 		room_signature = signature
@@ -342,17 +353,18 @@ func sync_layout(layout: Dictionary, street, hide_fixture: String) -> void:
 	signature = hash(layout.facilities)
 	if fixture_signature != signature:
 		fixture_signature = signature
-		var key := JSON.stringify(layout.facilities)
+		var key := JSON.stringify(layout.facilities.filter(Grid.placed))
 		if key != fixture_structure:
 			fixture_structure = key
 			_build_fixtures(layout)
+			for wing_id in construction: _set_new_furniture(wing_id,construction[wing_id])
 	for id in fixture_models:
-		fixture_models[id].visible = id != hide_fixture
+		fixture_models[id].visible = id != hide_fixture and furniture_revealed(str(id))
 
 func show_exterior(amount: float, _unlocked: int) -> void:
 	if is_equal_approx(exterior_amount, amount): return
 	exterior_amount = amount
-	soffits.visible = amount > .001
+	for ceiling in ceiling_panels: ceiling.visible = amount > .001
 	canopy.set_cover(amount)
 	for panel in roof_panels: panel.visible = amount > .001
 
@@ -402,6 +414,7 @@ func sync_actor(id: String, actor: Node2D, cell: Vector2, hero_inside: bool) -> 
 	var in_view := camera.is_position_in_frustum(ground+Vector3.UP*.57) if door_camera>.01 else ground_view.grow(2).has_point(cell)
 	if actor.modulate.a<=.08 or not in_view:
 		if plane != null: plane.hide()
+		crew_shadows.remove_actor(id)
 		return
 	var cycle := .67 if str(actor.visual_key).begins_with("minion_") or actor.visual_key in ["normal","chef","waiter"] else .94
 	if actor.visual_key=="riverclaw": cycle=.61
@@ -411,14 +424,15 @@ func sync_actor(id: String, actor: Node2D, cell: Vector2, hero_inside: bool) -> 
 	if frame == null: return
 	if plane == null:
 		plane = Sprite3D.new()
-		plane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		plane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		plane.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		portraits.add_child(plane)
 		actor_planes[id] = plane
-	if plane.texture != frame:
-		plane.texture = frame
-		var sheet: Texture2D = frame.atlas if frame is AtlasTexture else frame
-		plane.material_override = _actor_material(sheet)
+	var atlas: Texture2D=frame.atlas if frame is AtlasTexture else frame
+	var skin:=_actor_materials(atlas)
+	if plane.texture!=frame: plane.texture=frame
+	var surface: Material=skin.mirrored if sprite.flip_h else skin.front
+	if plane.material_override!=surface: plane.material_override=surface
 	plane.show()
 	plane.modulate = actor.modulate
 	plane.flip_h = sprite.flip_h
@@ -433,10 +447,11 @@ func sync_actor(id: String, actor: Node2D, cell: Vector2, hero_inside: bool) -> 
 	plane.basis=Basis(Vector3.UP,atan2(to_camera.x,to_camera.z))*Basis.from_scale(Vector3(1,breath*1.27,1))
 	plane.position=ground
 	if walking:
-		var sheet: Texture2D = frame.atlas if frame is AtlasTexture else frame
-		var skin := plane.material_override as StandardMaterial3D
-		actor.gait.draw(plane,frame,sheet,skin.normal_texture,sole,cycle,actor.visual_key=="minion_siege",hero_inside,gate_y,indoors)
+		actor.gait.draw(plane,frame,atlas,skin.normal,skin.armour,sole,cycle,actor.visual_key=="minion_siege",hero_inside,gate_y,indoors)
 	else: actor.gait.idle(plane)
+	var shape: String={"mosskeeper":"toad","riverclaw":"crab","minion_siege":"cart"}.get(actor.visual_key,"person")
+	var physical_height:=float(frame.get_height())*plane.pixel_size*1.27*(.86 if shape=="person" else .67)
+	crew_shadows.show_actor(id,shape,ground,maxf(.35,physical_height),actor.gait.heading,fposmod(actor.gait.travelled/cycle,1.),walking)
 	var outline := plane.get_node_or_null("ThroughWall") as Sprite3D
 	if hero_inside and not walking:
 		if outline == null:
@@ -456,6 +471,7 @@ func sync_actor(id: String, actor: Node2D, cell: Vector2, hero_inside: bool) -> 
 		outline.hide()
 
 func remove_actor(id: String) -> void:
+	crew_shadows.remove_actor(id)
 	seasonal_ground.forget(id)
 	var plane: Sprite3D = actor_planes.get(id)
 	if plane == null: return
@@ -470,36 +486,33 @@ func _xray_material(sheet: Texture2D) -> ShaderMaterial:
 		xray_materials[sheet] = mat
 	return xray_materials[sheet]
 
-func _actor_material(sheet: Texture2D) -> StandardMaterial3D:
-	if actor_materials.has(sheet): return actor_materials[sheet]
-	var material := StandardMaterial3D.new()
-	material.albedo_texture = sheet
-	material.vertex_color_use_as_albedo = true
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	material.alpha_scissor_threshold = .23
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.roughness = .84
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	var baked: Texture2D = PORTRAIT_NORMALS.get(sheet.resource_path)
-	if baked == null and sheet.resource_path.begins_with("res://assets/crew/"):
-		baked = load(sheet.resource_path.get_basename() + "-normal.png")
-	if baked == null:
-		var frame_source := sheet.get_image()
-		if frame_source != null and not frame_source.is_empty():
-			if frame_source.is_compressed(): frame_source.decompress()
-			frame_source.bump_map_to_normal_map(.65)
-			baked = ImageTexture.create_from_image(frame_source)
-	if baked != null:
-		material.normal_enabled = true
-		material.normal_texture = baked
-		material.normal_scale = .66
-	actor_materials[sheet] = material
-	return material
+func _actor_materials(sheet: Texture2D) -> Dictionary:
+	if actor_materials.has(sheet):return actor_materials[sheet]
+	var baked: Texture2D=PORTRAIT_NORMALS.get(sheet.resource_path)
+	if baked==null and sheet.resource_path.begins_with("res://assets/crew/"):
+		baked=load(sheet.resource_path.get_basename()+"-normal.png")
+	if baked==null:
+		var source:=sheet.get_image()
+		if source!=null and not source.is_empty():
+			if source.is_compressed():source.decompress()
+			source.bump_map_to_normal_map(.45)
+			baked=ImageTexture.create_from_image(source)
+	var armour:=.72 if sheet.resource_path.get_file().get_basename() in ["blue-melee","blue-caster","blue-siege","Pantheon","Sivir"] else 0.
+	var mat:=ShaderMaterial.new()
+	mat.shader=preload("res://scripts/visuals/crew_surface.gdshader")
+	mat.set_shader_parameter("paint",sheet)
+	mat.set_shader_parameter("relief",baked)
+	mat.set_shader_parameter("armour",armour)
+	var mirror:=mat.duplicate() as ShaderMaterial
+	mirror.set_shader_parameter("mirrored",true)
+	actor_materials[sheet]={"front":mat,"mirrored":mirror,"normal":baked,"armour":armour}
+	return actor_materials[sheet]
 
 func _build_rooms(layout: Dictionary) -> void:
 	_clear(rooms)
 	wings.clear()
 	roof_panels.clear()
+	ceiling_panels.clear()
 	canopy.begin()
 	lanterns.clear()
 	var kitchen := Grid.kitchen_bounds(layout)
@@ -558,84 +571,32 @@ func _build_rooms(layout: Dictionary) -> void:
 			parts[key].finish(layer, _material("wood" if key == "floor" else "stone" if key == "frame" else "plain"))
 			if key == "floor": parts.tile.finish(layer, _material("stone"))
 			layers[key] = layer
-		var location: Dictionary = {}
-		for plot in layout.get("plots", []):
-			if str(plot.id) == id:
-				location = plot.bounds
-				break
-		var left := int(location.get("left", 1))
-		var top := int(location.get("top", 1))
-		var right := int(location.get("right", left))
-		var bottom := int(location.get("bottom", top))
-		var west := Grid.has_room(layout, Vector2i(left - 1, floori((top + bottom) * .5)))
-		var east := Grid.has_room(layout, Vector2i(right + 1, floori((top + bottom) * .5)))
-		var north := Grid.has_room(layout, Vector2i(floori((left + right) * .5), top - 1))
-		_build_bays(id,layers, boundaries.get(id, {}))
-		layers.anchor = Vector2(left if west else right + 1, top if north else bottom + 1)
-		layers.across = west or east
+		var area: Rect2i = footprints[id]
+		var attachment := _building_joint(layout,str(id),area)
+		_build_bays(id,layers,boundaries.get(id,{}))
+		layers.anchor=attachment.anchor
+		layers.across=attachment.across
+		var ceiling:=Node3D.new()
+		ceiling.name="Soffit"
+		layers.roof.add_child(ceiling)
+		var boards:=Geometry.new()
+		var beams:=Geometry.new()
+		boards.slab(Rect2(area),3.96,.07,Color("b99774"))
+		for x in range(area.position.x+1,area.end.x,3):
+			beams.slab(Rect2(x,area.position.y,.16,area.size.y),3.82,.19,Color("715242"))
+		boards.finish(ceiling,canopy.ridge_material)
+		beams.finish(ceiling,canopy.ridge_material)
+		ceiling.visible=exterior_amount>.001
+		ceiling_panels.append(ceiling)
 		wings[id] = layers
 	weather_field.shelter_rooms(footprints,DEPTH)
 	roof_panels = canopy.build(wings, footprints, _material("wood"))
 	canopy.set_cover(exterior_amount)
 	for panel in roof_panels: panel.visible = exterior_amount > .001
 	house_bounds = Rect2(Grid.occupied_bounds(layout)).grow_individual(2.8,5.,2.4,1.8)
-	_clear(soffits)
-	var boards := Geometry.new()
-	var beams := Geometry.new()
-	for footprint: Rect2i in footprints.values():
-		var area := Rect2(footprint)
-		boards.slab(area,3.96,.07,Color("b99774"))
-		for x in range(footprint.position.x+1,footprint.end.x,3):
-			beams.slab(Rect2(x,area.position.y,.16,area.size.y),3.82,.19,Color("715242"))
-	boards.finish(soffits,canopy.ridge_material)
-	beams.finish(soffits,canopy.ridge_material)
-	soffits.visible = exterior_amount > .001
 	var entrance := Grid.vec(layout.entrance)
-	doorway = preload("res://assets/tavern/hinged_door.glb").instantiate() as Node3D
-	doorway.position = Vector3(.855,.02,(entrance.y+1.)*DEPTH)
-	doorway.rotation.y = -PI*.5
-	rooms.add_child(doorway)
-	_bind_entrance_glass(doorway)
-	_place_register()
-	left_hinge = doorway.find_child("LeftHinge",true,false)
-	right_hinge = doorway.find_child("RightHinge",true,false)
-	open_door(door_open)
-	var vestibule_lamp := OmniLight3D.new()
-	vestibule_lamp.position = doorway.position+Vector3(3.2,2.35,-.6)
-	vestibule_lamp.light_color = Color("ffd295")
-	vestibule_lamp.light_energy = 1.4
-	vestibule_lamp.omni_range = 8.
-	rooms.add_child(vestibule_lamp)
-	var chimney_model := preload("res://assets/tavern/stone_chimney.glb").instantiate() as Node3D
-	chimney_model.position = Vector3(2.72,0,1.83*DEPTH)
-	rooms.add_child(chimney_model)
-	var porch := preload("res://assets/tavern/entrance_porch.glb").instantiate() as Node3D
-	porch.rotation.y = float(Plan.porch.yaw)
-	porch.position = Vector3(Plan.porch.porch_x,0,(entrance.y+float(Plan.porch.porch_gate_offset))*DEPTH)
-	rooms.add_child(porch)
-	_bind_entrance_glass(porch)
-	# Broad, unshadowed sky bounce from the open side of the porch. The small
-	# radius and cut-off keep the cool return local to the frame and brass.
-	porch_sky = SpotLight3D.new()
-	porch_sky.name = "PorchSkyBounce"
-	porch_sky.position = doorway.position + Vector3(-3.8,3.55,1.55)
-	porch_sky.spot_range = 5.9
-	porch_sky.spot_angle = 39.
-	porch_sky.spot_attenuation = .83
-	porch_sky.light_specular = .77
-	rooms.add_child(porch_sky)
-	porch_sky.look_at(doorway.global_position+Vector3(0,1.55,0))
-	for side in [-1.25,1.25]:
-		var lantern := OmniLight3D.new()
-		lantern.position = Vector3(side,2.1,1.8)
-		lantern.light_color = Color("ffd39a") if side < 0 else Color("ffdaac")
-		lantern.omni_range = 3.85 if side < 0 else 3.25
-		lantern.omni_attenuation = .82
-		lantern.light_specular = .96
-		lantern.set_meta("flame_gain",1.18 if side < 0 else .72)
-		lantern.set_meta("wing_id","homestead")
-		porch.add_child(lantern)
-		lanterns.append(lantern)
+	_ensure_frontage(entrance)
+	lanterns.append_array(porch_lamps)
 	for point in [entrance + Vector2(.68, -.43), Vector2(7.2, 4.5), Vector2(8.4, 12.5), Vector2(14.9, 10.3), Vector2(18.3, 12.7)]:
 		if point.x > 1.0 and not Grid.has_room(layout, Vector2i(point)): continue
 		var lamp := OmniLight3D.new()
@@ -644,7 +605,8 @@ func _build_rooms(layout: Dictionary) -> void:
 		lamp.light_color = Color("ffc484")
 		lamp.omni_range = 7.6
 		lamp.omni_attenuation = .80
-		rooms.add_child(lamp)
+		var owner_id:=str(Grid.plot_at(layout,Vector2i(point)).get("id","homestead"))
+		wings[owner_id].frame.add_child(lamp)
 		var glass := MeshInstance3D.new()
 		var shade := CylinderMesh.new()
 		shade.top_radius = .077
@@ -663,15 +625,88 @@ func _build_rooms(layout: Dictionary) -> void:
 		lamp.add_child(glass)
 		var chain := Geometry.new()
 		chain.block(point,3.01,Vector3(.034,1.65,.034),Color("5f4b39"))
-		chain.finish(rooms,_material())
+		chain.finish(wings[owner_id].frame,_material())
 		lanterns.append(lamp)
 	# Restores and restarts can remove a wing while its reveal is in progress.
 	for id in construction.keys():
 		if not wings.has(id): construction.erase(id)
 		else: _pose_construction(id, construction[id])
 
-# Only exposed cell edges produce façades. A shared wall vanishes when the
-# adjacent plot opens. Runs terminate at doorways and ownership boundaries.
+# A later adjacent purchase must not change a wing's construction direction.
+# Measure only the seam available when that plot was bought.
+func _building_joint(layout: Dictionary,id: String,area: Rect2i) -> Dictionary:
+	var earlier: Dictionary={"homestead":true}
+	for plot_id in layout.unlocked_plots:
+		if plot_id==id:break
+		earlier[plot_id]=true
+	var winner:=Vector2i.UP
+	var longest:=-1
+	for side: Vector2i in [Vector2i.LEFT,Vector2i.UP,Vector2i.RIGHT,Vector2i.DOWN]:
+		var count:=0
+		var horizontal:=side.y!=0
+		for n in range(area.size.x if horizontal else area.size.y):
+			var neighbor:=Vector2i(area.position.x+n,area.position.y-1 if side.y<0 else area.end.y) if horizontal else Vector2i(area.position.x-1 if side.x<0 else area.end.x,area.position.y+n)
+			if Grid.has_room(layout,neighbor) and earlier.has(Grid.plot_at(layout,neighbor).get("id","homestead")):count+=1
+		if count>longest:
+			longest=count
+			winner=side
+	return {"across":winner.x!=0,"anchor":Vector2(area.position.x if winner.x<0 else area.end.x,area.position.y if winner.y<0 else area.end.y)}
+
+func _ensure_frontage(entrance: Vector2) -> void:
+	if frontage_gate==entrance and is_instance_valid(doorway): return
+	frontage_gate=entrance
+	_clear(frontage)
+	porch_lamps.clear()
+	doorway = preload("res://assets/tavern/hinged_door.glb").instantiate() as Node3D
+	doorway.position = Vector3(.855,.02,(entrance.y+1.)*DEPTH)
+	doorway.rotation.y = -PI*.5
+	frontage.add_child(doorway)
+	_bind_entrance_glass(doorway)
+	_place_register()
+	left_hinge = doorway.find_child("LeftHinge",true,false)
+	right_hinge = doorway.find_child("RightHinge",true,false)
+	open_door(door_open)
+	var vestibule_lamp := OmniLight3D.new()
+	vestibule_lamp.position = doorway.position+Vector3(3.2,2.35,-.6)
+	vestibule_lamp.light_color = Color("ffd295")
+	vestibule_lamp.light_energy = 1.4
+	vestibule_lamp.omni_range = 8.
+	frontage.add_child(vestibule_lamp)
+	var chimney_model := preload("res://assets/tavern/stone_chimney.glb").instantiate() as Node3D
+	chimney_model.position = Vector3(2.72,0,1.83*DEPTH)
+	frontage.add_child(chimney_model)
+	var porch := preload("res://assets/tavern/entrance_porch.glb").instantiate() as Node3D
+	porch.rotation.y = float(Plan.porch.yaw)
+	porch.position = Vector3(Plan.porch.porch_x,0,(entrance.y+float(Plan.porch.porch_gate_offset))*DEPTH)
+	frontage.add_child(porch)
+	_bind_entrance_glass(porch)
+	# Broad, unshadowed sky bounce from the open side of the porch. The small
+	# radius and cut-off keep the cool return local to the frame and brass.
+	porch_sky = SpotLight3D.new()
+	porch_sky.name = "PorchSkyBounce"
+	porch_sky.position = doorway.position + Vector3(-3.8,3.55,1.55)
+	porch_sky.spot_range = 5.9
+	porch_sky.spot_angle = 39.
+	porch_sky.spot_attenuation = .83
+	porch_sky.light_specular = .77
+	frontage.add_child(porch_sky)
+	porch_sky.look_at(doorway.global_position+Vector3(0,1.55,0))
+	for side in [-1.25,1.25]:
+		var lantern := OmniLight3D.new()
+		lantern.position = Vector3(side,2.1,1.8)
+		lantern.light_color = Color("ffd39a") if side < 0 else Color("ffdaac")
+		lantern.omni_range = 3.85 if side < 0 else 3.25
+		lantern.omni_attenuation = .82
+		lantern.light_specular = .96
+		lantern.shadow_enabled = side < 0
+		lantern.shadow_caster_mask = 0xffffd
+		lantern.shadow_bias = .055
+		lantern.shadow_normal_bias = .20
+		lantern.set_meta("flame_gain",1.18 if side < 0 else .72)
+		lantern.set_meta("wing_id","homestead")
+		porch.add_child(lantern)
+		porch_lamps.append(lantern)
+
 func _build_bays(id: String, layers: Dictionary, edges: Dictionary) -> void:
 	for key: Vector3i in edges:
 		var cells: Array = edges[key]
@@ -760,8 +795,9 @@ func _pose_construction(id: String, elapsed: float) -> void:
 	parts.frame.visible = elapsed > .27
 	parts.frame.scale.y = maxf(.001, smoothstep(.27, 1.10, elapsed))
 	parts.roof.visible = elapsed > .98
-	parts.roof.position.y = (1.0 - smoothstep(.98, 1.47, elapsed)) * .8
-	parts.roof.scale.y = maxf(.001, smoothstep(.98, 1.36, elapsed))
+	var span := maxf(.001,smoothstep(.98,1.43,elapsed))
+	parts.roof.scale = Vector3(span if across else 1.,1.,1. if across else span)
+	parts.roof.position = Vector3(anchor.x*(1.-span) if across else 0.,(1.-smoothstep(.98,1.49,elapsed))*.36,0. if across else anchor.y*DEPTH*(1.-span))
 
 func furniture_revealed(fixture_id: String) -> bool:
 	var wing_id: String = fixture_plots.get(fixture_id, "")
@@ -771,6 +807,7 @@ func _set_new_furniture(id: String, elapsed: float) -> void:
 	var ratio := maxf(.001, smoothstep(1.1, BUILD_SECONDS, elapsed))
 	for fixture in fixture_plots:
 		if fixture_plots[fixture] == id:
+			fixture_models[fixture].visible = elapsed>=1.1 and fixture!=dragged_fixture
 			fixture_models[fixture].scale.y = ratio
 
 func _build_fixtures(layout: Dictionary) -> void:

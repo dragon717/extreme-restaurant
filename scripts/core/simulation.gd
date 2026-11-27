@@ -337,6 +337,7 @@ func next_land_plot() -> Dictionary:
 	return chapter.land_plots[index] if index < chapter.land_plots.size() else {}
 
 func land_plot_status(id: String) -> Dictionary:
+	if phase != "NIGHT": return {"ok":false,"error":tr("只能在夜晚解锁地块")}
 	for plot in chapter.land_plots:
 		if str(plot.id)!=id: continue
 		if id in layout.unlocked_plots: return {"ok":false,"error":tr("该地块已经解锁")}
@@ -347,7 +348,6 @@ func land_plot_status(id: String) -> Dictionary:
 	return {"ok":false,"error":tr("地块不存在")}
 
 func unlock_land_plot(id: String) -> Dictionary:
-	if phase != "NIGHT": return {"ok":false,"error":tr("只能在夜晚解锁地块")}
 	var status = land_plot_status(id)
 	if not status.ok: return status
 	var plot = next_land_plot()

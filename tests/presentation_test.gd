@@ -107,11 +107,20 @@ func run() -> void:
 	var balance = scene.sim.gold
 	box.buy.pressed.emit()
 	check(box.opening and box.reel.rolling and scene.sim.trophy_draws_today == 1 and scene.sim.gold == balance, "开箱过程只扣费一次")
-	check(box.reel.cards[box.reel.STOP_CARD].id == opened_id, "动画终点与已到账奖杯完全一致")
+	check(box.reel.pending_reward.id == opened_id, "动画终点与已到账奖杯完全一致")
 	await create_timer(.50).timeout
+	var fixture: Node3D = scene.world.district_3d.fixture_models.trophy_shop
+	var hinge := fixture.find_child("CofferHinge",true,false) as Node3D
+	check(hinge != null and hinge.rotation.x < -.5, "奖杯进入背包后展廊模型仍在开盖")
 	await shot("trophy-spin")
 	box.skip.pressed.emit()
 	check(not box.opening and box.reel.reward.id == opened_id and box.ledger.text.contains("第 2 箱"), "揭晓后显示结果和下一箱")
+	var previous_locale := TranslationServer.get_locale()
+	TranslationServer.set_locale("en")
+	box.refresh()
+	check(box.buy.text.contains("365 gold") and box.ledger.text.contains("tonight") and box.odds_labels[4].text.contains("Prismatic") and not box.prize.text.contains("品质"), "英文同步显示价格、概率和已到账奖品")
+	TranslationServer.set_locale(previous_locale)
+	box.refresh()
 	var result = Sim.new()
 	check(result.restore_state(Store.read_checkpoint(path)).ok and result.last_trophy_id == opened_id and result.gold == balance, "开启动效前已完成存档")
 	for reward in ["brass_spoon", "ember_cup", "dining_hourglass", "triad_pot", "feast_pot"]:

@@ -297,7 +297,9 @@ chim.prism(section((0,0),.37),7.585,7.595,iron)
 collections.append(export("stone_chimney",{"Masonry_flue":chim}))
 # Keep the editable master arranged for inspection. Individual GLBs have local origins.
 for idx,coll in enumerate(collections):
-    for obj in coll.objects: obj.location.x=idx*8
+    for obj in coll.objects:
+        if obj.parent is None:
+            obj.location.x += idx * 8
 bpy.ops.file.pack_all()
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/"art_source/canyon/餐厅木石构件.blend"))

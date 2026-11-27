@@ -266,7 +266,7 @@ func _select_place(id: String) -> void:
 	if id == "freight":
 		_choose_crew(true,$Menu/CanyonHub/Places/freight)
 		return
-	var details = {"supply":"采购小厅开放后，可在这里购买菜谱和营业增益。","workshop":"装饰工坊开放后，可在这里购买餐厅陈设。","gallery":"展廊开放后，可在这里查看和交换奖杯。","dock":"来客从东岸出发，过木桥，经前场进入餐厅。"}
+	var details = {"supply":"采购小厅开放后，可在这里购买菜谱和营业增益。","workshop":"装饰工坊开放后，可在这里购买餐厅陈设。","gallery":"展廊开放后，可在这里用金币开启海克斯奖杯盲盒。","dock":"来客从东岸出发，过木桥，经前场进入餐厅。"}
 	place_opener = $Menu/CanyonHub/Places.get_node(id)
 	$Menu.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_DISABLED
 	place_layer = CanvasLayer.new()

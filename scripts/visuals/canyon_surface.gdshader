@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode cull_disabled, shadows_disabled;
+render_mode cull_disabled;
 uniform sampler2D painted : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform sampler2D relief : hint_normal, filter_linear_mipmap, repeat_disable;
 uniform sampler2D orm : filter_linear_mipmap, repeat_disable;
@@ -35,9 +35,9 @@ void fragment(){
 	}
 	vec3 packed=texture(orm,uv).rgb;
 	art *= mix(vec3(1.),vec3(.70,.78,.98),dusk);
-	ALBEDO=art*.22;
+	ALBEDO=art*.48;
 	SPECULAR=.12;
-	EMISSION=art*skylight*(1.-dusk*.21);
+	EMISSION=art*(skylight-.185)*(1.-dusk*.21);
 	ROUGHNESS=mix(packed.g,.39,wet);
 	METALLIC=packed.b;
 	NORMAL_MAP=texture(relief,uv).rgb;

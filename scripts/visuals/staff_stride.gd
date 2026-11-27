@@ -85,10 +85,11 @@ func orient(actor,ground: Vector3,camera: Camera3D,cycle: float) -> bool:
 	sprite.set_frame_and_progress(mini(count-1,floori(phase*count)),0.)
 	return true
 
-func draw(plane: Sprite3D,frame: Texture2D,sheet: Texture2D,normal: Texture2D,sole: Vector2,cycle: float,rolling: bool,through_wall: bool,gate_y: float,indoors: bool) -> void:
+func draw(plane: Sprite3D,frame: Texture2D,sheet: Texture2D,normal: Texture2D,armour: float,sole: Vector2,cycle: float,rolling: bool,through_wall: bool,gate_y: float,indoors: bool) -> void:
 	if not is_instance_valid(mesh_node) or mesh_node.get_parent()!=plane:
 		mesh_node=MeshInstance3D.new()
 		mesh_node.name="GroundedStride"
+		mesh_node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mesh_node.mesh=_card()
 		mesh_node.custom_aabb=AABB(Vector3(-1.8,-.65,-.9),Vector3(3.6,3.9,1.8))
 		paint=ShaderMaterial.new()
@@ -102,6 +103,7 @@ func draw(plane: Sprite3D,frame: Texture2D,sheet: Texture2D,normal: Texture2D,so
 		sheet_ref=sheet
 		paint.set_shader_parameter("paint",sheet)
 		paint.set_shader_parameter("relief",normal)
+		paint.set_shader_parameter("armour",armour)
 	var rect: Rect2=frame.region if frame is AtlasTexture else Rect2(Vector2.ZERO,frame.get_size())
 	var size:=sheet.get_size()
 	var extent:=frame.get_size()*plane.pixel_size

@@ -18,6 +18,7 @@ func _ready() -> void:
 				painted.set_shader_parameter("landscape", landmark.name == &"valley")
 				materials[original] = painted
 			piece.material_override = materials[original]
+			if landmark.name==&"valley": piece.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		paints[str(landmark.name)] = materials.values()
 
 func season_colors(weights: Vector3) -> void:

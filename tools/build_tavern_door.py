@@ -322,6 +322,8 @@ def build_porch():
         k.line(tag+" wall plate",(x,-1.65,2.73),(x,.55,3.42),.18,.19,WOOD,.017)
         for z in [.39,2.565]: k.stud(tag+" peg",x,-1.715,z,.026,BRASS)
         # The bulb occupies the same anchor used by its OmniLight3D in Godot.
+        emitter = k.pivot("LanternEmitter" + tag, (0, 0, 0))
+        first_lamp_part = len(k.parts)
         at=(x,-1.8,2.095)
         k.lathe(tag+" amber glass",at,[(.049,-.145),(.096,-.115),(.119,-.063),(.126,-.006),(.122,.074),(.105,.122),(.070,.149)],HONEY,36)
         k.lathe(tag+" lantern plinth",at,[(.032,-.203),(.045,-.184),(.043,-.17),(.085,-.153),(.106,-.135),(.094,-.115)],BRASS)
@@ -336,6 +338,8 @@ def build_porch():
                 k.line(tag+" lantern mullion",a,b,.012,.013,IRON,.002)
         k.line(tag+" hanging stem",(x,-1.8,2.31),(x,-1.8,2.53),.024,.024,IRON,.004)
         k.line(tag+" hanging arm",(x,-1.83,2.52),(x,-1.565,2.61),.037,.036,BRASS,.006)
+        for part in k.parts[first_lamp_part:]:
+            part.parent = emitter
     header=[(-1.41,2.60),(-.96,2.592),(-.45,2.568),(0,2.49),(.45,2.568),(.96,2.592),(1.41,2.60),(1.41,2.84),(-1.41,2.84)]
     k.silhouette("Threshold lintel",header,-1.705,-1.43,WOOD,.027,grain=0)
     for side in (-1,1):
