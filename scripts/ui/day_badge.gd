@@ -36,7 +36,6 @@ func set_weather(has_rain: bool, has_thunder: bool) -> void:
 	queue_redraw()
 
 const Icon = preload("res://scripts/ui/ui_icon.gd")
-const PLATE = preload("res://assets/canyon/panel.webp")
 
 func _draw() -> void:
 	if font == null: return

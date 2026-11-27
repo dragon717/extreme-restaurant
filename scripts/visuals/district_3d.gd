@@ -18,10 +18,6 @@ const STONE_ALBEDO = preload("res://assets/materials/inn-stone.jpg")
 const STONE_NORMAL = preload("res://assets/materials/inn-stone-normal.png")
 const OAK_ALBEDO = preload("res://assets/materials/inn-oak.jpg")
 const OAK_NORMAL = preload("res://assets/materials/inn-oak-normal.png")
-const PORTRAIT_NORMALS = {
-	"res://assets/canyon/chef.webp": preload("res://assets/materials/chef-normal.png"),
-	"res://assets/canyon/courier.webp": preload("res://assets/materials/courier-normal.png"),
-}
 const STRAIGHT_WALL = preload("res://assets/tavern/straight_wall.glb")
 const STRAIGHT_SILL = preload("res://assets/tavern/straight_sill.glb")
 const HEARTH_BAY = preload("res://assets/tavern/hearth_bay.glb")
@@ -85,7 +81,6 @@ var actor_materials: Dictionary = {}
 var crew_shadows := preload("res://scripts/visuals/crew_shadows.gd").new()
 var site_layout := {}
 var ground_view := Rect2()
-var map_size := Vector2.ZERO
 var lanterns: Array[OmniLight3D] = []
 var fixture_models := {}
 var materials := {}
@@ -98,7 +93,6 @@ var room_structure: Array = []
 var fixture_structure := ""
 var fixture_signature := 0
 var dragged_fixture := ""
-var district_signature := 0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -491,8 +485,8 @@ func _xray_material(sheet: Texture2D) -> ShaderMaterial:
 
 func _actor_materials(sheet: Texture2D) -> Dictionary:
 	if actor_materials.has(sheet):return actor_materials[sheet]
-	var baked: Texture2D=PORTRAIT_NORMALS.get(sheet.resource_path)
-	if baked==null and sheet.resource_path.begins_with("res://assets/crew/"):
+	var baked: Texture2D
+	if sheet.resource_path.begins_with("res://assets/crew/"):
 		baked=load(sheet.resource_path.get_basename()+"-normal.png")
 	if baked==null:
 		var source:=sheet.get_image()

@@ -15,7 +15,6 @@ var wetness := 0.0
 var preset: Dictionary = {}
 var time := 0.0
 var wind := 0.0
-var hour_dusk := 0.0
 var seed_value: int
 var bounds := Rect2()
 var rain_draw_bounds := Rect2()
@@ -156,7 +155,6 @@ func align_to_world(at: Vector2, unit: float, viewport_size: Vector2, dusk: floa
 	ground.position = at + bounds.position * unit
 	ground.scale = scale
 	world_view = Rect2(-at / unit, viewport_size / unit)
-	hour_dusk = dusk
 	var style = Vector3i(roundi(wetness * 24.0), roundi(dusk * 8.0) if wetness > 0.0 else 0, roundi(flash * 5.0))
 	if style != ground_style:
 		ground_style = style

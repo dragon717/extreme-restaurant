@@ -604,9 +604,6 @@ func _next_fixture_id(board: Dictionary, prefix: String) -> String:
 	board[counter] = serial + 1
 	return id
 
-func wall_placement_status(cell: Vector2i) -> Dictionary:
-	return wall_row_status([cell])
-
 func wall_row_status(cells: Array) -> Dictionary:
 	if phase != "NIGHT": return {"ok":false,"error":tr("仅能在夜晚建造墙体")}
 	if cells.is_empty(): return {"ok":false,"error":tr("请在餐厅内选定墙体位置")}
@@ -2154,21 +2151,6 @@ func continue_night() -> Dictionary:
 	trophy_draws_today = 0
 	revision += 1
 	return {"ok": true}
-
-func live_metrics() -> Dictionary:
-	var result = {"queue": 0, "ready": 0, "food": 0, "eating": 0, "arrived": int(stats.get("arrived", 0)), "completed": int(stats.get("completed", 0)), "pending": 0, "at_pass": _active_foods("PASS").size(), "income": int(stats.get("income", 0))}
-	for c in customers.values():
-		if not c.terminal.is_empty():
-			continue
-		match c.state:
-			"QUEUE": result.queue += 1
-			"READY", "TAKING": result.ready += 1
-			"FOOD": result.food += 1
-			"EATING": result.eating += 1
-	for o in orders.values():
-		if o.status == "ACTIVE" and int(o.submitted_tick) >= 0 and o.supply not in ["SERVED", "WITH_WAITER"]:
-			result.pending += 1
-	return result
 
 func invariant_errors() -> Array:
 	var errors = []

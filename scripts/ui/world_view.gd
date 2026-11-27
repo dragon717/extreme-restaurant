@@ -125,12 +125,10 @@ var scroll_anchor := Vector2.ZERO
 signal entry_finished
 var sun_light: PointLight2D
 var shadow_geometry: Node2D
-var city_geometry: Node2D
 var street = CommercialStreet.new()
 var street_canvas := Control.new()
 var street_backdrop := ColorRect.new()
 var street_activity := Control.new()
-var street_signs := Control.new()
 var floor_canvas := Control.new()
 var weather
 var carry_weather := false
@@ -141,7 +139,6 @@ var street_lamp_light := 0.0
 var street_draw_bounds := Rect2()
 var scene_light_band := -1
 var floor_style := []
-var sign_view := []
 const FLOOR_DRAW_UNIT := 28.0
 var plot_buttons: Dictionary = {}
 var pressed_plot := ""
@@ -211,8 +208,6 @@ func _ready() -> void:
 	_add_scenery_layer(weather.ground, "WetStreet", 0, false)
 	_add_scenery_layer(street_activity, "StreetActivity", 4, true)
 	street_activity.draw.connect(_paint_street_activity)
-	_add_scenery_layer(street_signs, "StreetSigns", 4, true)
-	street_signs.draw.connect(_paint_street_signs)
 	_add_scenery_layer(weather, "StreetWeather", 0, false)
 	_add_scenery_layer(floor_canvas, "RestaurantFloor", light_mask, false)
 	floor_canvas.draw.connect(_paint_floor)
@@ -221,7 +216,6 @@ func _ready() -> void:
 		street_canvas.hide()
 		floor_canvas.hide()
 		street_activity.hide()
-		street_signs.hide()
 		weather.use_spatial_rain = true
 		# Wetness and audio drive the 3D scene. The old TileMap puddle and lamp
 		# canvases have no perspective transform.
@@ -230,9 +224,6 @@ func _ready() -> void:
 	shadow_geometry = Node2D.new()
 	shadow_geometry.name = "WallAndFurnitureOccluders"
 	add_child(shadow_geometry)
-	city_geometry = Node2D.new()
-	city_geometry.name = "NeighborBuildingOccluders"
-	add_child(city_geometry)
 	sun_light = PointLight2D.new()
 	sun_light.name = "MovingSun"
 	glow = Lighting.radial_texture()
@@ -267,20 +258,18 @@ func _add_scenery_layer(layer: Control, layer_name: String, mask: int, full_rect
 	add_child(layer)
 	if full_rect: layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-func _add_occluder(center: Vector2, half_size: Vector2, container: Node2D = null) -> void:
+func _add_occluder(center: Vector2, half_size: Vector2) -> void:
 	var node = LightOccluder2D.new()
 	var polygon = OccluderPolygon2D.new()
 	polygon.polygon = PackedVector2Array([Vector2(-half_size.x,-half_size.y),Vector2(half_size.x,-half_size.y),Vector2(half_size.x,half_size.y),Vector2(-half_size.x,half_size.y)])
 	node.occluder = polygon
 	node.occluder_light_mask = 2
 	node.position = center
-	(shadow_geometry if container == null else container).add_child(node)
+	shadow_geometry.add_child(node)
 
 func _update_lighting() -> void:
 	shadow_geometry.position = _origin()
 	shadow_geometry.scale = Vector2.ONE * _unit()
-	city_geometry.position = _origin()
-	city_geometry.scale = Vector2.ONE * _unit()
 	if shadow_revision != sim.revision:
 		shadow_revision = sim.revision
 		var geometry = hash(sim.layout)
@@ -321,7 +310,6 @@ func _sync_scenery(dusk: float) -> void:
 	street_backdrop.self_modulate = street_canvas.self_modulate
 	street_backdrop.color = Color("aebdb3").lerp(Color("586d7a"), dusk).lerp(Color("748997"), weather.cloud_cover * .58).lerp(Color("aebed8"), weather.flash * .52)
 	street_activity.self_modulate = street_canvas.self_modulate
-	street_signs.self_modulate = street_canvas.self_modulate
 	floor_canvas.position = origin
 	floor_canvas.scale = Vector2.ONE * (unit / FLOOR_DRAW_UNIT)
 	floor_canvas.self_modulate = self_modulate
@@ -333,10 +321,6 @@ func _sync_scenery(dusk: float) -> void:
 	if floor_state != floor_style:
 		floor_style = floor_state
 		floor_canvas.queue_redraw()
-	var view = [origin, unit, size]
-	if view != sign_view:
-		sign_view = view
-		street_signs.queue_redraw()
 
 func _rebuild_room_lighting() -> void:
 	var l = sim.layout
@@ -413,7 +397,7 @@ func _place_ceiling_lights(l: Dictionary, walls: Dictionary) -> void:
 		lamps[i].color = Color("fff1d5") if in_kitchen else Color("ffd39b")
 		lamps[i].shadow_enabled = i in shadow_lamps
 
-func _sync_neighbor_occluders() -> void:
+func _sync_street_bounds() -> void:
 	var dimensions = Vector2i(int(sim.layout.width), int(sim.layout.height))
 	var gate = float(sim.layout.entrance[1])
 	if street.dimensions == dimensions and is_equal_approx(street.entrance_y, gate): return
@@ -423,15 +407,9 @@ func _sync_neighbor_occluders() -> void:
 	street_canvas.size = street_draw_bounds.size
 	floor_canvas.size = Vector2(dimensions) * FLOOR_DRAW_UNIT
 	street_canvas.queue_redraw()
-	street_signs.queue_redraw()
-	for node in city_geometry.get_children():
-		city_geometry.remove_child(node)
-		node.queue_free()
-	for building in street.storefronts:
-		_add_occluder(building.get_center(), building.size * 0.47, city_geometry)
 
 func _advance_weather(delta: float) -> void:
-	_sync_neighbor_occluders()
+	_sync_street_bounds()
 	weather.configure(street, int(sim.seed_value))
 	if weather_day != int(sim.day):
 		weather_day = int(sim.day)
@@ -518,7 +496,7 @@ func _origin() -> Vector2:
 
 func play_construction(id: String) -> void:
 	if district_3d == null: return
-	_sync_neighbor_occluders()
+	_sync_street_bounds()
 	district_3d.sync_layout(sim.layout, street, pressed_entity if drag_active else "")
 	district_3d.start_construction(id)
 
@@ -1479,7 +1457,7 @@ func _walk_from_queue(id: String,c: Dictionary,actual: Vector2,visual_tick: floa
 
 func _sync_actors() -> void:
 	if street.inlet==null:
-		_sync_neighbor_occluders()
+		_sync_street_bounds()
 		street.use_layout(sim.layout)
 	var live = {}
 	actor_cells.clear()
@@ -1628,15 +1606,11 @@ func _staff_activity(person: Dictionary) -> String:
 
 func _paint_street() -> void:
 	street_canvas.draw_set_transform(-street_draw_bounds.position)
-	street.paint_scenery(street_canvas, maxf(0.0, scene_light_band / 8.0))
+	street.paint_scenery(street_canvas)
 
 func _paint_street_activity() -> void:
 	if sim == null: return
 	street.paint_activity(street_activity, _origin(), _unit(), street_lamp_light, district_3d == null)
-
-func _paint_street_signs() -> void:
-	if sim != null and font != null:
-		street.paint_signs(street_signs, _origin(), _unit(), font)
 
 func _paint_floor() -> void:
 	if sim == null: return

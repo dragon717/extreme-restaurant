@@ -1,7 +1,5 @@
 extends RefCounted
 
-const Lighting = preload("res://scripts/visuals/restaurant_lighting.gd")
-const Buildings = preload("res://scripts/visuals/district_buildings.gd")
 const ROAD_LEFT := -7.85
 const ROAD_RIGHT := -2.85
 const ROAD_CENTER := -5.35
@@ -19,88 +17,10 @@ const COATS := [Color("a85346"), Color("567d73"), Color("caa05a"), Color("587799
 var dimensions := Vector2i.ZERO
 var bounds := Rect2()
 var entrance_y := 12.0
-var buildings: Array[Dictionary] = []
-var storefronts: Array[Rect2] = []
-var warm_windows: Array[Rect2] = []
-var lamps: Array[Vector2] = []
 var elapsed := 0.0
-
-func configure(map_dimensions: Vector2i, gate := 12.0) -> void:
-	dimensions = map_dimensions
-	entrance_y = gate
-	bounds = Rect2(WEST_EDGE, NORTH_EDGE, dimensions.x - WEST_EDGE + 8.0, dimensions.y - NORTH_EDGE + 9.4)
-	buildings.clear()
-	storefronts.clear()
-	warm_windows.clear()
-	lamps.clear()
-	# West-side homes open onto a pocket park and a market passage.
-	_build(-15.0, -6.35, 5.55, 3.2, "书铺", "hip", "687d83", "d2b394")
-	_build(-14.9, -1.84, 5.05, 3.85, "面包房", "gable", "ae745a", "dbc19b", 3, 2)
-	_build(-12.9, 3.1, 3.99, 2.8, "花房", "glass", "7c9a82", "d0c19a", 0)
-	_build(-15.0, gate + 2.12, 5.7, 4.15, "茶馆", "hip", "607d78", "c6a88a", 1, 3)
-	_build(-14.35, gate + 7.0, 3.8, 3.12, "木器铺", "gable", "a07c63", "cbb291", 1)
-	_build(-14.92, gate + 11.27, 5.68, 3.65, "", "hip", "7a8588", "bca889", 2)
-
-	# The north lane separates larger workshops from the restaurant frontage.
-	var w = float(dimensions.x)
-	_build(-1.80, -7.25, 6.28, 3.3, "邮局", "flat", "827f8d", "d6c5a2", 2)
-	_build(5.24, -7.05, 5.7, 3.17, "", "gable", "8a6364", "d4b79c", 0)
-	_build(13.15, -6.62, 5.35, 2.95, "茶叶行", "hip", "877b73", "c8ab84", 3)
-	_build(19.24, -7.13, 7.35, 3.46, "", "gable", "a07368", "c2a17f", 3)
-	_build(w - 3.90, -7.07, 6.33, 3.55, "", "hip", "607c88", "d7b595", 2)
-	_build(0.20, -2.91, 4.9, 2.5, "咖啡", "gable", "87664f", "d1b594", 2)
-	_build(5.77, -2.70, 3.75, 2.28, "钟表", "flat", "647b8e", "c4b599", 0)
-	_build(11.87, -2.87, 6.03, 2.43, "玻璃花室", "glass", "729579", "d4bf97", 1)
-	_build(20.48, -2.54, 2.90, 2.18, "果摊", "stall", "bb8273", "c6a47f", 3)
-	_build(24.15, -2.95, 5.54, 2.63, "杂货铺", "gable", "a28659", "d7b596", 0)
-	_build(w + 1.44, 1.8, 5.55, 4.31, "糕团铺", "hip", "a16d68", "cdb99e", 3)
-	_build(w + 1.30, 7.10, 3.1, 3.61, "修鞋", "flat", "738c80", "cdb99e", 0)
-	_build(w + 1.65, 12.45, 3.43, 3.13, "", "gable", "b38d70", "cdbb9d", 0)
-	_build(w + 1.7, 19.25, 4.15, 2.46, "", "hip", "679291", "c6b094", 2)
-
-	var h = float(dimensions.y)
-	_build(-.4, h + 5.93, 4.66, 2.54, "夜市", "stall", "ae785f", "d2b18c", 1)
-	_build(5.35, h + 6.12, 2.94, 2.16, "", "stall", "7c8c61", "caad89", 0)
-	_build(10.32, h + 5.62, 5.68, 2.78, "照相馆", "flat", "7c8292", "d1b79f", 0)
-	_build(19.42, h + 5.78, 4.61, 2.74, "", "gable", "a27d65", "c5b398", 2)
-	_build(w - 4.70, h + 5.46, 6.45, 2.92, "南街茶摊", "stall", "8e6a72", "d4b797", 1)
-	for y in [1.6, 6.8, entrance_y + 2.3, 19.4, h + 1.01]:
-		lamps.append(Vector2(ROAD_RIGHT + .44, y))
-	for x in [3.4, 9.7, 17.3, 25.2, 33.5]:
-		if x < w + 7.0: lamps.append(Vector2(x, h + 1.62))
-	lamps.append_array([Vector2(-13.47, entrance_y - 1.22), Vector2(-10, entrance_y + 1.25),
-		Vector2(w + 4.22, 17.73), Vector2(18.88, -3.25)])
-
-func _build(x: float, y: float, w: float, h: float, caption: String, kind: String, roof: String, wall: String, door := 1, steps := 0) -> void:
-	var box = Rect2(x, y, w, h)
-	var lot = {"box": box, "name": caption, "kind": kind, "roof": Color(roof), "wall": Color(wall), "door": door, "steps": steps, "side_entry": x < ROAD_LEFT and str(kind) != "stall"}
-	buildings.append(lot)
-	storefronts.append(box)
-	var face = Buildings.facade(box, kind)
-	warm_windows.append(Rect2(face.position + Vector2(.15,.36), Vector2(face.size.x - .30,maxf(.25,face.size.y-.42))))
-
-func rain_paving() -> Array[Rect2]:
-	var width = float(dimensions.x)
-	var height = float(dimensions.y)
-	return [
-		Rect2(ROAD_LEFT, bounds.position.y, ROAD_RIGHT - ROAD_LEFT, bounds.size.y),
-		Rect2(ROAD_RIGHT, height + 2.0, bounds.end.x - ROAD_RIGHT, 3.27),
-		Rect2(ROAD_RIGHT, 0.0, -ROAD_RIGHT, height + 1.92),
-		Rect2(0.0, -3.80, width, 1.0),
-		Rect2(width, .24, 1.22, height + 1.52)
-	]
 
 func advance(delta: float, paused: bool) -> void:
 	if not paused: elapsed += delta
-
-func vehicle_position(index: int) -> Vector2:
-	var lane = index % 2
-	var slot = floori(float(index) / 2.0)
-	var margin = 1.8
-	var length = bounds.size.y + margin * 2
-	var direction = 1.0 if lane == 0 else -1.0
-	var y = fposmod(elapsed * 2.6 * direction + slot * length / CARS_PER_LANE + lane * 5 + 2.4, length) + NORTH_EDGE - margin
-	return Vector2(lerpf(ROAD_LEFT, ROAD_RIGHT, .25 + lane * .50), y)
 
 func pedestrian_position(index: int) -> Vector2:
 	var stride = elapsed * (.85 + (index % 3) * .16)
@@ -115,65 +35,13 @@ func pedestrian_position(index: int) -> Vector2:
 	var x = fposmod(stride * direction + offset, bounds.end.x - ROAD_RIGHT) + ROAD_RIGHT
 	return Vector2(x, dimensions.y + .78 + (index % 2) * .37)
 
-# Positions here share the restaurant's cell coordinates. The cut starts half
-# a tile beyond the paving edge so actors can fade on either side of it.
-func gate_route(progress: float, target: Vector2) -> Vector2:
-	var start = Vector2(WEST_EDGE - .78, entrance_y + clampf(target.y - entrance_y, -.18, .87) * .44)
-	var curb = Vector2(-2.38, entrance_y + clampf(target.y - entrance_y, -.18, .87) * .61)
-	return _along_gate_route(start, curb, target, progress)
-
-func exit_route(progress: float, start: Vector2) -> Vector2:
-	var end = Vector2(WEST_EDGE - .78, entrance_y + .46)
-	return _along_gate_route(start, Vector2(minf(-2.38, start.x - .17), entrance_y + .63), end, progress)
-
-func _along_gate_route(start: Vector2, corner: Vector2, end: Vector2, progress: float) -> Vector2:
-	var first = start.distance_to(corner)
-	var distance = clampf(progress,0,1) * (first + corner.distance_to(end))
-	if distance <= first:
-		return start.move_toward(corner, distance)
-	return corner.move_toward(end, distance - first)
-
-func threshold_alpha(cell: Vector2) -> float:
-	return smoothstep(WEST_EDGE - .78, WEST_EDGE + .18, cell.x)
-
-func paint_scenery(board: Control, evening: float) -> void:
+func paint_scenery(board: Control) -> void:
 	if dimensions == Vector2i.ZERO: return
 	_ground(board)
 	_draw_roads(board)
 	_draw_yards(board)
 	_draw_market(board)
-	for lot in buildings: Buildings.draw(board, lot, evening)
-	_draw_furniture(board, evening)
-
-func paint_activity(board: Control, origin: Vector2, unit: float, evening: float, flat_scenery := true) -> void:
-	if dimensions == Vector2i.ZERO: return
-	var view = Rect2(-origin / unit, board.size / unit).grow(2.1)
-	if not view.intersects(bounds.grow(1.0)): return
-	board.draw_set_transform(origin, 0, Vector2.ONE * unit)
-	if flat_scenery: _draw_water(board)
-	var street_limit = Rect2(ROAD_LEFT, NORTH_EDGE, ROAD_RIGHT - ROAD_LEFT, bounds.size.y)
-	for index in range(CARS_PER_LANE * 2 if flat_scenery else 0):
-		var point = vehicle_position(index)
-		# Keep the whole vehicle and its lights inside the road cutoff.
-		if street_limit.grow(-1.08).has_point(point) and view.has_point(point):
-			_draw_car(board, point, index, evening)
-	for index in range(21):
-		var point = pedestrian_position(index)
-		if bounds.grow(-.35).has_point(point) and view.has_point(point):
-			_draw_pedestrian(board, point, index)
-	board.draw_set_transform(Vector2.ZERO)
-
-func paint_signs(board: Control, origin: Vector2, unit: float, font: Font) -> void:
-	if unit < 15.0: return
-	var view = Rect2(-origin / unit, board.size / unit)
-	var font_size = clampi(roundi(unit * .38), 8, 17)
-	for lot in buildings:
-		if str(lot.name).is_empty() or not view.intersects(lot.box): continue
-		var sign = Buildings.sign_rect(lot)
-		var center = origin + sign.get_center() * unit
-		var caption := str(tr(str(lot.name)))
-		var width = font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-		board.draw_string(font, center + Vector2(-width*.5, font_size*.34), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("f5e3b9"))
+	_draw_furniture(board)
 
 func _ground(board: Control) -> void:
 	var x = bounds.position.x
@@ -315,13 +183,9 @@ func _draw_market(board: Control) -> void:
 		board.draw_rect(mat, Color("a17c6a"))
 		board.draw_line(mat.position+Vector2(.10,.11),mat.end-Vector2(.10,.11),stripe,.024)
 
-func lamp_head(position: Vector2) -> Vector2:
-	return position + Vector2(.17, -.55)
-
-func _draw_furniture(board: Control, evening: float) -> void:
+func _draw_furniture(board: Control) -> void:
 	var h = float(dimensions.y)
 	var w = float(dimensions.x)
-	for lamp in lamps: _lamp(board, lamp, evening)
 	for location in [Vector2(-14.24,7.88),Vector2(-9.32,8.48),Vector2(-14.61,9.91),Vector2(-13.21,5.58),
 		Vector2(-10.03,entrance_y+6.93),Vector2(-15.13,entrance_y+10.86),Vector2(-1.01,3.8),
 		Vector2(-.72,8.02),Vector2(-.70,17.4),Vector2(w+5.87,7.35),Vector2(w+4.19,18.26),
@@ -367,16 +231,6 @@ func _planter(board: Control, p: Vector2, tint: Color) -> void:
 	board.draw_rect(Rect2(p.x - 0.2, p.y - 0.07, 0.4, 0.26), Color("735e4d"))
 	board.draw_circle(p - Vector2(0.02, 0.12), 0.23, Color("557554"))
 	board.draw_circle(p - Vector2(0.08, 0.21), 0.12, tint.lightened(0.35))
-
-func _lamp(board: Control, p: Vector2, evening: float) -> void:
-	var head = p - Vector2(-0.17, 0.55)
-	if evening > 0.0:
-		board.draw_circle(head, .66, Color("ffc889", evening * .08))
-		board.draw_circle(head, .36, Color("ffcb82", evening * .16))
-		board.draw_circle(head, .15, Color("ffdd9f", evening * .36))
-	board.draw_line(p, p - Vector2(0.0, 0.55), Color("47564e"), 0.065)
-	board.draw_line(p - Vector2(0.0, 0.55), head, Color("47564e"), 0.065)
-	board.draw_rect(Rect2(head - Vector2(0.06, 0.06), Vector2(0.19, 0.10)), Color("877d65").lerp(Color("ffda91"), evening))
 
 func _draw_bicycle(board: Control, p: Vector2, color: Color) -> void:
 	var front = p - Vector2(0.04, 0.27)

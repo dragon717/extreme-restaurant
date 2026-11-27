@@ -427,31 +427,6 @@ func _build_interface() -> void:
 		ui[tool[0]] = button
 		button.hide()
 	ui.info_panel.visible = false
-	ui.slot_panel = Style.card()
-	ui.slot_panel.add_theme_stylebox_override("panel",Style.surface(Style.GOLD, 15))
-	overlay.add_child(ui.slot_panel)
-	_rect(ui.slot_panel,-360,150,-18,347,1,0)
-	var slot_body = VBoxContainer.new()
-	ui.slot_panel.add_child(slot_body)
-	var slot_header = HBoxContainer.new()
-	slot_body.add_child(slot_header)
-	var slot_title = Style.text(tr("采购处"),22,Style.GOLD)
-	slot_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slot_header.add_child(Icon.make("coins", Style.GOLD, 22))
-	slot_header.add_child(slot_title)
-	var slot_close = _icon_button("close", tr("关闭"))
-	slot_close.pressed.connect(func():
-		ui.slot_panel.hide()
-		_clear_inspector()
-	)
-	slot_header.add_child(slot_close)
-	slot_body.add_child(Style.text(tr("每晚到货一道菜谱、两项增益。选中商品即可查看价格和效果。"),15,Style.INK,true))
-	ui.slot_hint = Style.text("",14,Style.MUTED,true)
-	slot_body.add_child(ui.slot_hint)
-	ui.enter_shop = Style.button(tr("进入采购"),true)
-	ui.enter_shop.pressed.connect(_show_purchase_page)
-	slot_body.add_child(ui.enter_shop)
-	ui.slot_panel.visible = false
 	service_feedback = ServiceFeedback.new()
 	service_feedback.wallet = ui.gold_label
 	service_feedback.z_index = 2
@@ -498,8 +473,6 @@ func _refresh_all() -> void:
 	ui.fast.visible = sim.phase == "DAY"
 	if sim.phase != "DAY": _hide_special_notice()
 	ui.pause.visible = sim.phase == "DAY"
-	ui.slot_hint.text = tr("仅在夜晚采购；白天请观察经营。") if not night else tr("今晚商品已准备好，价格在采购页查看。")
-	ui.enter_shop.disabled = not night
 	if not night:
 		ui.info_panel.hide()
 	_update_hud()
@@ -1147,7 +1120,6 @@ func _management_header(box: VBoxContainer, summary := "", hiring := false) -> v
 
 func _show_cashier_page() -> void:
 	ui.info_panel.hide()
-	ui.slot_panel.hide()
 	var box = _new_modal("cashier", "招聘与改造", 746)
 	_management_header(box, "", true)
 	var entries = {"waiters": ["服务员", "crowd"], "chefs": ["厨师与灶台", "chef"], "tables": ["桌位", "table"],
@@ -2044,10 +2016,9 @@ func _go_back() -> void:
 	elif ui.diagnostic_card.visible:
 		_dismiss_diagnostic()
 	else:
-		var had_inspector: bool = ui.info_panel.visible or ui.slot_panel.visible or not inspected.is_empty()
+		var had_inspector: bool = ui.info_panel.visible or not inspected.is_empty()
 		world.cancel_placement()
 		_clear_inspector()
-		ui.slot_panel.hide()
 		if not had_inspector: _show_settings()
 
 func _activate_shortcut(action: String) -> void:

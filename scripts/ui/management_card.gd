@@ -3,10 +3,8 @@ extends PanelContainer
 const Style = preload("res://scripts/ui/style.gd")
 const Icon = preload("res://scripts/ui/ui_icon.gd")
 
-const SURFACE := Color("273c43")
 const EDGE := Color("4d6768")
 const INSET := Color("1c2d34")
-const GRAY_SURFACE := Color("363b3e")
 const GRAY_TEXT := Color("c3c6c4")
 const GRAY_MUTED := Color("a4a9a7")
 

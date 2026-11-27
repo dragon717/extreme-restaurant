@@ -3,7 +3,6 @@ extends RefCounted
 ## never inherit a minion modifier or count twice for a bond.
 const KINDS := ["melee","caster","siege"]
 const NAMES := {"melee":"近战小兵","caster":"法师小兵","siege":"炮车兵"}
-const ART := {"melee":"blue-melee","caster":"blue-caster","siege":"blue-siege"}
 const TRAITS := {
 	"chef":{"melee":"前往灶位时移速提高 6%。","caster":"烹饪用时减少 4%。","siege":"将成菜搬往出餐口时移速提高 8%。"},
 	"waiter":{"melee":"前往客桌接单时移速提高 6%。","caster":"桌边点单用时减少 10%。","siege":"端菜送往客桌时移速提高 8%。"}

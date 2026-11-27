@@ -11,9 +11,6 @@ func configure(map_dimensions: Vector2i, gate := 12.0) -> void:
 	dimensions = map_dimensions
 	entrance_y = gate
 	bounds = Plan.bounds()
-	buildings.clear()
-	storefronts.clear()
-	warm_windows.clear()
 	var nodes: Array = []
 	for point in Plan.GUEST_PATH: nodes.append(Plan.from_art(point))
 	var lane:=Plan.entry_lane(gate)
@@ -21,8 +18,6 @@ func configure(map_dimensions: Vector2i, gate := 12.0) -> void:
 	nodes.append(Vector2(0,gate))
 	outward.clear()
 	inlet=Walk.new(nodes)
-
-	lamps.clear()
 
 func rain_paving() -> Array[Rect2]:
 	return [Rect2(Plan.from_art(Vector2(432,660)), Vector2(27,14)),Rect2(Plan.from_art(Vector2(1005,373)),Vector2(15,6))]
@@ -72,3 +67,21 @@ func vehicle_heading(index: int) -> float:
 	var delta := Plan.route(Plan.CARGO_PATH, minf(1, fraction+.003))-Plan.route(Plan.CARGO_PATH,maxf(0,fraction-.003))
 	if t > 1: delta = -delta
 	return atan2(-delta.x,-delta.y)
+
+func paint_activity(board: Control, origin: Vector2, unit: float, evening: float, flat_scenery := true) -> void:
+	if dimensions == Vector2i.ZERO: return
+	var view = Rect2(-origin / unit, board.size / unit).grow(2.1)
+	if not view.intersects(bounds.grow(1.0)): return
+	board.draw_set_transform(origin, 0, Vector2.ONE * unit)
+	if flat_scenery: _draw_water(board)
+	var street_limit = Rect2(ROAD_LEFT, NORTH_EDGE, ROAD_RIGHT - ROAD_LEFT, bounds.size.y)
+	for index in range(CARS_PER_LANE * 2 if flat_scenery else 0):
+		var point = vehicle_position(index)
+		# Keep the whole vehicle and its lights inside the road cutoff.
+		if street_limit.grow(-1.08).has_point(point) and view.has_point(point):
+			_draw_car(board, point, index, evening)
+	for index in range(21):
+		var point = pedestrian_position(index)
+		if bounds.grow(-.35).has_point(point) and view.has_point(point):
+			_draw_pedestrian(board, point, index)
+	board.draw_set_transform(Vector2.ZERO)

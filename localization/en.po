@@ -159,17 +159,8 @@ msgstr "Cancel placement [Esc]"
 msgid "采购处"
 msgstr "Supply stall"
 
-msgid "每晚到货一道菜谱、两项增益。选中商品即可查看价格和效果。"
-msgstr "One recipe and two boosts arrive each night. Select an item to see its price and effect."
-
-msgid "进入采购"
-msgstr "Browse supplies"
-
 msgid "仅在夜晚采购；白天请观察经营。"
 msgstr "Shop at night. Watch service during the day."
-
-msgid "今晚商品已准备好，价格在采购页查看。"
-msgstr "Tonight's supplies are ready. Open the stall for prices."
 
 msgid "急送 · %d秒"
 msgstr "Rush · %ds"
@@ -1028,9 +1019,6 @@ msgstr "View supply stall"
 
 msgid "查看装饰商店"
 msgstr "View decor shop"
-
-msgid "点右侧「进入采购」。买到的菜谱会永久进收藏，增益只在标明的营业日内生效。"
-msgstr "Select Browse Supplies on the right. Recipes stay in your collection. Boosts last for the stated number of service days."
 
 msgid "点击餐厅里的空格放置新设施，给座位和柜台留出通路。暂时不用的设施，可以在右下角「建造」背包里找回。"
 msgstr "Place new facilities on empty tiles and leave paths to seats and counters. You can recover stored items from Build at the bottom right."
@@ -2537,60 +2525,6 @@ msgstr "Adjacent stove meal quality +%d%%"
 
 msgid "餐"
 msgstr "Food"
-
-msgid "书铺"
-msgstr "Books"
-
-msgid "面包房"
-msgstr "Bakery"
-
-msgid "花房"
-msgstr "Flowers"
-
-msgid "茶馆"
-msgstr "Tea House"
-
-msgid "木器铺"
-msgstr "Woodworks"
-
-msgid "邮局"
-msgstr "Post"
-
-msgid "茶叶行"
-msgstr "Tea Shop"
-
-msgid "咖啡"
-msgstr "Coffee"
-
-msgid "钟表"
-msgstr "Clocks"
-
-msgid "玻璃花室"
-msgstr "Glasshouse"
-
-msgid "果摊"
-msgstr "Fruit"
-
-msgid "杂货铺"
-msgstr "General Store"
-
-msgid "糕团铺"
-msgstr "Rice Cakes"
-
-msgid "修鞋"
-msgstr "Cobbler"
-
-msgid "夜市"
-msgstr "Night Market"
-
-msgid "照相馆"
-msgstr "Portraits"
-
-msgid "南街茶摊"
-msgstr "South Street Tea"
-
-msgid "食 堂"
-msgstr "Tavern"
 
 msgid "迅捷步伐"
 msgstr "Quick Steps"

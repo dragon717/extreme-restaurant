@@ -2,7 +2,6 @@ extends Node3D
 ## Ground marks live in map coordinates. Only nearby leaves are queried at each
 ## footfall. The GPU batches, footprint slots and spray pool never grow during play.
 const Plan = preload("res://scripts/visuals/canyon_plan.gd")
-const DEPTH := 1.2018504
 const LEAVES := 384
 const PRINTS := 160
 const PUFFS := 64

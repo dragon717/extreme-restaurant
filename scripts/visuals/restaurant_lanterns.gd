@@ -11,7 +11,6 @@ func _draw() -> void:
 	if board == null or board.sim == null or board.lamp_positions.is_empty(): return
 	var unit: float = board._unit()
 	var indoor: float = board.room_lamp_light
-	var evening: float = board.street_lamp_light
 	draw_set_transform(board._origin(), 0, Vector2.ONE * unit)
 	for i in range(board.lamp_positions.size()):
 		var fixture: Vector2 = board.lamp_positions[i] + Vector2(.5, .5)
@@ -29,16 +28,6 @@ func _draw() -> void:
 			draw_circle(fixture - Vector2(0, .04), .105, Color("846a55").lerp(bulb.lightened(.4), .36 + indoor * .64) if board.weather.cloud_cover > .01 else bulb.lightened(.4))
 			draw_line(fixture + Vector2(-.25,-.06), fixture + Vector2(.25,-.06), brass.darkened(.18), .045)
 			if indoor > .015: _pool(fixture, Vector2(.88,.61), Color(bulb, indoor * .50))
-	if evening <= .015: return
-	for glass in board.street.warm_windows:
-		var center = glass.get_center()
-		_pool(center, Vector2(glass.size.x * .60, glass.size.y * 1.30), Color("ffc785", evening * .23))
-		for index in range(1, maxi(2, floori(glass.size.x))):
-			var window = Rect2(glass.position + Vector2(index + .12, .08), Vector2(.38, maxf(.12, glass.size.y * .63)))
-			if window.end.x < glass.end.x:
-				draw_rect(window, Color("ffd08b", evening * .11))
-	for p in board.street.lamps:
-		_street_bulb(board.street.lamp_head(p), evening)
 
 func _lantern(p: Vector2, evening: float) -> void:
 	draw_line(p - Vector2(0,.38), p, Color("74513f"), .045)
@@ -47,7 +36,3 @@ func _lantern(p: Vector2, evening: float) -> void:
 	draw_rect(Rect2(p - Vector2(.15,.18), Vector2(.30,.046)), Color("915c4a"))
 	draw_rect(Rect2(p + Vector2(-.13,.13), Vector2(.26,.045)), Color("915c4a"))
 	draw_line(p + Vector2(0,.17), p + Vector2(0,.30), Color("c16b51"), .042)
-
-func _street_bulb(p: Vector2, evening: float) -> void:
-	_pool(p, Vector2(.72,.72), Color("ffd395", evening * .45))
-	draw_circle(p, .065, Color("ffe6ad", evening))
