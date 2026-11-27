@@ -1,3 +1,4 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
 /局域网游玩.cmd text eol=crlf
+/一键打包Web.cmd text eol=crlf

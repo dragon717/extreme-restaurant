@@ -16,7 +16,16 @@
 
 完整解压 `build/峡谷餐厅-Web局域网.zip`，Windows 双击「局域网游玩.cmd」，Mac 双击「局域网游玩.command」。游戏包自带服务器，启动窗口会显示本机地址和同网设备使用的 HTTPS 地址。各设备独立游玩，进度保存在该浏览器对应地址的站点数据中。[游玩说明](tools/lan/游玩说明.txt)
 
-在源码目录运行 `python3 tools/build_lan_web.py` 可重新打包，需要 Godot 4.6.3、对应 Web 导出模板和 Go 1.21 或更高版本。程序使用单线程 WebAssembly 和 WebGL 2，同时导出桌面与移动纹理。构建结束后，仓库根目录的两个启动命令也可以直接使用。
+**从源码重新打包**时，在项目根目录双击对应入口，也可以在终端执行下表中的命令。
+
+| 打包电脑 | 命令 |
+| --- | --- |
+| macOS | `./一键打包Web.command` |
+| Windows（PowerShell 或 CMD） | `.\一键打包Web.cmd` |
+
+打包电脑需要 **Godot 4.6.3 标准版及同版本导出模板、Python 3、Go 1.21 或更高版本**。Godot 导出网页，Go 编译包内两种系统的局域网服务器。Mac 可将 Godot 放入“应用程序”。若找不到编辑器，将 `GODOT_BIN` 设为 Godot 可执行文件的完整路径，例如在 Windows PowerShell 中执行 `$env:GODOT_BIN = 'D:\Godot\Godot_v4.6.3-stable_win64.exe'`，再运行打包命令。[Godot 4.6.3 编辑器与导出模板](https://godotengine.org/download/archive/4.6.3-stable/)
+
+两个入口都调用原有的 `tools/build_lan_web.py`，生成可独立部署的 `build/canyon-web/site/index.html` 及其资源，并输出含 Mac 和 Windows 启动器的 `build/峡谷餐厅-Web局域网.zip`。网页使用单线程 WebAssembly 和 WebGL 2，包含桌面与移动纹理。
 
 ## 运行与存档
 
